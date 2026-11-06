@@ -69,6 +69,14 @@ node e2e/gallery.mjs http://127.0.0.1:8000 /tmp/gallery # `geoloupe gallery` (ne
 > `UV_PROJECT_ENVIRONMENT` (or a `.venv` symlink), `UV_CACHE_DIR`, `npm_config_cache` and
 > `PLAYWRIGHT_BROWSERS_PATH` to a project store, and link `frontend/node_modules` there too.
 
+### Run the CI before you push
+
+`scripts/ci_local.sh [WORKDIR]` runs the CI jobs of `.github/workflows/ci.yml` on a fresh clone of the
+current commit: lint, mypy and tests on Python 3.12 and 3.13 (whose newer numpy and zarr have
+stricter type stubs than 3.11), the web client with a clean `npm ci`, and the browser smoke test
+with the demo data. `GALLERY=1` adds the gallery test on live public data. It creates one
+environment per job in `WORKDIR` (default `$TMPDIR/geoloupe-ci`); delete it afterwards.
+
 ## Conventions
 
 * **Python:** typed (mypy clean), formatted with `ruff format` (line length 100), linted with
