@@ -404,10 +404,15 @@ class Catalog:
             ploc: str | list[str] = (
                 dcfg.path if isinstance(dcfg.path, list) else self.config.resolve(dcfg.path)
             )
-            groups = (
-                multiscale_groups(ploc, dcfg.storage_options) if isinstance(ploc, str) else None
+            maybe_zarr = isinstance(ploc, str) and (
+                dcfg.engine == "zarr" or (dcfg.engine == "auto" and _is_zarr(ploc))
             )
-            if groups and (dcfg.engine in ("auto", "zarr")):
+            groups = (
+                multiscale_groups(ploc, dcfg.storage_options)
+                if maybe_zarr and isinstance(ploc, str)
+                else None
+            )
+            if groups:
                 for i, g in enumerate(groups):
                     out.append(
                         (
@@ -726,6 +731,13 @@ class Catalog:
         if entry is None or var not in entry.sources:
             raise KeyError(f"unknown source {source_id!r}")
         return entry.sources[var]
+
+
+def _is_zarr(loc: str) -> bool:
+    try:
+        return detect_engine(loc) == "zarr"
+    except OpenError:
+        return False  # unknown format: the open reports it
 
 
 def _time_axis(

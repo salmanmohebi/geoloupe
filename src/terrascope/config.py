@@ -245,6 +245,8 @@ class PointsConfig(_Model):
     title: str | None = None
     attribution: str | None = None
     path: str | list[str]  # a file, a folder (hive-partitioned Parquet), or several files/URLs
+    # fsspec options for remote files; s3:// is read anonymously unless keys or anon: false
+    storage_options: dict[str, Any] = Field(default_factory=dict)
     format: Literal["auto", "parquet", "csv", "netcdf", "zarr"] = "auto"
     # Time step of very large tables whose times are not listed (e.g. "1D"); default: detected.
     time_step: str | None = None
@@ -265,6 +267,8 @@ class VectorConfig(_Model):
     attribution: str | None = None
     # GeoJSON, Shapefile (also zipped), GeoPackage, FlatGeobuf, KML, GML, GeoParquet; path or URL
     path: str
+    # s3:// is read anonymously (public buckets) unless keys or anon: false are given
+    storage_options: dict[str, Any] = Field(default_factory=dict)
     layer: str | None = None  # layer of a multi-layer file (GeoPackage)
     where: str | None = None  # attribute filter (OGR SQL), e.g. "scalerank <= 6"
     properties: list[str] | None = None  # attributes to send (default: all)

@@ -1,0 +1,20 @@
+# Public data straight from AWS Open Data S3 buckets: no credentials, no download.
+# s3:// paths are read anonymously (as public data) and, where possible, through plain HTTPS,
+# which is much faster than an S3 client from many networks.
+#
+#   terrascope serve examples/public-s3.yaml
+title: Public S3 buckets (AWS Open Data)
+datasets:
+  ocean:
+    title: GFDL-ESM4 ocean, CMIP6 historical (s3://cmip6-pds)
+    path: s3://cmip6-pds/CMIP6/CMIP/NOAA-GFDL/GFDL-ESM4/historical/r1i1p1f1/Omon/tos/gn/v20190726
+    styles:
+      tos: {colormap: thermal, vmin: -2, vmax: 32, units: °C}
+    attribution: GFDL-ESM4 CMIP6 (CC BY 4.0); CMIP6 on AWS Open Data
+  dem:
+    title: Copernicus DEM GLO-30, Matterhorn tile (s3://copernicus-dem-30m)
+    path: s3://copernicus-dem-30m/Copernicus_DSM_COG_10_N45_00_E007_00_DEM/Copernicus_DSM_COG_10_N45_00_E007_00_DEM.tif
+    variable_name: elevation
+    styles:
+      elevation: {colormap: terrain, units: m}
+    attribution: Copernicus DEM GLO-30 © DLR e.V. and Airbus Defence and Space GmbH, provided under COPERNICUS by the EU and ESA

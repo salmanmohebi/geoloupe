@@ -22,7 +22,7 @@ from typing import Any
 import numpy as np
 
 from terrascope.config import Config, VectorConfig
-from terrascope.readers import with_retries
+from terrascope.readers import gdal_path, public_https, s3_options, with_retries
 
 log = logging.getLogger(__name__)
 
@@ -79,6 +79,7 @@ def _read_ogr(loc: str, cfg: VectorConfig) -> tuple[Any, list[str], dict[str, li
         ) from e
     import shapely
 
+    loc = gdal_path(loc, cfg.storage_options)  # public s3:// objects through HTTPS
     path = loc
     if loc.startswith(("http://", "https://")) and loc.lower().endswith(".zip"):
         path = "/vsizip//vsicurl/" + loc  # a zipped Shapefile on the web
@@ -97,7 +98,17 @@ def _read_geoparquet(
     import pyarrow.parquet as pq
     import shapely
 
-    table = pq.read_table(loc)
+    fs = None
+    if "://" in loc:
+        import fsspec
+
+        url = public_https(loc, cfg.storage_options)
+        if url or loc.startswith(("http://", "https://")):  # public S3 or web: HTTPS
+            fs, loc = fsspec.filesystem("https"), url or loc
+        else:  # s3:// with credentials, gs://, …
+            fs = fsspec.filesystem(loc.split("://", 1)[0], **s3_options(loc, cfg.storage_options))
+            loc = loc.split("://", 1)[1]
+    table = pq.read_table(loc, filesystem=fs)
     geo = json.loads((table.schema.metadata or {}).get(b"geo", b"{}") or b"{}")
     gcol = geo.get("primary_column", "geometry")
     if gcol not in table.column_names:

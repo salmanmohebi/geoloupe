@@ -48,6 +48,56 @@ def _transient(exc: BaseException) -> bool:
     return False
 
 
+# ------------------------------------------------------------------ S3
+_S3_CREDENTIAL_KEYS = ("key", "secret", "token", "profile")
+
+
+def is_s3(loc: str) -> bool:
+    return loc.startswith("s3://")
+
+
+def s3_anonymous(storage_options: dict[str, Any] | None) -> bool:
+    """Whether to read s3:// without credentials: yes, unless the config gives `anon: false`,
+    keys or a profile. Most open geodata sits in public buckets (AWS Open Data)."""
+    so = storage_options or {}
+    if "anon" in so:
+        return bool(so["anon"])
+    return not any(k in so for k in _S3_CREDENTIAL_KEYS)
+
+
+def s3_https(loc: str) -> str:
+    """s3://bucket/key → https://bucket.s3.amazonaws.com/key (a public object over HTTPS)."""
+    bucket, _, key = loc[5:].partition("/")
+    return f"https://{bucket}.s3.amazonaws.com/{key}"
+
+
+def s3_options(loc: str, storage_options: dict[str, Any] | None) -> dict[str, Any]:
+    """fsspec options for a location: `anon: True` for s3:// unless credentials are configured."""
+    so = dict(storage_options or {})
+    if is_s3(loc) and "anon" not in so and s3_anonymous(so):
+        so["anon"] = True
+    return so
+
+
+def gdal_path(path: str, storage_options: dict[str, Any] | None = None) -> str:
+    """The path GDAL should open: public s3:// objects through HTTPS (no AWS keys needed)."""
+    so = storage_options or {}
+    custom_endpoint = bool((so.get("client_kwargs") or {}).get("endpoint_url"))
+    if is_s3(path) and s3_anonymous(so) and not custom_endpoint:
+        return s3_https(path)
+    return path
+
+
+def public_https(loc: str, storage_options: dict[str, Any] | None = None) -> str | None:
+    """The HTTPS URL of a public s3:// object (read anonymously), else None.
+
+    Plain HTTPS range requests are much faster than s3fs from many networks (no region
+    redirects, no credential lookup): 4 s instead of 54 s for one CMIP6 field from the cluster.
+    """
+    url = gdal_path(loc, storage_options)
+    return url if url != loc else None
+
+
 def with_retries(fn: Callable[[], T], remote: bool, what: str, attempts: int = 3) -> T:
     """Call `fn`; for remote data, retry network failures with backoff (1 s, 2 s, …).
 
@@ -108,7 +158,8 @@ def detect_engine(location: str | list[str]) -> str:
         return "geotiff"
     if loc.endswith(_REF_EXT):
         return "kerchunk"
-    if location.startswith(("http://", "https://")) and _remote_zarr(location):
+    url = s3_https(location) if is_s3(location) else location
+    if url.startswith(("http://", "https://")) and _remote_zarr(url):
         return "zarr"  # a store without .zarr in its name (e.g. the CMIP6 archive)
     raise OpenError(f"cannot tell the format of {location!r}; set 'engine' in the dataset config")
 
@@ -135,7 +186,34 @@ def open_dataset(
     open_kwargs: dict[str, Any] | None = None,
     group: str | None = None,
 ) -> xr.Dataset:
-    """Open one dataset lazily. Raises OpenError with a readable message."""
+    """Open one dataset lazily. Raises OpenError with a readable message.
+
+    `s3://` data is read anonymously first (public buckets need no setup); if that fails, once
+    more with the AWS credentials of the environment. `storage_options: {anon: false}` skips
+    the anonymous try.
+    """
+    so = dict(storage_options or {})
+    if isinstance(location, str) and is_s3(location) and "anon" not in so and s3_anonymous(so):
+        try:
+            return _open(location, engine, {**so, "anon": True}, open_kwargs, group)
+        except OpenError as first:
+            try:
+                return _open(location, engine, {**so, "anon": False}, open_kwargs, group)
+            except OpenError:
+                raise OpenError(
+                    f"{first} (read without credentials, as public data; for a private bucket "
+                    "set AWS credentials, and storage_options: {anon: false})"
+                ) from first
+    return _open(location, engine, so, open_kwargs, group)
+
+
+def _open(
+    location: str | list[str],
+    engine: str,
+    storage_options: dict[str, Any],
+    open_kwargs: dict[str, Any] | None,
+    group: str | None,
+) -> xr.Dataset:
     storage_options = storage_options or {}
     kw = dict(open_kwargs or {})
     if engine == "auto":
@@ -143,6 +221,12 @@ def open_dataset(
     try:
         if engine == "zarr":
             assert isinstance(location, str)
+            url = public_https(location, storage_options)
+            if url:  # public S3 through HTTPS: much faster than s3fs, needs no AWS setup
+                try:
+                    return _open_zarr(url, {}, dict(kw), group)
+                except Exception as e:  # e.g. Zarr v2 without consolidated metadata: needs listing
+                    log.info("%s over HTTPS failed (%s); trying s3fs", location, e)
             return _open_zarr(location, storage_options, kw, group)
         if engine == "netcdf":
             return _open_netcdf(location, storage_options, kw, group)
@@ -214,9 +298,9 @@ def _open_netcdf(
         if _is_remote(f):
             import fsspec
 
-            return xr.open_dataset(
-                fsspec.open(f, **so).open(), engine="h5netcdf", chunks=None, **kw
-            )
+            url = public_https(f, so)
+            handle = fsspec.open(url).open() if url else fsspec.open(f, **so).open()
+            return xr.open_dataset(handle, engine="h5netcdf", chunks=None, **kw)
         if not os.path.exists(f):
             raise OpenError(f"not found: {f}")
         return _open_one_netcdf(f, kw)
@@ -262,8 +346,8 @@ _GDAL_CLOUD_DEFAULTS = {
 def _gdal_env(storage_options: dict[str, Any] | None) -> None:
     for k, v in _GDAL_CLOUD_DEFAULTS.items():
         os.environ.setdefault(k, v)
-    if (storage_options or {}).get("anon"):
-        os.environ.setdefault("AWS_NO_SIGN_REQUEST", "YES")  # public S3 buckets
+    # Public s3:// objects are read through HTTPS (gdal_path), so no process-wide
+    # AWS_NO_SIGN_REQUEST: it would break files read with credentials in the same server.
 
 
 def geotiff_overviews(path: str, storage_options: dict[str, Any] | None = None) -> list[int]:
@@ -271,8 +355,13 @@ def geotiff_overviews(path: str, storage_options: dict[str, Any] | None = None) 
     import rasterio
 
     _gdal_env(storage_options)
-    with rasterio.open(path) as src:
-        return list(src.overviews(1))
+    for p in dict.fromkeys([gdal_path(path, storage_options), path]):  # public first, then keys
+        try:
+            with rasterio.open(p) as src:
+                return list(src.overviews(1))
+        except rasterio.errors.RasterioIOError:
+            continue
+    return []
 
 
 def _open_geotiff(
@@ -286,6 +375,7 @@ def _open_geotiff(
     import rioxarray
 
     _gdal_env(storage_options)
+    path = gdal_path(path, storage_options)
     kw.pop("decode_timedelta", None)
     # lock=False: rioxarray's default is one global lock for all files, which serialises every read
     # in the server (each remote read waits for HTTP round trips). GDAL reads are thread-safe with
@@ -354,8 +444,11 @@ def multiscale_groups(
     """
     import zarr
 
+    url = public_https(location, storage_options)  # public S3: HTTPS, not s3fs
     try:
-        root = zarr.open_group(location, mode="r", storage_options=storage_options or None)
+        root = zarr.open_group(
+            url or location, mode="r", storage_options=None if url else storage_options or None
+        )
     except Exception:  # not a group (e.g. a plain array store)
         return None
     ms = root.attrs.get("multiscales")

@@ -39,7 +39,7 @@ import numpy as np
 import pandas as pd
 
 from terrascope.config import Config, PointColumns, PointsConfig
-from terrascope.readers import with_retries
+from terrascope.readers import public_https, s3_options, with_retries
 from terrascope.styles import default_style
 from terrascope.timeaxis import TimeAxis, TimeError, compact_axis
 
@@ -331,7 +331,13 @@ class TablePointSource(PointSource):
             usecols = self._csv_usecols()
 
             def read(loc: str) -> pd.DataFrame:
-                return pd.read_csv(loc, sep=sep, low_memory=False, usecols=usecols)
+                url = public_https(loc, self.cfg.storage_options)  # public S3: plain HTTPS
+                if url:
+                    return pd.read_csv(url, sep=sep, low_memory=False, usecols=usecols)
+                so = s3_options(loc, self.cfg.storage_options) if _fsspec_url(loc) else None
+                return pd.read_csv(
+                    loc, sep=sep, low_memory=False, usecols=usecols, storage_options=so
+                )
 
             with ThreadPoolExecutor(max_workers=8) as pool:  # remote files: download in parallel
                 frames = list(pool.map(read, self.locations))
@@ -342,9 +348,11 @@ class TablePointSource(PointSource):
         if self._dataset is None:
             import pyarrow.dataset as pds
 
-            part = "hive" if os.path.isdir(self.location) else None
-            src = self.locations if len(self.locations) > 1 else self.location
-            self._dataset = pds.dataset(src, format="parquet", partitioning=part)
+            fs, paths = _filesystem(self.locations, self.cfg.storage_options)
+            folder = fs.isdir(paths[0]) if fs is not None else os.path.isdir(self.location)
+            part = "hive" if folder else None
+            src = paths if len(paths) > 1 else paths[0]
+            self._dataset = pds.dataset(src, format="parquet", partitioning=part, filesystem=fs)
         return self._dataset
 
     def _csv_prepared(self) -> pd.DataFrame:
@@ -724,11 +732,33 @@ def open_points(sid: str, cfg: PointsConfig, config: Config) -> PointSource:
     if fmt in ("netcdf", "zarr"):
         from terrascope.readers import open_dataset
 
-        ds = open_dataset(location, "zarr" if low.endswith(".zarr") else "netcdf")
+        ds = open_dataset(
+            location, "zarr" if low.endswith(".zarr") else "netcdf", cfg.storage_options
+        )
         if not is_dsg(ds):
             raise PointsError(f"{location} is not a CF timeSeries dataset (featureType attribute)")
         return DSGPointSource(sid, cfg, location, ds)
     return TablePointSource(sid, cfg, location, fmt, resolved)
+
+
+def _fsspec_url(loc: str) -> bool:
+    """Object-store URLs (s3://, gs://, …) that pandas and pyarrow read through fsspec."""
+    return "://" in loc and not loc.startswith(("http://", "https://", "file://"))
+
+
+def _filesystem(locations: list[str], so: dict[str, Any]) -> tuple[Any, list[str]]:
+    """(fsspec filesystem or None for local files, paths without the scheme)."""
+    if not _fsspec_url(locations[0]):
+        return None, locations
+    import fsspec
+
+    if all(loc.lower().endswith((".parquet", ".parq")) for loc in locations):
+        urls = [public_https(loc, so) for loc in locations]
+        if all(urls):  # public single files: HTTPS range requests (folders need s3fs listing)
+            return fsspec.filesystem("https"), [str(u) for u in urls]
+    proto = locations[0].split("://", 1)[0]
+    fs = fsspec.filesystem(proto, **s3_options(locations[0], so))
+    return fs, [loc.split("://", 1)[1] for loc in locations]
 
 
 def looks_like_points(path: str) -> bool:

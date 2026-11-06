@@ -44,6 +44,7 @@ No configuration is needed for a first look:
 uv run terrascope serve /path/to/data.zarr        # or .nc, .grib2, .tif, a URL
 uv run terrascope serve grid.zarr stations.csv     # several files; tables become point layers
 uv run terrascope serve grid.zarr regions.geojson  # vector files become overlays
+uv run terrascope serve s3://copernicus-dem-30m/Copernicus_DSM_COG_10_N46_00_E007_00_DEM/Copernicus_DSM_COG_10_N46_00_E007_00_DEM.tif  # public S3: no setup
 uv run terrascope serve config.yaml --allow-open --open-root ~/data   # "Add data" in the browser
 uv run terrascope info  /path/to/data.zarr        # what TerraScope sees: variables, grid, CRS, times
 ```
@@ -110,7 +111,7 @@ terrascope.show({"data": ds})           # interactive map in the cell output
 * **Compare.** Side by side (two synchronised maps) or a difference map A − B, across layers or times.
 * **Many formats and grids.** Zarr v2/v3 (sharded, consolidated or not), NetCDF 3/4 and HDF5 (also
   multi-file), GRIB, GeoTIFF/COG (multi-band, palettes), kerchunk/VirtualiZarr references; local or
-  remote (HTTPS, S3, GCS). Lat/lon grids in either longitude convention, Gaussian grids, projected
+  remote (HTTPS, S3, GCS). Public S3 buckets work without credentials or setup. Lat/lon grids in either longitude convention, Gaussian grids, projected
   CRSs (UTM, LAEA, rotated pole, …), and curvilinear grids with 2-D longitude/latitude (ocean models,
   WRF, CMIP6 native grids, swaths).
 * **Gallery and sharing.** Featured views as a start screen; every view is a link; PNG export with

@@ -205,6 +205,14 @@ settings:
   (for example, its dataset failed to open) is left out, with a warning in the server log.
 * **Remote Zarr without `.zarr` in the URL** (e.g. the CMIP6 archive) is recognised by its metadata
   files (`zarr.json`, `.zmetadata`, `.zgroup`); otherwise set `engine`.
+* **Public S3 buckets need no setup.** `s3://` paths (datasets, stations, vectors) are read
+  anonymously first, as public data, and through plain HTTPS where possible
+  (`https://<bucket>.s3.amazonaws.com/<key>`): Zarr, NetCDF, COG, CSV and single Parquet files.
+  This is much faster than an S3 client from many networks (one CMIP6 field: 4 s instead of 54 s
+  from our cluster). Folders (partitioned Parquet, Zarr without consolidated metadata) go through
+  s3fs. If the anonymous read fails, TerraScope tries once more with the AWS credentials of the
+  environment; `storage_options: {anon: false}` (or keys / a `profile`) skips the anonymous try,
+  and `client_kwargs: {endpoint_url: …}` points to another S3 service.
 * **Remote data**: `s3://`, `gs://`, `https://` paths work for Zarr (through fsspec), NetCDF, GeoTIFF/COG
   (through GDAL) and CSV/Parquet. Install `terrascope[remote]`. Pass credentials through
   `storage_options` or the usual environment variables. Network failures at start-up (DNS, timeouts,

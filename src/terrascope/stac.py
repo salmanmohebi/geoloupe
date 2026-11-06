@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from terrascope.config import StacConfig
+from terrascope.readers import is_s3, s3_https
 
 log = logging.getLogger(__name__)
 
@@ -124,10 +125,7 @@ def _is_cog_data(asset: dict[str, Any]) -> bool:
 
 def _s3_to_https(href: str) -> str:
     """s3://bucket/key → https://bucket.s3.amazonaws.com/key (public buckets, no credentials)."""
-    if href.startswith("s3://"):
-        bucket, _, key = href[5:].partition("/")
-        return f"https://{bucket}.s3.amazonaws.com/{key}"
-    return href
+    return s3_https(href) if is_s3(href) else href
 
 
 def resolve(cfg: StacConfig) -> list[StacAsset]:

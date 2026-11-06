@@ -6,6 +6,7 @@
 | [`../src/terrascope/demo.py`](../src/terrascope/demo.py) via `terrascope demo-data DIR` | Synthetic data (1° global + 0.01° Alps "downscaled", pressure levels, a LAEA grid) and a config: the quickest way to see every feature |
 | [`fetch_public_samples.py`](fetch_public_samples.py) | Three small public datasets (ERA5 GRIB, NCEP NetCDF, ERSST NetCDF) and a config for them |
 | [`sentinel2.yaml`](sentinel2.yaml) | A Sentinel-2 L2A scene read over HTTPS from the public AWS bucket: COG overviews as resolution levels, reflectance scale, true- and false-colour images |
+| [`public-s3.yaml`](public-s3.yaml) | Data from public AWS S3 buckets with `s3://` paths and no setup: a CMIP6 climate model ocean (Zarr) and a Copernicus DEM tile (COG) |
 | [`arco-era5.yaml`](arco-era5.yaml) | Hourly ERA5 since 1940 from Google's public ARCO-ERA5 Zarr store, read over HTTPS (761 160 hourly steps with data) |
 | [`fetch_ncei_stations.py`](fetch_ncei_stations.py) | Real station records (NOAA GHCN-Daily) as a point dataset: columns detected, units set in the config |
 | [`notebook_quickstart.py`](notebook_quickstart.py) | `terrascope.show()` in a notebook: one dataset, a multi-resolution layer, and the API from Python (open as a notebook in VS Code/JupyterLab) |
