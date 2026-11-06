@@ -12,11 +12,11 @@ import argparse
 import statistics
 import time
 
-from terrascope.catalog import Catalog
-from terrascope.config import load_config
-from terrascope.engine import Selection, TileEngine
-from terrascope.query import point, timeseries
-from terrascope.tiling import Tile, lonlat_to_tile
+from geoloupe.catalog import Catalog
+from geoloupe.config import load_config
+from geoloupe.engine import Selection, TileEngine
+from geoloupe.query import point, timeseries
+from geoloupe.tiling import Tile, lonlat_to_tile
 
 
 def main() -> None:

@@ -1,6 +1,6 @@
 # Data tile format (version 1)
 
-TerraScope serves **data tiles**: the values themselves, not pictures. The browser colours them, so
+GeoLoupe serves **data tiles**: the values themselves, not pictures. The browser colours them, so
 colormap and range changes need no new requests, and any client (Python, JavaScript, Julia) can read
 the numbers.
 
@@ -30,9 +30,9 @@ GET /api/layers/{layer}/tiles/{z}/{x}/{y}.bin?time={ISO 8601}&dims={name:value,.
 | Header | Content |
 |---|---|
 | `Content-Encoding: gzip` | when the request accepts gzip (browsers decompress transparently) |
-| `X-TerraScope-Sources` | `source:level:pixels,...`, the sources that filled pixels (index into the layer's `sources`), the level used (index into that source's `levels`) and how many pixels each filled |
-| `X-TerraScope-Skipped` | `source:reason,...`, sources not used in this tile: `cost` (too many cells to read at this zoom), `time` (no data at this time), `zoom` (outside the configured zoom window) |
-| `X-TerraScope-Time-Ms` | server time for the tile |
+| `X-GeoLoupe-Sources` | `source:level:pixels,...`, the sources that filled pixels (index into the layer's `sources`), the level used (index into that source's `levels`) and how many pixels each filled |
+| `X-GeoLoupe-Skipped` | `source:reason,...`, sources not used in this tile: `cost` (too many cells to read at this zoom), `time` (no data at this time), `zoom` (outside the configured zoom window) |
+| `X-GeoLoupe-Time-Ms` | server time for the tile |
 
 **Body** (after gzip decompression), for tile size `n` (default 256):
 
@@ -56,7 +56,7 @@ values = np.frombuffer(raw[: 4 * n * n], np.uint8).reshape(4, -1).T.copy().view(
 source = np.frombuffer(raw[4 * n * n :], np.uint8).reshape(n, n) if len(raw) > 4 * n * n else None
 ```
 
-(`terrascope.engine.decode_data_tile` does the same.)
+(`geoloupe.engine.decode_data_tile` does the same.)
 
 JavaScript: see [frontend/src/lib/datatile.ts](../frontend/src/lib/datatile.ts).
 

@@ -131,7 +131,7 @@ class DatasetConfig(_Model):
     stac: StacConfig | None = None
     # Name of the variable of single-variable files (GeoTIFF names come from the file name).
     variable_name: str | None = None
-    # External overview pyramid(s) written by `terrascope overviews build`: one store, a list,
+    # External overview pyramid(s) written by `geoloupe overviews build`: one store, a list,
     # or a glob (e.g. one store per year built by parallel jobs: "ovr/*.zarr").
     overviews: str | list[str] | None = None
     engine: Literal["auto", "zarr", "netcdf", "grib", "geotiff"] = "auto"
@@ -337,7 +337,7 @@ class ViewConfig(_Model):
 
 
 class Config(_Model):
-    title: str = "TerraScope"
+    title: str = "GeoLoupe"
     description: str | None = None  # shown on the gallery start screen
     datasets: dict[str, DatasetConfig] = Field(default_factory=dict)
     layers: dict[str, LayerConfig] = Field(default_factory=dict)

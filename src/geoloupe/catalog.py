@@ -26,8 +26,8 @@ from typing import Any
 import numpy as np
 import xarray as xr
 
-from terrascope import stac
-from terrascope.config import (
+from geoloupe import stac
+from geoloupe.config import (
     Config,
     DatasetConfig,
     Decode,
@@ -36,8 +36,8 @@ from terrascope.config import (
     Style,
     config_from_dict,
 )
-from terrascope.grid import Grid, GridError, find_curvilinear, find_spatial_dims
-from terrascope.readers import (
+from geoloupe.grid import Grid, GridError, find_curvilinear, find_spatial_dims
+from geoloupe.readers import (
     OpenError,
     detect_engine,
     geotiff_overviews,
@@ -45,8 +45,8 @@ from terrascope.readers import (
     open_dataset,
     with_retries,
 )
-from terrascope.styles import classes_from_attrs, default_style
-from terrascope.timeaxis import TimeAxis, TimeError, merge_labels
+from geoloupe.styles import classes_from_attrs, default_style
+from geoloupe.timeaxis import TimeAxis, TimeError, merge_labels
 
 log = logging.getLogger(__name__)
 
@@ -221,7 +221,7 @@ class DatasetEntry:
 
 
 class Catalog:
-    """All datasets and layers of one TerraScope configuration."""
+    """All datasets and layers of one GeoLoupe configuration."""
 
     def __init__(self, config: Config, datasets: dict[str, xr.Dataset] | None = None):
         self.config = config
@@ -342,7 +342,7 @@ class Catalog:
         cls,
         datasets: dict[str, xr.Dataset],
         layers: dict[str, dict[str, Any]] | None = None,
-        title: str = "TerraScope",
+        title: str = "GeoLoupe",
         settings: dict[str, Any] | None = None,
     ) -> Catalog:
         """A catalog of in-memory (or already opened) xarray datasets."""
@@ -441,7 +441,7 @@ class Catalog:
                 # Overviews only speed things up: serve the dataset without them.
                 log.warning(
                     "overviews %s missing or not a multiscale store; build them with "
-                    "`terrascope overviews build`. Continuing without.",
+                    "`geoloupe overviews build`. Continuing without.",
                     oloc,
                 )
             for g in groups or []:

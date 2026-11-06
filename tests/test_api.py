@@ -10,9 +10,9 @@ import pytest
 import xarray as xr
 from fastapi.testclient import TestClient
 
-from terrascope.api.app import create_app, parse_dims
-from terrascope.catalog import Catalog
-from terrascope.engine import SelectionError, decode_data_tile
+from geoloupe.api.app import create_app, parse_dims
+from geoloupe.catalog import Catalog
+from geoloupe.engine import SelectionError, decode_data_tile
 
 
 @pytest.fixture
@@ -44,15 +44,15 @@ def test_data_tile_roundtrip(client: TestClient, composite_catalog: Catalog) -> 
     assert r.headers["content-encoding"] == "gzip"  # decoded transparently by httpx
     tile = decode_data_tile(r.content, 256)
     assert np.isfinite(tile).all()
-    assert r.headers["x-terrascope-sources"].split(",")[0].startswith("0:0:")
-    from terrascope.engine import Selection, TileEngine
-    from terrascope.tiling import Tile
+    assert r.headers["x-geoloupe-sources"].split(",")[0].startswith("0:0:")
+    from geoloupe.engine import Selection, TileEngine
+    from geoloupe.tiling import Tile
 
     direct = TileEngine(composite_catalog).render(
         composite_catalog.layer("tas"), Tile(6, 33, 22), Selection.make("2021-01-02")
     )
     np.testing.assert_array_equal(tile, direct.data)
-    from terrascope.engine import decode_source_map
+    from geoloupe.engine import decode_source_map
 
     smap = decode_source_map(r.content, 256)
     assert smap is not None
@@ -148,7 +148,7 @@ def test_errors(client: TestClient) -> None:
 
 
 def test_failed_dataset_is_reported(tmp_path) -> None:
-    from terrascope.config import config_from_dict
+    from geoloupe.config import config_from_dict
 
     cfg = config_from_dict(
         {"datasets": {"missing": {"path": "does-not-exist.zarr"}}}, base_dir=tmp_path
@@ -164,7 +164,7 @@ def test_parse_dims() -> None:
 
 
 def test_gzip_is_valid() -> None:
-    from terrascope.engine import encode_data_tile
+    from geoloupe.engine import encode_data_tile
 
     a = np.linspace(250, 300, 256 * 256, dtype=np.float32).reshape(256, 256)
     raw = encode_data_tile(a)
@@ -172,12 +172,12 @@ def test_gzip_is_valid() -> None:
 
 
 def test_viewer_runs_in_background(global_ds: xr.Dataset) -> None:
-    """terrascope.show(): a real uvicorn server in a thread, as used in notebooks."""
+    """geoloupe.show(): a real uvicorn server in a thread, as used in notebooks."""
     import httpx
 
-    import terrascope
+    import geoloupe
 
-    viewer = terrascope.show({"era5": global_ds})
+    viewer = geoloupe.show({"era5": global_ds})
     try:
         assert viewer.url.startswith("http://127.0.0.1:")
         r = httpx.get(viewer.url + "api/catalog", timeout=10)
@@ -192,7 +192,7 @@ def test_viewer_runs_in_background(global_ds: xr.Dataset) -> None:
 def test_viewer_url_behind_jupyterhub(
     monkeypatch: pytest.MonkeyPatch, global_ds: xr.Dataset
 ) -> None:
-    from terrascope.server import Viewer
+    from geoloupe.server import Viewer
 
     monkeypatch.setenv("JUPYTERHUB_SERVICE_PREFIX", "/user/alice/")
     v = Viewer(Catalog.from_xarray({"d": global_ds}), port=9999)

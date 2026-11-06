@@ -1,7 +1,7 @@
-"""Download three small public datasets and write a TerraScope config for them.
+"""Download three small public datasets and write a GeoLoupe config for them.
 
     python examples/fetch_public_samples.py samples/
-    terrascope serve samples/public.yaml
+    geoloupe serve samples/public.yaml
 
 The files come from the xarray tutorial data (https://github.com/pydata/xarray-data):
 
@@ -9,7 +9,7 @@ The files come from the xarray tutorial data (https://github.com/pydata/xarray-d
 * air_temperature.nc          NCEP reanalysis air temperature, North America, 2.5°, 6-hourly, 2013-2014
 * ersstv5.nc                  NOAA ERSST v5 sea surface temperature, global, 2°, monthly, 1970-2021
 
-GRIB needs `pip install terrascope[grib]`.
+GRIB needs `pip install geoloupe[grib]`.
 """
 
 from __future__ import annotations
@@ -50,7 +50,7 @@ def main(out: str) -> None:
             print(f"downloading {f} …")
             urllib.request.urlretrieve(BASE + f, target)
     (d / "public.yaml").write_text(CONFIG)
-    print(f"done. Start with:  terrascope serve {d / 'public.yaml'}")
+    print(f"done. Start with:  geoloupe serve {d / 'public.yaml'}")
 
 
 if __name__ == "__main__":

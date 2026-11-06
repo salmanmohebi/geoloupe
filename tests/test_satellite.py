@@ -7,11 +7,11 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from terrascope.catalog import Catalog
-from terrascope.config import config_from_dict
-from terrascope.engine import Selection, TileEngine
-from terrascope.query import point
-from terrascope.tiling import Tile, lonlat_to_tile
+from geoloupe.catalog import Catalog
+from geoloupe.config import config_from_dict
+from geoloupe.engine import Selection, TileEngine
+from geoloupe.query import point
+from geoloupe.tiling import Tile, lonlat_to_tile
 
 rasterio = pytest.importorskip("rasterio")
 from rasterio.enums import Resampling  # noqa: E402
@@ -121,8 +121,8 @@ def test_multiband_names_become_band_values(tmp_path: Path) -> None:
 def test_rgb_layers_auto_and_configured(tmp_path: Path) -> None:
     from fastapi.testclient import TestClient
 
-    from terrascope.api.app import create_app
-    from terrascope.engine import decode_data_tile
+    from geoloupe.api.app import create_app
+    from geoloupe.engine import decode_data_tile
 
     _cog(tmp_path / "rgbn.tif", bands=4, descriptions=["red", "green", "blue", "nir"])
     _cog(tmp_path / "B08.tif")
@@ -162,7 +162,7 @@ def test_rgb_layers_auto_and_configured(tmp_path: Path) -> None:
     r = client.get(
         f"/api/layers/img:rgbn:rgb/tiles/{z}/{x}/{y}.bin", headers={"Accept-Encoding": "identity"}
     )
-    assert r.headers["x-terrascope-bands"] == "3" and len(r.content) == 3 * 4 * 256 * 256
+    assert r.headers["x-geoloupe-bands"] == "3" and len(r.content) == 3 * 4 * 256 * 256
     planes = [
         decode_data_tile(r.content[k * 4 * 65536 : (k + 1) * 4 * 65536], 256) for k in range(3)
     ]

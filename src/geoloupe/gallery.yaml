@@ -1,11 +1,11 @@
-# The TerraScope gallery: open Earth data read live from public archives (nothing is downloaded
+# The GeoLoupe gallery: open Earth data read live from public archives (nothing is downloaded
 # in advance, no account or key is needed).
 #
-#   terrascope gallery                 # serve it
-#   terrascope gallery --show-config   # print this file, to copy and change it
+#   geoloupe gallery                 # serve it
+#   geoloupe gallery --show-config   # print this file, to copy and change it
 #
 # Opening takes ~10 s (remote metadata); tiles take 0.3–1.5 s each over the internet.
-title: TerraScope gallery
+title: GeoLoupe gallery
 description: >-
   Open Earth data, read live from public cloud archives: hourly weather since 1940 (ERA5),
   Sentinel-2 satellite images, a 30 m elevation model, ESA WorldCover land cover, NOAA
@@ -72,7 +72,7 @@ datasets:
 
   # Sentinel-2 L2A found with a STAC search of Element84's Earth Search: the 10 least cloudy
   # scenes of August 2023 over the Western Alps, one mosaic per band. Element84's files have the
-  # BOA offset applied already; TerraScope reads that from the items (reflectance = DN × 0.0001).
+  # BOA offset applied already; GeoLoupe reads that from the items (reflectance = DN × 0.0001).
   s2:
     title: Sentinel-2 L2A, Western Alps, August 2023
     description: The least cloudy scenes of the month, found with a STAC search and shown as one mosaic.

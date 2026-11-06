@@ -9,7 +9,7 @@ __pycache__/
 build/
 dist/
 
-# Web client (the built client in src/terrascope/static IS committed: the package ships it)
+# Web client (the built client in src/geoloupe/static IS committed: the package ships it)
 frontend/node_modules
 frontend/dist
 frontend/test-results/

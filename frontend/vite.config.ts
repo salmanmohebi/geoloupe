@@ -1,13 +1,13 @@
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 
-// The client is served by the Python server from src/terrascope/static, under
+// The client is served by the Python server from src/geoloupe/static, under
 // any path prefix (e.g. behind jupyter-server-proxy), so all URLs are relative.
 export default defineConfig({
   base: "./",
   plugins: [react()],
   build: {
-    outDir: "../src/terrascope/static",
+    outDir: "../src/geoloupe/static",
     emptyOutDir: true,
     chunkSizeWarningLimit: 1500,
   },

@@ -8,11 +8,11 @@ import pytest
 import xarray as xr
 from fastapi.testclient import TestClient
 
-from terrascope.api.app import create_app
-from terrascope.catalog import Catalog
-from terrascope.engine import Selection, TileEngine
-from terrascope.query import export_subset
-from terrascope.tiling import Tile
+from geoloupe.api.app import create_app
+from geoloupe.catalog import Catalog
+from geoloupe.engine import Selection, TileEngine
+from geoloupe.query import export_subset
+from geoloupe.tiling import Tile
 
 
 def _rotated(ny: int = 120, nx: int = 260, lon0: float = 8.0, lat0: float = 46.0,
@@ -126,7 +126,7 @@ def test_low_zoom_uses_the_subsampled_level_and_export_keeps_coordinates() -> No
 def test_time_labels_round_to_the_minute() -> None:
     import cftime
 
-    from terrascope.timeaxis import TimeAxis
+    from geoloupe.timeaxis import TimeAxis
 
     noisy = [
         cftime.DatetimeNoLeap(1850, 1, 15, 12, 59, 59, 999000),
@@ -141,7 +141,7 @@ def test_remote_zarr_without_extension_is_detected(monkeypatch: pytest.MonkeyPat
     import urllib.error
     import urllib.request
 
-    from terrascope.readers import OpenError, detect_engine
+    from geoloupe.readers import OpenError, detect_engine
 
     class Ok:
         status = 200

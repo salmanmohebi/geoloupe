@@ -1,4 +1,4 @@
-// MapLibre custom protocol "terrascope://<spec>/<z>/<x>/<y>".
+// MapLibre custom protocol "geoloupe://<spec>/<z>/<x>/<y>".
 //
 // MapLibre handles what it is good at — which tiles are visible, level of
 // detail, caching, fading, globe projection — and asks this handler for each
@@ -85,8 +85,8 @@ export function registerProtocol(): void {
   if (registered) return;
   registered = true;
   maplibregl.setWorkerUrl(workerUrl);
-  maplibregl.addProtocol("terrascope", async (params, abort) => {
-    const m = /^terrascope:\/\/([^/]+)\/(\d+)\/(\d+)\/(\d+)/.exec(params.url);
+  maplibregl.addProtocol("geoloupe", async (params, abort) => {
+    const m = /^geoloupe:\/\/([^/]+)\/(\d+)\/(\d+)\/(\d+)/.exec(params.url);
     const spec = m ? specs.get(m[1]) : undefined;
     if (!m || !spec) return { data: await blankBitmap() };
     const [z, x, y] = [Number(m[2]), Number(m[3]), Number(m[4])];

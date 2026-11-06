@@ -73,7 +73,7 @@ export async function exportPng(scale: ColorScale, text: FigureText): Promise<vo
   const blob: Blob = await new Promise((res) => c.toBlob((b) => res(b!), "image/png"));
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `terrascope_${text.title.replace(/[^\w.-]+/g, "_").slice(0, 60)}.png`;
+  a.download = `geoloupe_${text.title.replace(/[^\w.-]+/g, "_").slice(0, 60)}.png`;
   a.click();
   URL.revokeObjectURL(a.href);
 }

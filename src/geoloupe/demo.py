@@ -12,14 +12,14 @@ composite looks seamless:
   valleys and peaks while matching the 1° field on average;
 * precipitation = weather-wave moisture × orographic enhancement.
 
-Datasets written (``terrascope demo-data DIR``):
+Datasets written (``geoloupe demo-data DIR``):
 
 =========================== ========================================= ==============
 ``global-1deg.zarr``        tas, pr; 1° global, daily                   Zarr v3
 ``alps-1km.zarr``           tas, pr, elevation; 0.01° Alps, daily       Zarr v3
 ``global-plev-monthly.nc``  ta(plev); 2° global, monthly, 3 levels      NetCDF-4
 ``europe-laea-5km.nc``      elevation in EPSG:3035 (LAEA Europe), static NetCDF-4 + CF grid mapping
-``demo.yaml``               a TerraScope config for all of the above
+``demo.yaml``               a GeoLoupe config for all of the above
 =========================== ========================================= ==============
 """
 
@@ -186,7 +186,7 @@ def make_dataset(
 
 def make_global(days: pd.DatetimeIndex, res: float = 1.0) -> xr.Dataset:
     return make_dataset(
-        days, (-180, -90, 180, 90), res, False, f"TerraScope demo: synthetic global {res:g}° daily"
+        days, (-180, -90, 180, 90), res, False, f"GeoLoupe demo: synthetic global {res:g}° daily"
     )
 
 
@@ -194,7 +194,7 @@ def make_regional(
     days: pd.DatetimeIndex, res: float = 0.01, box: tuple[float, float, float, float] = ALPS
 ) -> xr.Dataset:
     return make_dataset(
-        days, box, res, True, f"TerraScope demo: synthetic Alps {res:g}° daily (downscaled)"
+        days, box, res, True, f"GeoLoupe demo: synthetic Alps {res:g}° daily (downscaled)"
     )
 
 
@@ -256,7 +256,7 @@ def make_plev_monthly(year: int, res: float = 2.0) -> xr.Dataset:
     ds = xr.Dataset(
         {"ta": (("time", "plev", "lat", "lon"), ta.astype(np.float32))},
         coords={"time": months, "plev": plev, "lat": lat, "lon": lon},
-        attrs={"title": "TerraScope demo: synthetic monthly air temperature on pressure levels"},
+        attrs={"title": "GeoLoupe demo: synthetic monthly air temperature on pressure levels"},
     )
     ds["plev"].attrs.update(units="hPa", long_name="pressure level", positive="down", axis="Z")
     ds["ta"].attrs.update(standard_name="air_temperature", long_name="Air temperature", units="K")
@@ -280,7 +280,7 @@ def make_laea(res_m: float = 5000.0) -> xr.Dataset:
             )
         },
         coords={"x": x, "y": y},
-        attrs={"title": "TerraScope demo: synthetic elevation on the LAEA Europe grid (EPSG:3035)"},
+        attrs={"title": "GeoLoupe demo: synthetic elevation on the LAEA Europe grid (EPSG:3035)"},
     )
     ds["x"].attrs.update(standard_name="projection_x_coordinate", units="m", axis="X")
     ds["y"].attrs.update(standard_name="projection_y_coordinate", units="m", axis="Y")
@@ -289,8 +289,8 @@ def make_laea(res_m: float = 5000.0) -> xr.Dataset:
 
 
 CONFIG = """\
-# TerraScope demo configuration (synthetic data written by `terrascope demo-data`).
-title: TerraScope demo
+# GeoLoupe demo configuration (synthetic data written by `geoloupe demo-data`).
+title: GeoLoupe demo
 
 datasets:
   global:
@@ -359,7 +359,7 @@ def write_demo(
     block: int = 30,
 ) -> Path:
     """Write the demo datasets and config into `directory`; returns the config path."""
-    from terrascope.overviews import build
+    from geoloupe.overviews import build
 
     out = Path(directory)
     out.mkdir(parents=True, exist_ok=True)

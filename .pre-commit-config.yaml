@@ -10,9 +10,9 @@ repos:
     rev: v6.0.0
     hooks:
       - id: end-of-file-fixer
-        exclude: ^src/terrascope/(static|colormaps\.json)
+        exclude: ^src/geoloupe/(static|colormaps\.json)
       - id: trailing-whitespace
-        exclude: ^src/terrascope/static/
+        exclude: ^src/geoloupe/static/
       - id: check-yaml
       - id: check-added-large-files
         args: [--maxkb=2000]

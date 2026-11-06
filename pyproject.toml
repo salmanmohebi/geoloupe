@@ -3,7 +3,7 @@ requires = ["hatchling>=1.25"]
 build-backend = "hatchling.build"
 
 [project]
-name = "terrascope"
+name = "geoloupe"
 version = "0.1.0"
 description = "Interactive, multi-resolution exploration of large scientific and geospatial datasets in the browser."
 readme = "README.md"
@@ -49,13 +49,15 @@ geotiff = ["rioxarray>=0.17"]
 stations = ["pyarrow>=16"]
 # Vector overlays (GeoJSON, Shapefile, GeoPackage, FlatGeobuf, GeoParquet) through pyogrio + shapely.
 vector = ["pyogrio>=0.10", "shapely>=2.0"]
-all = ["terrascope[dask,remote,grib,geotiff,stations,vector]"]
+all = ["geoloupe[dask,remote,grib,geotiff,stations,vector]"]
 
 [project.scripts]
-terrascope = "terrascope.cli:main"
+geoloupe = "geoloupe.cli:main"
 
 [project.urls]
-Documentation = "https://github.com/terrascope/terrascope#readme"
+Homepage = "https://github.com/salmanmohebi/geoloupe"
+Documentation = "https://github.com/salmanmohebi/geoloupe#readme"
+Issues = "https://github.com/salmanmohebi/geoloupe/issues"
 
 [dependency-groups]
 dev = [
@@ -69,9 +71,9 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/terrascope"]
-# The built web client is shipped inside the package (src/terrascope/static).
-artifacts = ["src/terrascope/static/**"]
+packages = ["src/geoloupe"]
+# The built web client is shipped inside the package (src/geoloupe/static).
+artifacts = ["src/geoloupe/static/**"]
 
 [tool.hatch.build.targets.sdist]
 exclude = ["frontend/node_modules", "frontend/dist", "data"]
@@ -97,7 +99,7 @@ ignore = ["E501", "RUF001", "RUF002", "RUF003"]  # also allow unicode (°, ×, �
 
 [tool.mypy]
 python_version = "3.11"
-packages = ["terrascope"]
+packages = ["geoloupe"]
 mypy_path = "src"
 ignore_missing_imports = true
 warn_unused_ignores = true

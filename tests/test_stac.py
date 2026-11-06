@@ -8,11 +8,11 @@ from typing import Any
 import numpy as np
 import pytest
 
-from terrascope import stac
-from terrascope.catalog import Catalog
-from terrascope.config import config_from_dict
-from terrascope.engine import Selection, TileEngine
-from terrascope.tiling import Tile
+from geoloupe import stac
+from geoloupe.catalog import Catalog
+from geoloupe.config import config_from_dict
+from geoloupe.engine import Selection, TileEngine
+from geoloupe.tiling import Tile
 
 rasterio = pytest.importorskip("rasterio")
 from rasterio.transform import from_origin  # noqa: E402

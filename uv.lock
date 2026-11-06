@@ -803,6 +803,124 @@ wheels = [
 ]
 
 [[package]]
+name = "geoloupe"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "cftime" },
+    { name = "fastapi" },
+    { name = "h5netcdf" },
+    { name = "h5py" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "pandas" },
+    { name = "pydantic" },
+    { name = "pyproj", version = "3.7.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "pyproj", version = "3.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "pyyaml" },
+    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "scipy", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "uvicorn", extra = ["standard"] },
+    { name = "xarray" },
+    { name = "zarr", version = "3.1.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "zarr", version = "3.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+]
+
+[package.optional-dependencies]
+all = [
+    { name = "aiohttp" },
+    { name = "cfgrib" },
+    { name = "dask" },
+    { name = "eccodes" },
+    { name = "eccodeslib", marker = "sys_platform != 'win32'" },
+    { name = "fsspec" },
+    { name = "pyarrow" },
+    { name = "pyogrio" },
+    { name = "rioxarray", version = "0.19.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "rioxarray", version = "0.23.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.12.*'" },
+    { name = "rioxarray", version = "0.24.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13'" },
+    { name = "s3fs" },
+    { name = "shapely" },
+]
+dask = [
+    { name = "dask" },
+]
+geotiff = [
+    { name = "rioxarray", version = "0.19.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "rioxarray", version = "0.23.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.12.*'" },
+    { name = "rioxarray", version = "0.24.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13'" },
+]
+grib = [
+    { name = "cfgrib" },
+    { name = "eccodes" },
+    { name = "eccodeslib", marker = "sys_platform != 'win32'" },
+]
+remote = [
+    { name = "aiohttp" },
+    { name = "fsspec" },
+    { name = "s3fs" },
+]
+stations = [
+    { name = "pyarrow" },
+]
+vector = [
+    { name = "pyogrio" },
+    { name = "shapely" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "dask" },
+    { name = "httpx" },
+    { name = "mypy" },
+    { name = "pyarrow" },
+    { name = "pytest" },
+    { name = "ruff" },
+    { name = "types-pyyaml" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aiohttp", marker = "extra == 'remote'", specifier = ">=3.9" },
+    { name = "cfgrib", marker = "extra == 'grib'", specifier = ">=0.9.14" },
+    { name = "cftime", specifier = ">=1.6" },
+    { name = "dask", marker = "extra == 'dask'", specifier = ">=2024.8" },
+    { name = "eccodes", marker = "extra == 'grib'", specifier = ">=2.38" },
+    { name = "eccodeslib", marker = "sys_platform != 'win32' and extra == 'grib'", specifier = ">=2.38" },
+    { name = "fastapi", specifier = ">=0.115" },
+    { name = "fsspec", marker = "extra == 'remote'", specifier = ">=2024.6" },
+    { name = "geoloupe", extras = ["dask", "remote", "grib", "geotiff", "stations", "vector"], marker = "extra == 'all'" },
+    { name = "h5netcdf", specifier = ">=1.3" },
+    { name = "h5py", specifier = ">=3.10" },
+    { name = "numpy", specifier = ">=1.26" },
+    { name = "pandas", specifier = ">=2.1" },
+    { name = "pyarrow", marker = "extra == 'stations'", specifier = ">=16" },
+    { name = "pydantic", specifier = ">=2.6" },
+    { name = "pyogrio", marker = "extra == 'vector'", specifier = ">=0.10" },
+    { name = "pyproj", specifier = ">=3.6" },
+    { name = "pyyaml", specifier = ">=6.0" },
+    { name = "rioxarray", marker = "extra == 'geotiff'", specifier = ">=0.17" },
+    { name = "s3fs", marker = "extra == 'remote'", specifier = ">=2024.6" },
+    { name = "scipy", specifier = ">=1.11" },
+    { name = "shapely", marker = "extra == 'vector'", specifier = ">=2.0" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.30" },
+    { name = "xarray", specifier = ">=2024.10" },
+    { name = "zarr", specifier = ">=3.0.8" },
+]
+provides-extras = ["dask", "remote", "grib", "geotiff", "stations", "vector", "all"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "dask", specifier = ">=2024.8" },
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "mypy", specifier = ">=1.11" },
+    { name = "pyarrow", specifier = ">=16" },
+    { name = "pytest", specifier = ">=8.2" },
+    { name = "ruff", specifier = ">=0.6" },
+    { name = "types-pyyaml", specifier = ">=6.0" },
+]
+
+[[package]]
 name = "google-crc32c"
 version = "1.9.0"
 source = { registry = "https://pypi.org/simple" }
@@ -3003,124 +3121,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/48/bb/3d8757f21e9a53d9035c9eb039a777047139a16bfdbedfc7a58241c3d914/starlette-1.10.0.tar.gz", hash = "sha256:b8399098d4c1e3522734f7235dc79b1fc967f96cf139c81e0fa30479e0685f9b", size = 2734356, upload-time = "2026-10-24T15:04:12.342Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/88/2e/947cfe02def9371c07cd5bf5b6b61c829e9aecb9904db02a66cfafbc1eec/starlette-1.10.0-py3-none-any.whl", hash = "sha256:478c0ab3b4ced6e82719849c118fa406f0278a3499c1a898cd15cd31bdc38ce4", size = 80571, upload-time = "2026-10-24T15:04:10.371Z" },
-]
-
-[[package]]
-name = "terrascope"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "cftime" },
-    { name = "fastapi" },
-    { name = "h5netcdf" },
-    { name = "h5py" },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-    { name = "pandas" },
-    { name = "pydantic" },
-    { name = "pyproj", version = "3.7.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "pyproj", version = "3.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-    { name = "pyyaml" },
-    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "scipy", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-    { name = "uvicorn", extra = ["standard"] },
-    { name = "xarray" },
-    { name = "zarr", version = "3.1.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "zarr", version = "3.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-]
-
-[package.optional-dependencies]
-all = [
-    { name = "aiohttp" },
-    { name = "cfgrib" },
-    { name = "dask" },
-    { name = "eccodes" },
-    { name = "eccodeslib", marker = "sys_platform != 'win32'" },
-    { name = "fsspec" },
-    { name = "pyarrow" },
-    { name = "pyogrio" },
-    { name = "rioxarray", version = "0.19.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "rioxarray", version = "0.23.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.12.*'" },
-    { name = "rioxarray", version = "0.24.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13'" },
-    { name = "s3fs" },
-    { name = "shapely" },
-]
-dask = [
-    { name = "dask" },
-]
-geotiff = [
-    { name = "rioxarray", version = "0.19.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "rioxarray", version = "0.23.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.12.*'" },
-    { name = "rioxarray", version = "0.24.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13'" },
-]
-grib = [
-    { name = "cfgrib" },
-    { name = "eccodes" },
-    { name = "eccodeslib", marker = "sys_platform != 'win32'" },
-]
-remote = [
-    { name = "aiohttp" },
-    { name = "fsspec" },
-    { name = "s3fs" },
-]
-stations = [
-    { name = "pyarrow" },
-]
-vector = [
-    { name = "pyogrio" },
-    { name = "shapely" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "dask" },
-    { name = "httpx" },
-    { name = "mypy" },
-    { name = "pyarrow" },
-    { name = "pytest" },
-    { name = "ruff" },
-    { name = "types-pyyaml" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "aiohttp", marker = "extra == 'remote'", specifier = ">=3.9" },
-    { name = "cfgrib", marker = "extra == 'grib'", specifier = ">=0.9.14" },
-    { name = "cftime", specifier = ">=1.6" },
-    { name = "dask", marker = "extra == 'dask'", specifier = ">=2024.8" },
-    { name = "eccodes", marker = "extra == 'grib'", specifier = ">=2.38" },
-    { name = "eccodeslib", marker = "sys_platform != 'win32' and extra == 'grib'", specifier = ">=2.38" },
-    { name = "fastapi", specifier = ">=0.115" },
-    { name = "fsspec", marker = "extra == 'remote'", specifier = ">=2024.6" },
-    { name = "h5netcdf", specifier = ">=1.3" },
-    { name = "h5py", specifier = ">=3.10" },
-    { name = "numpy", specifier = ">=1.26" },
-    { name = "pandas", specifier = ">=2.1" },
-    { name = "pyarrow", marker = "extra == 'stations'", specifier = ">=16" },
-    { name = "pydantic", specifier = ">=2.6" },
-    { name = "pyogrio", marker = "extra == 'vector'", specifier = ">=0.10" },
-    { name = "pyproj", specifier = ">=3.6" },
-    { name = "pyyaml", specifier = ">=6.0" },
-    { name = "rioxarray", marker = "extra == 'geotiff'", specifier = ">=0.17" },
-    { name = "s3fs", marker = "extra == 'remote'", specifier = ">=2024.6" },
-    { name = "scipy", specifier = ">=1.11" },
-    { name = "shapely", marker = "extra == 'vector'", specifier = ">=2.0" },
-    { name = "terrascope", extras = ["dask", "remote", "grib", "geotiff", "stations", "vector"], marker = "extra == 'all'" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.30" },
-    { name = "xarray", specifier = ">=2024.10" },
-    { name = "zarr", specifier = ">=3.0.8" },
-]
-provides-extras = ["dask", "remote", "grib", "geotiff", "stations", "all", "vector"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "dask", specifier = ">=2024.8" },
-    { name = "httpx", specifier = ">=0.27" },
-    { name = "mypy", specifier = ">=1.11" },
-    { name = "pyarrow", specifier = ">=16" },
-    { name = "pytest", specifier = ">=8.2" },
-    { name = "ruff", specifier = ">=0.6" },
-    { name = "types-pyyaml", specifier = ">=6.0" },
 ]
 
 [[package]]

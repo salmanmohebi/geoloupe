@@ -1,4 +1,4 @@
-"""Regenerate src/terrascope/colormaps.json (256-entry RGB lookup tables).
+"""Regenerate src/geoloupe/colormaps.json (256-entry RGB lookup tables).
 
 The server (PNG tiles) and the web client (data tiles) use this one file, so
 both render identical colours. Run when the colormap list changes:
@@ -13,7 +13,7 @@ from pathlib import Path
 
 import numpy as np
 
-OUT = Path(__file__).resolve().parents[1] / "src" / "terrascope" / "colormaps.json"
+OUT = Path(__file__).resolve().parents[1] / "src" / "geoloupe" / "colormaps.json"
 
 # name -> (category, provider, provider name)
 CMAPS: dict[str, tuple[str, str, str]] = {

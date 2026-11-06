@@ -1,10 +1,10 @@
 # %% [markdown]
-# # TerraScope in a notebook
+# # GeoLoupe in a notebook
 #
 # Open this file as a notebook (VS Code and JupyterLab with jupytext understand the `# %%` cells),
 # or run it as a script. It shows:
 #
-# 1. any xarray Dataset on an interactive map with `terrascope.show`,
+# 1. any xarray Dataset on an interactive map with `geoloupe.show`,
 # 2. a multi-resolution layer that combines a coarse and a fine dataset,
 # 3. reading the same data back through the HTTP API.
 
@@ -12,8 +12,8 @@
 import numpy as np
 import pandas as pd
 
-import terrascope
-from terrascope.demo import make_global, make_regional
+import geoloupe
+from geoloupe.demo import make_global, make_regional
 
 days = pd.date_range("2021-06-01", periods=30, freq="D")
 coarse = make_global(days, res=1.0)  # synthetic 1° global field
@@ -26,7 +26,7 @@ coarse
 # viewer renders as the map; on JupyterHub with jupyter-server-proxy it uses the proxy URL.
 
 # %%
-viewer = terrascope.show({"global": coarse})
+viewer = geoloupe.show({"global": coarse})
 viewer  # in Jupyter: the interactive map
 
 # %% [markdown]
@@ -36,7 +36,7 @@ viewer  # in Jupyter: the interactive map
 
 # %%
 viewer.stop()
-viewer = terrascope.show(
+viewer = geoloupe.show(
     {"global": coarse, "alps": fine},
     layers={
         "tas": {
@@ -57,7 +57,7 @@ print(viewer.link(layer="tas", time="2021-06-15"))
 # %%
 import httpx
 
-from terrascope.engine import decode_data_tile
+from geoloupe.engine import decode_data_tile
 
 p = httpx.get(
     viewer.url + "api/layers/tas/point", params={"lon": 9.9, "lat": 46.5, "time": "2021-06-15"}
@@ -73,7 +73,7 @@ print(
     "mean",
     float(np.nanmean(tile)),
     "sources:",
-    r.headers["x-terrascope-sources"],
+    r.headers["x-geoloupe-sources"],
 )
 
 # %%

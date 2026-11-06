@@ -2,7 +2,7 @@
 # s3:// paths are read anonymously (as public data) and, where possible, through plain HTTPS,
 # which is much faster than an S3 client from many networks.
 #
-#   terrascope serve examples/public-s3.yaml
+#   geoloupe serve examples/public-s3.yaml
 title: Public S3 buckets (AWS Open Data)
 datasets:
   ocean:

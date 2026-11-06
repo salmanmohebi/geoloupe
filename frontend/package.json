@@ -1,9 +1,9 @@
 {
-  "name": "terrascope-web",
+  "name": "geoloupe-web",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "TerraScope web client: MapLibre map with client-side colouring of float data tiles.",
+  "description": "GeoLoupe web client: MapLibre map with client-side colouring of float data tiles.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

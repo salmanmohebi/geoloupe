@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Build TerraScope overviews of a large store on an HPC cluster, one year per Slurm array task.
+# Build GeoLoupe overviews of a large store on an HPC cluster, one year per Slurm array task.
 #
 #   mkdir -p slurm_logs
 #   sbatch --account=<project> --array=0-9%4 \
@@ -11,7 +11,7 @@
 # when the job is submitted again (REDO=1 rebuilds them). Use all years in a dataset config with
 #   overviews: /data/overviews/*.zarr
 # Options (environment): MIN_FACTOR (default 4), WORKERS (default: CPUs of the node), PROJECT_DIR
-# (the TerraScope checkout, default: the submit directory).
+# (the GeoLoupe checkout, default: the submit directory).
 # =============================================================================
 #SBATCH --job-name=ts-overviews
 #SBATCH --nodes=1
@@ -38,7 +38,7 @@ mkdir -p "$OUTDIR"
 cd "${PROJECT_DIR:-$SLURM_SUBMIT_DIR}"
 
 echo "$(date -Is) $SOURCE → $OUT ($YEAR, variables: ${VARIABLES:-all}) on $(hostname), $WORKERS workers"
-uv run --no-sync terrascope overviews build "$SOURCE" "$OUT" \
+uv run --no-sync geoloupe overviews build "$SOURCE" "$OUT" \
     ${VARIABLES:+--variables "$VARIABLES"} --start "$YEAR-01-01" --end "$YEAR-12-31" \
     --min-factor "$MIN_FACTOR" --workers "$WORKERS" --overwrite
 touch "$OUT.done"

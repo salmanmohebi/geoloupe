@@ -43,7 +43,7 @@ coarse data completely where it has data (no blending). Units must match (per-so
 
 **Problem.** Low zoom levels of a 20 880 × 43 200 grid cannot be computed on request.
 
-**Decision.** `terrascope overviews build` writes block means at factors 2^k into a separate Zarr v3
+**Decision.** `geoloupe overviews build` writes block means at factors 2^k into a separate Zarr v3
 store, in the source grid and CRS, with the source's integer packing, and GeoZarr `multiscales` +
 `proj` + `spatial` v0.1 metadata. Each level is computed from the native cells (exact means). The
 catalog also accepts multiscale stores and explicit lists of copies at other resolutions.
@@ -105,7 +105,7 @@ projects supports float tiles and cross-dataset compositing.
 
 ### D7 · MapLibre GL JS v6 with a custom protocol (2026-11-05)
 
-**Decision.** MapLibre requests `terrascope://` tiles; a protocol handler fetches float tiles, colours
+**Decision.** MapLibre requests `geoloupe://` tiles; a protocol handler fetches float tiles, colours
 them on the CPU and returns an `ImageBitmap`. Changes are double-buffered (new source on top, old one
 removed when loaded).
 
@@ -129,7 +129,7 @@ of each source.
 ### D9 · Configuration: YAML, every variable a layer, composites explicit (2026-11-05)
 
 **Decision.** A small YAML file with `datasets`, optional `layers` (composites) and `settings`; env
-variables in paths; relative paths resolved against the file. `terrascope serve <dataset path>` works
+variables in paths; relative paths resolved against the file. `geoloupe serve <dataset path>` works
 without any config.
 
 **Alternatives.** STAC catalogs as the primary registry (richer, heavier; planned as import/export);
@@ -144,7 +144,7 @@ URL hash (replaceState). Opening the link restores the view exactly.
 
 ### D11 · Featured views are link states (2026-11-06)
 
-**Problem.** People who open TerraScope for the first time need a starting point: interesting data,
+**Problem.** People who open GeoLoupe for the first time need a starting point: interesting data,
 places and times, not an empty map and a layer list.
 
 **Decision.** A configuration lists `views:` (layer, time, place, colour scale, comparison). The client

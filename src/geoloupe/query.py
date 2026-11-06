@@ -17,8 +17,8 @@ from typing import Any
 import numpy as np
 import xarray as xr
 
-from terrascope.catalog import Layer, Level, Source
-from terrascope.engine import (
+from geoloupe.catalog import Layer, Level, Source
+from geoloupe.engine import (
     Selection,
     SelectionError,
     TileEngine,
@@ -26,7 +26,7 @@ from terrascope.engine import (
     resolve_extra_dims,
     time_index,
 )
-from terrascope.tiling import Tile, lonlat_to_tile
+from geoloupe.tiling import Tile, lonlat_to_tile
 
 
 class QueryError(ValueError):
@@ -116,7 +116,7 @@ def point(layer: Layer, lon: float, lat: float, sel: Selection) -> dict[str, Any
     }
 
 
-_POOL = ThreadPoolExecutor(max_workers=16, thread_name_prefix="terrascope-ts")
+_POOL = ThreadPoolExecutor(max_workers=16, thread_name_prefix="geoloupe-ts")
 
 
 def _read_series(
@@ -309,8 +309,8 @@ def export_subset(
     ds.attrs = {
         "title": f"{source.dataset_title}: {source.variable} subset",
         "source": source.native.location,
-        "history": "exported by TerraScope at native resolution",
-        "terrascope_bbox": [float(b) for b in bbox],
+        "history": "exported by GeoLoupe at native resolution",
+        "geoloupe_bbox": [float(b) for b in bbox],
     }
     return ds
 

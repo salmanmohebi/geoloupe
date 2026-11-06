@@ -1,4 +1,4 @@
-"""Use a running TerraScope server from Python (no TerraScope install needed: numpy + httpx).
+"""Use a running GeoLoupe server from Python (no GeoLoupe install needed: numpy + httpx).
 
     python examples/api_client.py http://127.0.0.1:8000 tas 10.3 46.45
 
@@ -69,7 +69,7 @@ def main(base: str, layer: str, lon: float, lat: float) -> None:
         print("\npixels per source index:", dict(zip(idx.tolist(), count.tolist(), strict=True)))
     print(
         f"\ntile {z}/{x}/{y}: min {np.nanmin(values):.2f}, max {np.nanmax(values):.2f}, "
-        f"sources (index:level:pixels) {r.headers['x-terrascope-sources']}"
+        f"sources (index:level:pixels) {r.headers['x-geoloupe-sources']}"
     )
 
 

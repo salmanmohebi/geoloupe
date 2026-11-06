@@ -6,9 +6,9 @@ import pyproj
 import pytest
 import xarray as xr
 
-from terrascope.grid import Axis, Grid, GridError, detect_crs, find_spatial_dims
-from terrascope.tiling import MAX_LAT, Tile, TileError, lonlat_to_tile, zoom_for_resolution
-from terrascope.timeaxis import TimeAxis, TimeError
+from geoloupe.grid import Axis, Grid, GridError, detect_crs, find_spatial_dims
+from geoloupe.tiling import MAX_LAT, Tile, TileError, lonlat_to_tile, zoom_for_resolution
+from geoloupe.timeaxis import TimeAxis, TimeError
 
 # ------------------------------------------------------------------ tiling
 
@@ -173,9 +173,9 @@ def test_long_regular_axes_are_sent_compactly() -> None:
     import xarray as xr
     from fastapi.testclient import TestClient
 
-    from terrascope.api.app import create_app
-    from terrascope.catalog import Catalog
-    from terrascope.timeaxis import compact_axis
+    from geoloupe.api.app import create_app
+    from geoloupe.catalog import Catalog
+    from geoloupe.timeaxis import compact_axis
 
     t = pd.date_range("2000-01-01", periods=30_000, freq="h")
     ds = xr.Dataset(

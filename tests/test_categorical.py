@@ -9,12 +9,12 @@ import pytest
 import xarray as xr
 from fastapi.testclient import TestClient
 
-from terrascope.api.app import create_app
-from terrascope.catalog import Catalog
-from terrascope.config import config_from_dict
-from terrascope.engine import Selection, TileEngine
-from terrascope.overviews import block_reduce
-from terrascope.tiling import Tile
+from geoloupe.api.app import create_app
+from geoloupe.catalog import Catalog
+from geoloupe.config import config_from_dict
+from geoloupe.engine import Selection, TileEngine
+from geoloupe.overviews import block_reduce
+from geoloupe.tiling import Tile
 
 
 def _landcover() -> xr.Dataset:

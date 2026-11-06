@@ -38,10 +38,10 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from terrascope.config import Config, PointColumns, PointsConfig
-from terrascope.readers import public_https, s3_options, with_retries
-from terrascope.styles import default_style
-from terrascope.timeaxis import TimeAxis, TimeError, compact_axis
+from geoloupe.config import Config, PointColumns, PointsConfig
+from geoloupe.readers import public_https, s3_options, with_retries
+from geoloupe.styles import default_style
+from geoloupe.timeaxis import TimeAxis, TimeError, compact_axis
 
 log = logging.getLogger(__name__)
 
@@ -730,7 +730,7 @@ def open_points(sid: str, cfg: PointsConfig, config: Config) -> PointSource:
         else:
             fmt = "parquet"
     if fmt in ("netcdf", "zarr"):
-        from terrascope.readers import open_dataset
+        from geoloupe.readers import open_dataset
 
         ds = open_dataset(
             location, "zarr" if low.endswith(".zarr") else "netcdf", cfg.storage_options
@@ -762,7 +762,7 @@ def _filesystem(locations: list[str], so: dict[str, Any]) -> tuple[Any, list[str
 
 
 def looks_like_points(path: str) -> bool:
-    """Whether `terrascope serve <path>` should treat the file as point data."""
+    """Whether `geoloupe serve <path>` should treat the file as point data."""
     low = path.lower().rstrip("/")
     if low.endswith(TABLE_EXT):
         return True

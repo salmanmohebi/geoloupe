@@ -17,7 +17,7 @@ import numpy as np
 @lru_cache(maxsize=1)
 def colormap_table() -> dict[str, dict[str, Any]]:
     """{name: {"category", "provider", "lut" (hex RGB × 256)}}."""
-    text = resources.files("terrascope").joinpath("colormaps.json").read_text()
+    text = resources.files("geoloupe").joinpath("colormaps.json").read_text()
     data: dict[str, dict[str, Any]] = json.loads(text)
     return data
 

@@ -33,10 +33,10 @@ from typing import Any
 
 import numpy as np
 
-from terrascope.catalog import Catalog, Layer, Level, Source
-from terrascope.grid import Axis
-from terrascope.tiling import Tile, zoom_for_resolution
-from terrascope.timeaxis import TimeError, TimeFormatError
+from geoloupe.catalog import Catalog, Layer, Level, Source
+from geoloupe.grid import Axis
+from geoloupe.tiling import Tile, zoom_for_resolution
+from geoloupe.timeaxis import TimeError, TimeFormatError
 
 log = logging.getLogger(__name__)
 
@@ -543,13 +543,13 @@ class TileEngine:
             return body, headers
         res = self.render(layer, tile, sel)
         headers = {
-            "X-TerraScope-Sources": ",".join(
+            "X-GeoLoupe-Sources": ",".join(
                 f"{c.source_index}:{c.level_index}:{c.pixels}" for c in res.contributions
             ),
-            "X-TerraScope-Skipped": ",".join(f"{k}:{r}" for k, r in res.skipped),
+            "X-GeoLoupe-Skipped": ",".join(f"{k}:{r}" for k, r in res.skipped),
         }
         if res.bands is not None:  # RGB: three value planes, no source map
-            headers["X-TerraScope-Bands"] = str(len(res.bands))
+            headers["X-GeoLoupe-Bands"] = str(len(res.bands))
             raw = b"".join(encode_data_tile(b) for b in res.bands)
         else:
             raw = encode_data_tile(res.data, res.source_map)

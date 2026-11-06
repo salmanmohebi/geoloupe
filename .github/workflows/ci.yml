@@ -47,8 +47,8 @@ jobs:
         with:
           node-version: 24
       - run: uv sync
-      - run: uv run terrascope demo-data demo --days 200
-      - run: uv run terrascope serve demo/demo.yaml --port 8765 --open-root demo &
+      - run: uv run geoloupe demo-data demo --days 200
+      - run: uv run geoloupe serve demo/demo.yaml --port 8765 --open-root demo &
       - run: cd frontend && npm ci && npx playwright install --with-deps chromium && npm run build
       - run: until curl -sf http://127.0.0.1:8765/api/health; do sleep 2; done
       - run: cd frontend && node e2e/smoke.mjs http://127.0.0.1:8765 shots
@@ -71,7 +71,7 @@ jobs:
         with:
           node-version: 24
       - run: uv sync --all-extras
-      - run: uv run terrascope gallery --port 8766 &
+      - run: uv run geoloupe gallery --port 8766 &
       - run: cd frontend && npm ci && npx playwright install --with-deps chromium
       - run: timeout 180 bash -c 'until curl -sf http://127.0.0.1:8766/api/health; do sleep 2; done'
       - run: cd frontend && node e2e/gallery.mjs http://127.0.0.1:8766 gallery-shots

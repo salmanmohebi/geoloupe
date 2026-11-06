@@ -411,9 +411,9 @@ export function LayerPanel() {
       <header className="brand">
         <img src="./favicon.svg" alt="" width={22} height={22} />
         <div>
-          <div className="brand-name">TerraScope</div>
+          <div className="brand-name">GeoLoupe</div>
           <div className="muted small">
-            {catalog?.title !== "TerraScope" ? catalog?.title : "scientific data explorer"}
+            {catalog?.title !== "GeoLoupe" ? catalog?.title : "scientific data explorer"}
           </div>
         </div>
         <button className="icon-btn" onClick={() => setPanelOpen(false)} aria-label="Hide panel">

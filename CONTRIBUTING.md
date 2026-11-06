@@ -1,4 +1,4 @@
-# Contributing to TerraScope
+# Contributing to GeoLoupe
 
 Thank you for helping. This guide covers the development setup, the conventions, and how changes are
 tested.
@@ -6,7 +6,7 @@ tested.
 ## Layout
 
 ```
-src/terrascope/           Python package
+src/geoloupe/           Python package
   config.py               YAML configuration (pydantic models)
   readers.py              open any format lazily with xarray
   grid.py, timeaxis.py    grids (dims, CRS, cell lookup) and time axes (calendars, matching)
@@ -16,7 +16,7 @@ src/terrascope/           Python package
   points.py               point observations (stations) from Parquet/CSV/NetCDF
   vectors.py              vector overlays (GeoJSON, Shapefile, GeoPackage, GeoParquet, …)
   stac.py                 STAC searches and items → files of mosaic datasets
-  gallery.yaml            the gallery of open public data (`terrascope gallery`)
+  gallery.yaml            the gallery of open public data (`geoloupe gallery`)
   overviews.py            overview pyramid builder
   colormaps.py/.json      lookup tables shared with the web client
   api/app.py              FastAPI routes
@@ -51,10 +51,10 @@ cd frontend
 npm ci
 npm run dev                   # http://localhost:5173, proxies /api to http://127.0.0.1:8000
 npm test && npm run lint && npm run typecheck
-npm run build                 # writes ../src/terrascope/static (commit it with client changes)
+npm run build                 # writes ../src/geoloupe/static (commit it with client changes)
 ```
 
-Run a server for the dev client: `uv run terrascope demo-data demo && uv run terrascope serve demo/demo.yaml`.
+Run a server for the dev client: `uv run geoloupe demo-data demo && uv run geoloupe serve demo/demo.yaml`.
 
 Browser tests (need a running server and Playwright's Chromium):
 
@@ -62,7 +62,7 @@ Browser tests (need a running server and Playwright's Chromium):
 cd frontend && npx playwright install chromium
 node e2e/smoke.mjs http://127.0.0.1:8000 /tmp/shots     # demo data; fails on console errors or missing content
                                                         # (start the server with --open-root demo to test "Add data")
-node e2e/gallery.mjs http://127.0.0.1:8000 /tmp/gallery # `terrascope gallery` (needs internet)
+node e2e/gallery.mjs http://127.0.0.1:8000 /tmp/gallery # `geoloupe gallery` (needs internet)
 ```
 
 > **HPC / shared machines:** keep environments and caches out of the home directory. Point
@@ -94,5 +94,5 @@ node e2e/gallery.mjs http://127.0.0.1:8000 /tmp/gallery # `terrascope gallery` (
 
 ## Releasing
 
-Bump `version` in `pyproject.toml` and `src/terrascope/__init__.py`, build the client (`npm run build`),
+Bump `version` in `pyproject.toml` and `src/geoloupe/__init__.py`, build the client (`npm run build`),
 then `uv build`. The wheel contains the client.

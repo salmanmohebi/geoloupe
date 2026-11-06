@@ -10,12 +10,12 @@ import pytest
 import xarray as xr
 from fastapi.testclient import TestClient
 
-from terrascope.api.app import create_app
-from terrascope.catalog import Catalog
-from terrascope.cli import GALLERY, main
-from terrascope.config import config_from_dict, load_config
-from terrascope.points import open_points
-from terrascope.timeaxis import TimeAxis, merge_labels
+from geoloupe.api.app import create_app
+from geoloupe.catalog import Catalog
+from geoloupe.cli import GALLERY, main
+from geoloupe.config import config_from_dict, load_config
+from geoloupe.points import open_points
+from geoloupe.timeaxis import TimeAxis, merge_labels
 
 
 def _grid(lon0: float, lat0: float, n: int, step: float, times: int = 0) -> xr.Dataset:
@@ -214,7 +214,7 @@ def test_fixed_time_source_makes_a_static_layer() -> None:
 def test_remote_opens_retry_network_failures(monkeypatch: pytest.MonkeyPatch) -> None:
     import urllib.error
 
-    from terrascope import readers
+    from geoloupe import readers
 
     monkeypatch.setattr(readers.time, "sleep", lambda s: None)
     calls = {"n": 0}

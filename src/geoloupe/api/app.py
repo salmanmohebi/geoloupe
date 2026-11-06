@@ -38,20 +38,20 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from pydantic import BaseModel
 
-from terrascope import __version__
-from terrascope.catalog import Catalog, Layer
-from terrascope.colormaps import apply_classes, apply_colormap, colormap_table
-from terrascope.config import DatasetConfig, PointsConfig, VectorConfig
-from terrascope.engine import Selection, SelectionError, TileEngine
-from terrascope.points import PointRegistry, PointsError
-from terrascope.query import QueryError, export_subset, point, stats, timeseries, to_netcdf_bytes
-from terrascope.tiling import Tile, TileError
-from terrascope.timeaxis import TimeError, compact_axis
-from terrascope.vectors import VectorError, VectorRegistry
+from geoloupe import __version__
+from geoloupe.catalog import Catalog, Layer
+from geoloupe.colormaps import apply_classes, apply_colormap, colormap_table
+from geoloupe.config import DatasetConfig, PointsConfig, VectorConfig
+from geoloupe.engine import Selection, SelectionError, TileEngine
+from geoloupe.points import PointRegistry, PointsError
+from geoloupe.query import QueryError, export_subset, point, stats, timeseries, to_netcdf_bytes
+from geoloupe.tiling import Tile, TileError
+from geoloupe.timeaxis import TimeError, compact_axis
+from geoloupe.vectors import VectorError, VectorRegistry
 
 log = logging.getLogger(__name__)
 
-STATIC_DIR = Path(str(resources.files("terrascope").joinpath("static")))
+STATIC_DIR = Path(str(resources.files("geoloupe").joinpath("static")))
 # Module workers (MapLibre's .mjs worker) need a JavaScript MIME type everywhere.
 mimetypes.add_type("text/javascript", ".mjs")
 
@@ -203,7 +203,7 @@ class OpenRequest(BaseModel):
 
 
 def create_app(catalog: Catalog, warm: bool = True) -> FastAPI:
-    """The TerraScope web application for a catalog."""
+    """The GeoLoupe web application for a catalog."""
     engine = TileEngine(catalog)
     settings = catalog.settings
 
@@ -256,10 +256,10 @@ def create_app(catalog: Catalog, warm: bool = True) -> FastAPI:
         allow_origins=settings.cors_origins,
         allow_methods=["GET"],
         expose_headers=[
-            "X-TerraScope-Sources",
-            "X-TerraScope-Skipped",
-            "X-TerraScope-Time-Ms",
-            "X-TerraScope-Bands",
+            "X-GeoLoupe-Sources",
+            "X-GeoLoupe-Skipped",
+            "X-GeoLoupe-Time-Ms",
+            "X-GeoLoupe-Bands",
         ],
     )
 
@@ -361,7 +361,7 @@ def create_app(catalog: Catalog, warm: bool = True) -> FastAPI:
             media_type="application/geo+json",
             headers={
                 "Cache-Control": "public, max-age=3600",
-                "X-TerraScope-Count": str(layer.count),
+                "X-GeoLoupe-Count": str(layer.count),
             },
         )
 
@@ -373,7 +373,7 @@ def create_app(catalog: Catalog, warm: bool = True) -> FastAPI:
 
         Off by default: remote URLs need `allow_open`, local files must lie below `open_roots`.
         """
-        from terrascope.cli import config_for_paths
+        from geoloupe.cli import config_for_paths
 
         loc = req.path.strip()
         if not loc:
@@ -471,7 +471,7 @@ def create_app(catalog: Catalog, warm: bool = True) -> FastAPI:
         body, headers = engine.tile_bytes(
             layer, Tile(z, x, y, settings.tile_size), selection(layer, time, dims)
         )
-        headers = {**headers, "X-TerraScope-Time-Ms": f"{(_time.perf_counter() - t0) * 1000:.1f}"}
+        headers = {**headers, "X-GeoLoupe-Time-Ms": f"{(_time.perf_counter() - t0) * 1000:.1f}"}
         headers["Cache-Control"] = "public, max-age=3600"
         if body is None:
             return Response(status_code=204, headers=headers)
@@ -713,7 +713,7 @@ def create_app(catalog: Catalog, warm: bool = True) -> FastAPI:
         if index.exists():
             return FileResponse(index, headers={"Cache-Control": "no-cache"})
         return HTMLResponse(
-            "<h1>TerraScope API is running</h1><p>The web client is not built. Run "
+            "<h1>GeoLoupe API is running</h1><p>The web client is not built. Run "
             "<code>npm ci &amp;&amp; npm run build</code> in <code>frontend/</code>, or open "
             "<a href='api/docs'>the API docs</a>.</p>"
         )

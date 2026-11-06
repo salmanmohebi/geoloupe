@@ -33,9 +33,9 @@ export async function fetchTile(url: string, size: number, signal?: AbortSignal)
       (async () => {
         const r = await fetch(url);
         const meta = {
-          contributions: parseContributions(r.headers.get("X-TerraScope-Sources")),
-          skipped: parseSkipped(r.headers.get("X-TerraScope-Skipped")),
-          ms: Number(r.headers.get("X-TerraScope-Time-Ms") ?? 0),
+          contributions: parseContributions(r.headers.get("X-GeoLoupe-Sources")),
+          skipped: parseSkipped(r.headers.get("X-GeoLoupe-Skipped")),
+          ms: Number(r.headers.get("X-GeoLoupe-Time-Ms") ?? 0),
         };
         if (r.status === 204) return { values: null, sourceMap: null, ...meta };
         if (!r.ok) {
@@ -48,7 +48,7 @@ export async function fetchTile(url: string, size: number, signal?: AbortSignal)
           throw new TileFetchError(`tile ${r.status}: ${detail}`);
         }
         const buf = await r.arrayBuffer();
-        const nBands = Number(r.headers.get("X-TerraScope-Bands") ?? 1);
+        const nBands = Number(r.headers.get("X-GeoLoupe-Bands") ?? 1);
         const { values, sourceMap, bands } = decodeValues(buf, size, nBands);
         return { values, sourceMap, bands, ...meta };
       })(),

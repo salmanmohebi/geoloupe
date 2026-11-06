@@ -13,7 +13,7 @@ uv run python scripts/benchmark.py my-config.yaml --layer tas --time 2021-07-15 
 |---|---|---|---|
 | A 0.25° daily reanalysis (private copy) | 721 × 1440, float32 | 13 879 days | one chunk per day and variable (whole globe) |
 | A 30″ ≈ 1 km daily climate dataset (private) | 20 880 × 43 200, uint16 + scale_factor | 13 864 days | sharded Zarr v3: one shard per day, 720 × 720 inner chunks |
-| Its overviews (TerraScope) | factors 4 … 128, uint16 | 365 days, two variables | 12 GB, 512 × 512 chunks, Blosc zstd + shuffle (ratio ≈ 9) |
+| Its overviews (GeoLoupe) | factors 4 … 128, uint16 | 365 days, two variables | 12 GB, 512 × 512 chunks, Blosc zstd + shuffle (ratio ≈ 9) |
 | Sentinel-2 L2A scene (public, AWS, over HTTPS) | 10 980 × 10 980 COGs, UTM 32N, internal overviews 2–16× | single date | 1024 × 1024 blocks |
 | ARCO-ERA5 (public, Google Cloud, over HTTPS) | 721 × 1440 | 1 323 648 hourly steps | Zarr v3, one chunk per hour |
 
@@ -67,7 +67,7 @@ starts.
 
 ## Public data over the internet (the gallery)
 
-`terrascope gallery` on the same node, all data read from public buckets over HTTPS (AWS eu-central-1
+`geoloupe gallery` on the same node, all data read from public buckets over HTTPS (AWS eu-central-1
 and us-west-2, Google Cloud, NOAA). Network latency dominates; numbers vary between runs.
 
 | Step | Time |
@@ -91,7 +91,7 @@ and us-west-2, Google Cloud, NOAA). Network latency dominates; numbers vary betw
 | Build | Time | Output |
 |---|---|---|
 | 1 km daily dataset, two variables, 365 days, `--min-factor 4`, `--workers 32` | 18.5 min (≈ 25 s per day and variable per worker; read-bound) | 12 GB; values within half a packing step of a direct block mean |
-| Demo data (`terrascope demo-data`, 365 days, incl. overviews) | 1.5 min | 350 MB |
+| Demo data (`geoloupe demo-data`, 365 days, incl. overviews) | 1.5 min | 350 MB |
 
 ## Tests
 

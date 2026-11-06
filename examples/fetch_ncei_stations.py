@@ -1,12 +1,12 @@
-"""Download daily station records from NOAA NCEI (GHCN-Daily) and write a TerraScope config.
+"""Download daily station records from NOAA NCEI (GHCN-Daily) and write a GeoLoupe config.
 
     python examples/fetch_ncei_stations.py samples/ncei SZ000001940 SZ000002220 SZ000003700
-    terrascope serve samples/ncei/stations.yaml
+    geoloupe serve samples/ncei/stations.yaml
 
 Without station ids, eight Swiss stations are used. The files are NCEI's public "daily summaries"
 (https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/), one CSV per
 station with columns STATION, DATE, LATITUDE, LONGITUDE, ELEVATION, NAME, PRCP, TMAX, TMIN, …
-TerraScope detects these columns itself; the config only adds units (NCEI stores temperatures in
+GeoLoupe detects these columns itself; the config only adds units (NCEI stores temperatures in
 tenths of °C and precipitation in tenths of mm).
 """
 
@@ -58,7 +58,7 @@ def main(out: str, ids: list[str]) -> None:
         frames.append(pd.read_csv(f, low_memory=False))
     pd.concat(frames, ignore_index=True).to_csv(d / "stations.csv", index=False)
     (d / "stations.yaml").write_text(CONFIG)
-    print(f"done. Start with:  terrascope serve {d / 'stations.yaml'}")
+    print(f"done. Start with:  geoloupe serve {d / 'stations.yaml'}")
 
 
 if __name__ == "__main__":

@@ -21,8 +21,8 @@ from typing import Any
 
 import numpy as np
 
-from terrascope.config import Config, VectorConfig
-from terrascope.readers import gdal_path, public_https, s3_options, with_retries
+from geoloupe.config import Config, VectorConfig
+from geoloupe.readers import gdal_path, public_https, s3_options, with_retries
 
 log = logging.getLogger(__name__)
 
@@ -75,7 +75,7 @@ def _read_ogr(loc: str, cfg: VectorConfig) -> tuple[Any, list[str], dict[str, li
         import pyogrio.raw
     except ImportError as e:
         raise VectorError(
-            "vector overlays need pyogrio and shapely; install terrascope[vector]"
+            "vector overlays need pyogrio and shapely; install geoloupe[vector]"
         ) from e
     import shapely
 

@@ -165,7 +165,7 @@ export function Toolbar() {
             .join(" · "),
           units: unitLabel(main.layer.units),
           ticks: niceTicks(st.vmin, st.vmax, st.log),
-          credit: `TerraScope${attrib ? ` · ${attrib}` : ""}`,
+          credit: `GeoLoupe${attrib ? ` · ${attrib}` : ""}`,
         },
       );
     } catch (e) {

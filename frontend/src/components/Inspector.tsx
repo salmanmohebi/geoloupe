@@ -105,13 +105,13 @@ export function Inspector() {
     const { labels, data } = mergeSeries(allSeries);
     const head = ["time", ...allSeries.map((s) => `${s.id} [${layer.units ?? ""}]`)].join(",");
     const rows = labels.map((t, i) => [t, ...data.map((d) => (d[i] === null ? "" : String(d[i])))].join(","));
-    const meta = `# TerraScope time series at lon=${inspect.lng.toFixed(5)} lat=${inspect.lat.toFixed(5)}; layer ${layer.id}; native grid cells: ${allSeries
+    const meta = `# GeoLoupe time series at lon=${inspect.lng.toFixed(5)} lat=${inspect.lat.toFixed(5)}; layer ${layer.id}; native grid cells: ${allSeries
       .map((s) => `${s.id} (${s.cell.lon.toFixed(4)}, ${s.cell.lat.toFixed(4)})`)
       .join("; ")}`;
     const blob = new Blob([[meta, head, ...rows].join("\n")], { type: "text/csv" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `terrascope_${layer.id.replace(/[:/]/g, "_")}_${inspect.lat.toFixed(3)}_${inspect.lng.toFixed(3)}.csv`;
+    a.download = `geoloupe_${layer.id.replace(/[:/]/g, "_")}_${inspect.lat.toFixed(3)}_${inspect.lng.toFixed(3)}.csv`;
     a.click();
     URL.revokeObjectURL(a.href);
   };

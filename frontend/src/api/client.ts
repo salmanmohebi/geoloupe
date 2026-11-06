@@ -42,7 +42,7 @@ async function getJsonUntracked<T>(url: string, signal?: AbortSignal, init?: Req
     r = await fetch(url, { signal, ...init });
   } catch (e) {
     if ((e as Error).name === "AbortError") throw e;
-    throw new ApiError("The TerraScope server cannot be reached. Is it still running?", 0);
+    throw new ApiError("The GeoLoupe server cannot be reached. Is it still running?", 0);
   }
   if (!r.ok) {
     let detail = r.statusText;

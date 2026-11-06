@@ -1,22 +1,22 @@
-# TerraScope
+# GeoLoupe
 
 **Explore large scientific and geospatial datasets on an interactive map: from the whole planet down
 to 10 m, through time, with the values one click away.**
 
-TerraScope puts gridded data on a web map: weather and climate reanalyses, model output, satellite
+GeoLoupe puts gridded data on a web map: weather and climate reanalyses, model output, satellite
 images, elevation models, land cover, and station records. It reads them where they are (Zarr,
 NetCDF, GRIB, GeoTIFF/COG, CSV, Parquet; local or in public cloud buckets) and reads only what the
 screen can show. Datasets of different resolution become one seamless layer: zoomed out, you see the
 coarse global field; zoom in, and the fine data takes over where it exists.
 
-![The TerraScope gallery: featured views of open data, each a shareable link](docs/images/gallery.jpg)
+![The GeoLoupe gallery: featured views of open data, each a shareable link](docs/images/gallery.jpg)
 
 ## Try it: the gallery of open data
 
 ```bash
-git clone <this repository> terrascope && cd terrascope
+git clone https://github.com/salmanmohebi/geoloupe.git && cd geoloupe
 uv sync                          # or: pip install -e .
-uv run terrascope gallery        # → http://localhost:8000
+uv run geoloupe gallery        # → http://localhost:8000
 ```
 
 The gallery needs an internet connection and nothing else: no download in advance, no account, no
@@ -33,7 +33,7 @@ the internet.
 | States and provinces, rivers, lakes (overlays) | [Natural Earth](https://www.naturalearthdata.com/) 1:10m GeoJSON | switch on in the layer panel; hover a region for its name next to the data value |
 | GHCN-Daily stations, 21 long records (Milan since 1763) | [NOAA NCEI](https://www.ncei.noaa.gov/products/land-based-station/global-historical-climatology-network-daily) CSV files | daily max/min temperature and precipitation; click a station for its whole record |
 
-The gallery is a normal configuration file: `terrascope gallery --show-config` prints it, so you can
+The gallery is a normal configuration file: `geoloupe gallery --show-config` prints it, so you can
 copy it and change it.
 
 ## Your own data
@@ -41,12 +41,12 @@ copy it and change it.
 No configuration is needed for a first look:
 
 ```bash
-uv run terrascope serve /path/to/data.zarr        # or .nc, .grib2, .tif, a URL
-uv run terrascope serve grid.zarr stations.csv     # several files; tables become point layers
-uv run terrascope serve grid.zarr regions.geojson  # vector files become overlays
-uv run terrascope serve s3://copernicus-dem-30m/Copernicus_DSM_COG_10_N46_00_E007_00_DEM/Copernicus_DSM_COG_10_N46_00_E007_00_DEM.tif  # public S3: no setup
-uv run terrascope serve config.yaml --allow-open --open-root ~/data   # "Add data" in the browser
-uv run terrascope info  /path/to/data.zarr        # what TerraScope sees: variables, grid, CRS, times
+uv run geoloupe serve /path/to/data.zarr        # or .nc, .grib2, .tif, a URL
+uv run geoloupe serve grid.zarr stations.csv     # several files; tables become point layers
+uv run geoloupe serve grid.zarr regions.geojson  # vector files become overlays
+uv run geoloupe serve s3://copernicus-dem-30m/Copernicus_DSM_COG_10_N46_00_E007_00_DEM/Copernicus_DSM_COG_10_N46_00_E007_00_DEM.tif  # public S3: no setup
+uv run geoloupe serve config.yaml --allow-open --open-root ~/data   # "Add data" in the browser
+uv run geoloupe info  /path/to/data.zarr        # what GeoLoupe sees: variables, grid, CRS, times
 ```
 
 To combine datasets into one layer, add colour scales, or list featured views, write a small YAML
@@ -67,16 +67,16 @@ views:                            # optional: the gallery start screen
   - {title: The Matterhorn, layer: elevation, center: [7.66, 45.98], zoom: 11}
 ```
 
-**On a remote machine or HPC node:** run `terrascope serve config.yaml --port 8000` there and tunnel:
+**On a remote machine or HPC node:** run `geoloupe serve config.yaml --port 8000` there and tunnel:
 `ssh -N -L 8000:localhost:8000 <host>`. Behind JupyterHub with jupyter-server-proxy, open
 `…/user/<name>/proxy/8000/` (all URLs are relative).
 
 **In a notebook:**
 
 ```python
-import xarray as xr, terrascope
+import xarray as xr, geoloupe
 ds = xr.open_zarr("data.zarr")
-terrascope.show({"data": ds})           # interactive map in the cell output
+geoloupe.show({"data": ds})           # interactive map in the cell output
 ```
 
 ## Features
@@ -86,7 +86,7 @@ terrascope.show({"data": ds})           # interactive map in the cell output
   sources fill gaps and serve low zooms.
 * **Bounded cost at every zoom.** Per tile, the engine picks the coarsest resolution level that is still
   as fine as a screen pixel and never reads more than a fixed number of cells. COG overviews are used
-  automatically; `terrascope overviews build` makes overview pyramids for other formats.
+  automatically; `geoloupe overviews build` makes overview pyramids for other formats.
 * **Honest about what you see.** A badge names the datasets, resolutions and native/overview levels on
   screen; hover shows the displayed value and its source; a click gives the *stored* value of the native
   cell of every source, plus their time series.
@@ -116,12 +116,12 @@ terrascope.show({"data": ds})           # interactive map in the cell output
   WRF, CMIP6 native grids, swaths).
 * **Gallery and sharing.** Featured views as a start screen; every view is a link; PNG export with
   title, colour bar and attribution; the data in view as NetCDF; time series as CSV.
-* **Python and Jupyter.** `terrascope.show(...)` puts any xarray Dataset on the map inside a
+* **Python and Jupyter.** `geoloupe.show(...)` puts any xarray Dataset on the map inside a
   notebook. The HTTP API (OpenAPI docs at `/api/docs`) works from any language.
 
 ## Screenshots
 
-All from `terrascope gallery`:
+All from `geoloupe gallery`:
 
 | | |
 |---|---|
@@ -129,13 +129,13 @@ All from `terrascope gallery`:
 | ![True and false colour](docs/images/true-false-colour.jpg) **Sentinel-2, true vs false colour.** Two synchronised maps; the false-colour side (near infrared as red) keeps its own colour scale. | ![Land cover](docs/images/landcover.jpg) **ESA WorldCover around Lake Geneva.** Class colours from the file's palette, names from the config, shares of the view in the legend. |
 | ![Elevation](docs/images/elevation.jpg) **The Matterhorn in the Copernicus DEM (30 m).** Six 1° tiles form one layer, with ERA5's orography outside them. | ![Stations](docs/images/stations.jpg) **GHCN-Daily stations, 18 July 2023.** Click one for its whole daily record. |
 
-The synthetic demo (`terrascope demo-data demo && terrascope serve demo/demo.yaml`) works offline
+The synthetic demo (`geoloupe demo-data demo && geoloupe serve demo/demo.yaml`) works offline
 and shows compositing, pressure levels and a LAEA-projected grid ([images](docs/images/)).
 
 ## How it works
 
 ```
-Browser: React UI + MapLibre GL JS ── terrascope:// protocol: fetch float tile → colour → ImageBitmap
+Browser: React UI + MapLibre GL JS ── geoloupe:// protocol: fetch float tile → colour → ImageBitmap
             ▲  float32 data tiles (+ which source filled each pixel)
 Server:  FastAPI ── TileEngine: per tile and source: level choice → read budget → block mean → composite
             ▲  lazy window reads (xarray, GDAL)
@@ -149,11 +149,11 @@ the decision log.
 
 ## Status and limitations
 
-TerraScope 0.1 is a working first version (see [ROADMAP.md](ROADMAP.md)):
+GeoLoupe 0.1 is a working first version (see [ROADMAP.md](ROADMAP.md)):
 
 * Grids: rectilinear and curvilinear. Unstructured meshes (UGRID, HEALPix, ICON) are not supported
   yet. Curvilinear grids show the nearest cell (no averaging) and get coarser levels by subsampling;
-  `terrascope overviews build` does not support them yet.
+  `geoloupe overviews build` does not support them yet.
 * Tiles: Web Mercator (plus MapLibre's globe view). Polar regions beyond ±85° are not shown.
 * On-the-fly aggregation is an unweighted mean of the cells whose centres fall in a pixel; projected
   grids use nearest neighbour (build overviews for means).

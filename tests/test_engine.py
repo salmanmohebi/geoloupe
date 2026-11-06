@@ -7,15 +7,15 @@ import pyproj
 import pytest
 import xarray as xr
 
-from terrascope.catalog import Catalog
-from terrascope.engine import (
+from geoloupe.catalog import Catalog
+from geoloupe.engine import (
     Selection,
     SelectionError,
     TileEngine,
     decode_data_tile,
     encode_data_tile,
 )
-from terrascope.tiling import Tile
+from geoloupe.tiling import Tile
 
 from .conftest import latlon_ds
 
@@ -154,7 +154,7 @@ def test_read_budget_skips_and_overview_rescues(tmp_path) -> None:
     assert res.empty and res.skipped == [(0, "cost")]
     assert eng.min_zoom(layer.sources[0]) > 3
     # with overviews the same tile is served from a coarse level
-    from terrascope.overviews import build
+    from geoloupe.overviews import build
 
     src = tmp_path / "d.zarr"
     ds.to_zarr(src, zarr_format=3)
@@ -168,7 +168,7 @@ def test_read_budget_skips_and_overview_rescues(tmp_path) -> None:
 
 
 def test_level_choice_finest_needed(tmp_path) -> None:
-    from terrascope.overviews import build
+    from geoloupe.overviews import build
 
     ds = latlon_ds((0, 40, 20, 50), 0.01, times=1)
     ds.to_zarr(tmp_path / "d.zarr", zarr_format=3)
@@ -251,7 +251,7 @@ def test_tile_cache_and_headers(composite_catalog: Catalog) -> None:
     eng = TileEngine(composite_catalog)
     layer = composite_catalog.layer("tas")
     body, headers = eng.tile_bytes(layer, Tile(6, 33, 22), Selection.make("2021-01-01"))
-    assert body is not None and headers["X-TerraScope-Sources"].startswith("0:0:")
+    assert body is not None and headers["X-GeoLoupe-Sources"].startswith("0:0:")
     body2, _ = eng.tile_bytes(layer, Tile(6, 33, 22), Selection.make("2021-01-01"))
     assert body2 is body  # served from the cache
     empty, _ = eng.tile_bytes(
@@ -261,6 +261,6 @@ def test_tile_cache_and_headers(composite_catalog: Catalog) -> None:
 
 
 def _cfg(tmp_path, dataset: dict, **settings: object):
-    from terrascope.config import config_from_dict
+    from geoloupe.config import config_from_dict
 
     return config_from_dict({"datasets": {"d": dataset}, "settings": settings}, base_dir=tmp_path)

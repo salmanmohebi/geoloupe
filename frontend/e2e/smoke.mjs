@@ -1,4 +1,4 @@
-// End-to-end smoke test and screenshots, against a running TerraScope server.
+// End-to-end smoke test and screenshots, against a running GeoLoupe server.
 //
 //   node e2e/smoke.mjs http://127.0.0.1:8000 out-dir [scenario.json]
 //
@@ -83,7 +83,7 @@ for (const step of scenario) {
     // hover a station circle, check the tooltip, then click it and wait for its series
     const pos = await page.evaluate(() => {
       // a station in the open map area (not under a panel)
-      const m = window.__terrascopeMap;
+      const m = window.__geoloupeMap;
       const r = m.getContainer().getBoundingClientRect();
       const free = (p) => p.x > 400 && p.x < r.width - 450 && p.y > 120 && p.y < r.height - 160;
       const f = m

@@ -1,4 +1,4 @@
-// Web Mercator tile math (XYZ scheme), matching src/terrascope/tiling.py.
+// Web Mercator tile math (XYZ scheme), matching src/geoloupe/tiling.py.
 
 export const MAX_LAT = 85.0511287798066;
 

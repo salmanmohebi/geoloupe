@@ -2,7 +2,7 @@
 # no download, no credentials. Opening takes a few seconds; each tile reads one hourly field
 # (~1 s over the internet).
 #
-#   terrascope serve examples/arco-era5.yaml
+#   geoloupe serve examples/arco-era5.yaml
 title: ARCO-ERA5 (Google Cloud public dataset)
 datasets:
   era5:

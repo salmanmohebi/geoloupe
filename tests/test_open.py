@@ -11,9 +11,9 @@ import pytest
 import xarray as xr
 from fastapi.testclient import TestClient
 
-from terrascope.api.app import create_app
-from terrascope.catalog import Catalog
-from terrascope.config import config_from_dict
+from geoloupe.api.app import create_app
+from geoloupe.catalog import Catalog
+from geoloupe.config import config_from_dict
 
 
 def _grid(path: Path) -> None:

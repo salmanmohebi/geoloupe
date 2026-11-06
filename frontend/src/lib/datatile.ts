@@ -1,9 +1,9 @@
-// Decoding of TerraScope data tiles (docs/data-tiles.md).
+// Decoding of GeoLoupe data tiles (docs/data-tiles.md).
 //
 // Body (after HTTP gzip, which the browser removes): size² float32 values,
 // byte-shuffled, then optionally size² uint8 source indices (255 = none).
-// Headers: X-TerraScope-Sources "src:level:pixels,..." and
-// X-TerraScope-Skipped "src:reason,...".
+// Headers: X-GeoLoupe-Sources "src:level:pixels,..." and
+// X-GeoLoupe-Skipped "src:reason,...".
 
 export interface Contribution {
   source: number;

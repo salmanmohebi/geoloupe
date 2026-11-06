@@ -7,7 +7,7 @@ import { locate, lngLatToTileFloat, tileZoom, tilesInBounds } from "./mercator";
 import { buildHash, parseHash } from "./urlState";
 import { histogram, percentiles } from "./view";
 
-/** Same byte layout as terrascope.engine.encode_data_tile. */
+/** Same byte layout as geoloupe.engine.encode_data_tile. */
 function encode(values: Float32Array, sourceMap?: Uint8Array): ArrayBuffer {
   const n = values.length;
   const raw = new Uint8Array(values.buffer);

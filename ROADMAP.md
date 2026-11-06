@@ -21,14 +21,14 @@ so the gaps are visible.
   shareable links, light/dark themes.
 * Point observations: long or wide tables (Parquet with filter push-down, CSV), unit conversion,
   drawn in the layer's colour scale, station series in the inspector.
-* Python: `terrascope serve | gallery | info | demo-data | overviews build`; `terrascope.show()` for
+* Python: `geoloupe serve | gallery | info | demo-data | overviews build`; `geoloupe.show()` for
   notebooks.
 * CI (GitHub Actions): pytest on Python 3.11–3.13, ruff, mypy, vitest, eslint, build, browser smoke
   test on demo data, and the gallery test on live public data (reported, not blocking).
 
 ## Done: any kind of data, not only gridded reanalyses (2026-11-06)
 
-TerraScope is a general explorer: anyone should be able to open, visit and play with the main kinds of
+GeoLoupe is a general explorer: anyone should be able to open, visit and play with the main kinds of
 geoscience data — reanalyses and model output, satellite imagery, stations, elevation, land cover —
 from public sources or their own files.
 Each item is done when it has tests, docs, an example with real public data where possible, and
@@ -37,7 +37,7 @@ passes the browser smoke test.
 - [x] **1. Stations and point data as first-class datasets.** Point layers of their own (own colour
       scale, time slider, click → station series), not only overlays. Readers: CSV, Parquet,
       GeoParquet, NetCDF CF discrete sampling geometry (`featureType: timeSeries`). Long and wide
-      tables; columns detected automatically (`terrascope serve stations.csv` just works). Any point
+      tables; columns detected automatically (`geoloupe serve stations.csv` just works). Any point
       layer can be overlaid on any gridded layer from the UI.
 - [x] **2. Satellite rasters (GeoTIFF / COG) done right.** (Also: remote Zarr over HTTPS, and
       compact long time axes — ARCO-ERA5's 1.3 million hourly steps.) Internal COG overviews used as resolution
@@ -49,7 +49,7 @@ passes the browser smoke test.
       GeoTIFF palette, config); class legend with shares of the view; hover shows the class name;
       never averaged (nearest in tiles, majority `mode` in overviews); class colours in PNG tiles.
       Tested on ESA WorldCover (remote COG).
-- [x] **4b. A gallery of open public data** (`terrascope gallery`). ERA5 (ARCO, hourly since 1940),
+- [x] **4b. A gallery of open public data** (`geoloupe gallery`). ERA5 (ARCO, hourly since 1940),
       Copernicus DEM 30 m mosaic over ERA5 orography, Sentinel-2 true/false colour, ESA WorldCover,
       NOAA GHCN-Daily stations — all read live from public buckets. Featured `views:` as a start
       screen with centred preview images (`/preview.png`); every view is a shareable link. On the way:
@@ -63,7 +63,7 @@ passes the browser smoke test.
       3.9 s → 0.15 s), Zarr detection for URLs without `.zarr`, time labels rounded to the minute,
       shared links that keep the comparison time. Later: overviews (block means) for curvilinear
       grids.
-- [x] **6. Open data without a config.** `terrascope serve a.zarr b.tif stations.csv regions.geojson`;
+- [x] **6. Open data without a config.** `geoloupe serve a.zarr b.tif stations.csv regions.geojson`;
       an "Add data" dialog in the browser (gridded data, stations or vectors; path or URL), only
       when the server is started with `--allow-open` (URLs) or `--open-root DIR` (local files below
       DIR). New datasets open through their own small catalog; failures are reported, not kept.

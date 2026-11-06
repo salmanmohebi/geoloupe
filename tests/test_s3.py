@@ -6,9 +6,9 @@ from typing import Any
 
 import pytest
 
-from terrascope import readers
-from terrascope.points import _filesystem
-from terrascope.readers import (
+from geoloupe import readers
+from geoloupe.points import _filesystem
+from geoloupe.readers import (
     OpenError,
     gdal_path,
     public_https,

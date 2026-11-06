@@ -1,6 +1,6 @@
 # Ecosystem research
 
-This is the survey of existing tools that TerraScope's design is based on. It answers, for each
+This is the survey of existing tools that GeoLoupe's design is based on. It answers, for each
 relevant project: what it does, how it handles large and multi-resolution data, what we can reuse,
 and what we learn from it. [ARCHITECTURE.md](../ARCHITECTURE.md) explains the decisions that follow
 from it; [decisions.md](decisions.md) lists them one by one.
@@ -13,13 +13,13 @@ re-check version-specific claims before relying on them.
 
 ## Summary
 
-| Need | Best existing option | Gap that TerraScope fills |
+| Need | Best existing option | Gap that GeoLoupe fills |
 |---|---|---|
 | Dynamic tiles from xarray | xpublish-tiles (LOD, cost control, many grid types), TiTiler (`titiler.xarray`) | Neither returns **float data tiles** with per-tile level choice; neither composites **several datasets of different resolution per pixel** |
-| Multi-resolution storage | Zarr v3 + GeoZarr `multiscales` / `proj` / `spatial` conventions (v0.1, pilot) | TerraScope writes them as **external overviews** in the native grid (source never modified) |
-| Browser rendering of float rasters | OpenLayers WebGLTile + GeoZarr source, `@carbonplan/zarr-layer`, deck.gl-raster | These read one store at a time on the client; TerraScope keeps cross-dataset compositing on the server and uses MapLibre for the map |
-| Point values and time series | OGC API – EDR (xpublish-edr) | TerraScope's `/point` and `/timeseries` follow the same model; an EDR facade is on the roadmap |
-| Catalog metadata | STAC + datacube + render extensions | TerraScope's YAML registry maps onto these (roadmap: STAC import/export) |
+| Multi-resolution storage | Zarr v3 + GeoZarr `multiscales` / `proj` / `spatial` conventions (v0.1, pilot) | GeoLoupe writes them as **external overviews** in the native grid (source never modified) |
+| Browser rendering of float rasters | OpenLayers WebGLTile + GeoZarr source, `@carbonplan/zarr-layer`, deck.gl-raster | These read one store at a time on the client; GeoLoupe keeps cross-dataset compositing on the server and uses MapLibre for the map |
+| Point values and time series | OGC API – EDR (xpublish-edr) | GeoLoupe's `/point` and `/timeseries` follow the same model; an EDR facade is on the roadmap |
+| Catalog metadata | STAC + datacube + render extensions | GeoLoupe's YAML registry maps onto these (roadmap: STAC import/export) |
 
 ## 1. xpublish-tiles, xpublish, xpublish-edr
 
@@ -121,11 +121,11 @@ re-check version-specific claims before relying on them.
 - **Output formats:** PNG, JPEG, JP2, WEBP, GTiff, and **`npy`** (media type `application/x-binary`).
   In rio-tiler `render()`, NPY = `numpy.save()` of the data array **with the mask appended as the last
   band** (so the dtype is upcast to match the data). That is a raw float tile over HTTP, which is close
-  to TerraScope's idea, but the format is NumPy `.npy`, not a typed buffer made for the browser.
+  to GeoLoupe's idea, but the format is NumPy `.npy`, not a typed buffer made for the browser.
 - **titiler-multidim** (https://github.com/developmentseed/titiler-multidim, tag v0.11.0): the
   reference app for `titiler.xarray` (NASA VEDA staging). New: 1 to 20 ordered `url=` values per request
   make a **per-pixel mosaic** (first valid pixel wins, `pixel_selection` can change this). This is a
-  simple form of TerraScope's "fine on top of coarse" compositing, but it works only on one shared grid
+  simple form of GeoLoupe's "fine on top of coarse" compositing, but it works only on one shared grid
   selection.
 - **titiler-cmr** (https://github.com/developmentseed/titiler-cmr, tag v1.1.4): TiTiler with NASA CMR
   granule search. It has `/xarray` and `/rasterio` backends, time-series endpoints, and NumpyTile output.
@@ -223,7 +223,7 @@ re-check version-specific claims before relying on them.
   (GDAL is `[c, a, b, f, d, e]`). Index (0,0) is the top-left *corner* of the top-left pixel.
 - `proj:code` (e.g. `"EPSG:4326"`) or `proj:wkt2` or `proj:projjson` sit on the group. Array attributes
   override group attributes.
-- Practical rule for TerraScope: write `proj:code` + `spatial:dimensions` on the multiscale group. Write
+- Practical rule for GeoLoupe: write `proj:code` + `spatial:dimensions` on the multiscale group. Write
   `spatial:transform` + `spatial:shape` **both** on each layout entry **and** on each level's group (or
   arrays). xpublish-tiles finds levels from per-node `spatial:transform` attributes. zarr-layer uses the
   layout entries' `spatial:shape` to avoid opening each level.
@@ -249,7 +249,7 @@ re-check version-specific claims before relying on them.
 - https://github.com/carbonplan/topozarr, PyPI **0.2.2 (2026-11-03)**. `create_pyramid(ds, levels=…,
   x_dim=…, y_dim=…)` writes a Zarr v3 multiscale store with each level 2× coarser, **in the native CRS**
   (CRS set with `xproj`). It follows the GeoZarr conventions and targets `zarr-layer`. This is the closest
-  existing writer to TerraScope's "pyramids in native grid" design.
+  existing writer to GeoLoupe's "pyramids in native grid" design.
 
 ### OME-NGFF (OME-Zarr) multiscales
 - https://github.com/ome/ngff-spec. The current tag is **0.6** (tag commit dated 2026-09-14); 0.5.x is
@@ -298,7 +298,7 @@ re-check version-specific claims before relying on them.
   extraction on the client. Custom GLSL fragments make band math possible (e.g. NDVI).
 - Viv (**not verified in detail this session**) uploads 8/16/32-bit and float textures and applies
   contrast limits and colormaps on the GPU. That is the same "data tiles + client colormap" design that
-  TerraScope chose, proven at bio-imaging scale.
+  GeoLoupe chose, proven at bio-imaging scale.
 - Applications (not libraries): **Browzarr** (three.js; 3D volumetric raycasting; Zarr v2/v3, NetCDF
   via wasm, Icechunk) and **GridLook** (DKRZ/MPI-M; three.js/Vue; HEALPix, ICON triangles, rotated
   grids; 1.0 in April 2026, per DevSeed guide). Comparison page:
@@ -362,13 +362,13 @@ type AddProtocolResponseData = ArrayBuffer | ImageBitmap | HTMLImageElement | st
   1.0.1 (r5), 1.1 (19-086r6), **1.2 (19-086r9)** (approval date not verified), plus Part 2
   Publish-Subscribe 1.0 (23-057r1). Query types: `position`, `radius`, `area`, `cube`, `trajectory`,
   `corridor`, `items`, `locations`, `instances`, with `datetime`, `z` and `parameter-name` filters.
-  Output is usually CoverageJSON or GeoJSON. **This is the right standard for TerraScope's point-click
+  Output is usually CoverageJSON or GeoJSON. **This is the right standard for GeoLoupe's point-click
   value and time-series queries on gridded data** ("value at lon/lat for all times" = one `position`
   request). xpublish-edr and pygeoapi already implement it.
 - **OGC API – Tiles** Part 1 Core **1.0 (OGC 20-057, 2022)** with TileMatrixSet 2.0. It defines map
   tiles, vector tiles **and coverage (data) tiles**, so raw-value tiles fit the standard. It supports any
   TMS (e.g. `WebMercatorQuad`, `WorldCRS84Quad`) and tileset metadata that describes dimensions.
-  TerraScope's float32 tiles could be published as an OGC "coverage tileset". Time is a query parameter
+  GeoLoupe's float32 tiles could be published as an OGC "coverage tileset". Time is a query parameter
   (`datetime`), not a separate tile per time step.
 - **OGC API – Maps** Part 1 Core **1.0** (OGC 20-058; approved 2024-06-12, published 2024-08-09). Rendered
   images for a bbox/size/CRS (the modern WMS). Good for static map export and figures, not for
@@ -381,14 +381,14 @@ type AddProtocolResponseData = ArrayBuffer | ImageBitmap | HTMLImageElement | st
 - **lonboard** (0.17.0, 2026-10-01): deck.gl in Jupyter (anywidget + GeoArrow). It has had `RasterLayer`
   for COG/PMTiles since 0.14–0.16 (2026) and now uses deck.gl-raster's `RasterTileLayer` upstream.
   *Lesson:* binary columnar transfer (Arrow) + GPU rendering beats JSON; a notebook widget can be a
-  second front end for TerraScope's tile API.
+  second front end for GeoLoupe's tile API.
 - **HoloViz** (datashader 0.19.1, holoviews 1.23.2, hvplot 0.12.2, panel 1.10.0, geoviews 1.16.0):
   server-side re-rasterisation on every zoom/pan (`rasterize`/`datashade` + RangeXY streams). This is
   stateful and per user (Bokeh session). *Lesson:* datashader's quadmesh is the proven kernel
   (xpublish-tiles uses it), but stateless HTTP tiles scale to many users and stateful sessions do not.
 - **Xee** (0.1.2, 2026-07-14): opens Google Earth Engine ImageCollections as lazy xarray; the pixel
   grid is chosen at open time. *Lesson:* "server picks scale/projection per request" works well for
-  remote archives. TerraScope does the reverse (xarray → tiles).
+  remote archives. GeoLoupe does the reverse (xarray → tiles).
 - **xvec** (0.5.2, 2025-11-22): vector data cubes (geometry index on an xarray dimension). *Lesson:*
   station tables (GHCNd) and polygons can be xarray objects with time series. xpublish-tiles already
   renders xvec cubes as MVT.
@@ -402,7 +402,7 @@ type AddProtocolResponseData = ArrayBuffer | ImageBitmap | HTMLImageElement | st
 - **STAC** (pystac 1.16.0, 2026-11-04; datacube ext **v2.3.0**, zarr ext v1.1.0, **render ext v2.1.0**):
   catalog metadata. The datacube extension describes `cube:dimensions` and `cube:variables`; the render
   extension describes default colormap / rescale / band math per asset (TiTiler reads it). *Lesson:*
-  TerraScope's dataset registry (colormap defaults, valid range, units) maps well to STAC + render.
+  GeoLoupe's dataset registry (colormap defaults, valid range, units) maps well to STAC + render.
 - **Neuroglancer precomputed**: one `info` JSON with a `scales` array (per level: `key`, `size`,
   `resolution` in physical units, `voxel_offset`, `chunk_sizes`, `encoding` = raw/jpeg/png/
   compressed_segmentation/jxl/…, optional `sharding`). *Lesson:* a single small manifest per pyramid
@@ -425,7 +425,7 @@ type AddProtocolResponseData = ArrayBuffer | ImageBitmap | HTMLImageElement | st
   this is the most complete existing "float data tiles + GPU colormap + any CRS" implementation in a map
   library. Use it as a reference design, or as a fallback renderer.
 - **Leaflet** (latest 1.9.4 from 2023; **2.0.0-beta.1 on 2026-11-02**, ESM): no WebGL. Float rasters
-  only through CPU plugins (georaster-layer). *Lesson:* not a fit for TerraScope's core.
+  only through CPU plugins (georaster-layer). *Lesson:* not a fit for GeoLoupe's core.
 - **napari** (0.10.0, 2026-10-30): desktop n-D viewer with multiscale + async slicing (loads the level
   that matches the canvas resolution). *Lesson:* the same level-picking rule as tile LOD. Its
   "contrast limits + colormap on GPU" UX is the one scientists expect.
@@ -446,17 +446,17 @@ type AddProtocolResponseData = ArrayBuffer | ImageBitmap | HTMLImageElement | st
    Sentinel products as GeoZarr (multiscales + proj + spatial). Two render paths on the same data:
    **titiler-eopf** (server, multiscale-aware level selection) and **OpenLayers `GeoZarr` source**
    (client, EOxElements). Write-up: https://eox.at/2026/02/visualizing-geozarr/. This is the largest
-   real deployment of the conventions TerraScope plans to write.
+   real deployment of the conventions GeoLoupe plans to write.
 2. **carbonplan/zarr-layer + topozarr** (Dec 2025 → now): native-CRS multiscale writer + MapLibre
    custom layer with globe, terrain, proj4 and client queries. This is the most direct "competitor or
-   building block" for TerraScope's front end.
+   building block" for GeoLoupe's front end.
 3. **developmentseed/deck.gl-raster monorepo** (Dec 2025 →, 0.9.0): COG + GeoZarr in deck.gl with GPU
    reprojection, plus TS ports of affine, morecantile and proj tools. Blog:
    https://developmentseed.org/deck.gl-raster/blog/initial-geozarr/
 4. **OpenLayers GeoZarr source** (10.8 Feb 2026 → 10.11 Oct 2026), see above.
 5. **xpublish-tiles** (Aug 2025 →, 0.13.1): the main Python server for non-rectilinear grids
    (HEALPix, UGRID, curvilinear) with GeoZarr multiscale support and 413-based cost control.
-6. **MapLibre v6** (Jul 2026): ESM-only + WebGL2-only. New TerraScope code should target v6 directly.
+6. **MapLibre v6** (Jul 2026): ESM-only + WebGL2-only. New GeoLoupe code should target v6 directly.
    `@deck.gl/maplibre` `MapLibreOverlay` (deck.gl 9.4, Sep 2026).
 7. **titiler-multidim** multi-URL per-pixel mosaics, and **titiler-cmr** (NASA VEDA / CMR).
 8. **Development Seed "Datacube Guide"** (https://developmentseed.org/datacube-guide/latest/): an
@@ -477,13 +477,13 @@ type AddProtocolResponseData = ArrayBuffer | ImageBitmap | HTMLImageElement | st
 
 1. **No mature server emits float data tiles from multiscale native-grid Zarr.** xpublish-tiles has
    the right LOD and cost logic but only outputs PNG/JPEG/MVT. TiTiler has `npy` but no automatic
-   multiscale selection for xarray (only titiler-eopf does this). TerraScope's server design fills a
+   multiscale selection for xarray (only titiler-eopf does this). GeoLoupe's server design fills a
    real gap. Copy xpublish-tiles' ideas: per-tile overview selection (log-space nearest, tie → coarser),
    a byte budget → HTTP 413, and a `minzoom` computed from the coarsest level and advertised in TileJSON.
 2. **Write zarr-conventions `multiscales` v0.1 + `proj` + `spatial` exactly** (declare all three in
    `zarr_conventions`; `spatial:transform` in rasterio `[a,b,c,d,e,f]` order; put `spatial:transform`/
    `spatial:shape` on the layout entries *and* on each level group). Then xpublish-tiles, xpublish-edr,
-   zarr-layer, deck.gl-zarr, OpenLayers GeoZarr and titiler-eopf can all read TerraScope's pyramids.
+   zarr-layer, deck.gl-zarr, OpenLayers GeoZarr and titiler-eopf can all read GeoLoupe's pyramids.
    Pin the `v0.1` schema URLs: v1 is expected "before end of 2026" and may break things.
 3. **Do not use ndpyramid's layout for new data.** It is Web-Mercator-only and uses an old
    `multiscales[0].datasets` shape. topozarr is the native-CRS successor, and you could reuse or extend it.
@@ -494,7 +494,7 @@ type AddProtocolResponseData = ArrayBuffer | ImageBitmap | HTMLImageElement | st
    style expression, 24-bit precision).
 5. **Before building a custom renderer, check zarr-layer and the OpenLayers WebGLTile/GeoZarr code.**
    zarr-layer already does per-tile level choice, native-CRS reprojection on the GPU, globe with poles,
-   and client queries on MapLibre. TerraScope's extra value is server-side **multi-dataset per-pixel
+   and client queries on MapLibre. GeoLoupe's extra value is server-side **multi-dataset per-pixel
    compositing**, which no client library does across datasets of different resolution.
 6. **Use OGC API – EDR (position/area/cube/trajectory) for point-click values and time series**, and
    consider publishing the float tiles as OGC API – Tiles *coverage* tilesets. xpublish-edr can be

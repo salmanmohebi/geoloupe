@@ -10,11 +10,11 @@ import pytest
 import xarray as xr
 from fastapi.testclient import TestClient
 
-from terrascope.api.app import create_app
-from terrascope.catalog import Catalog
-from terrascope.cli import config_for_paths
-from terrascope.config import ConfigError, config_from_dict
-from terrascope.vectors import VectorError, VectorRegistry
+from geoloupe.api.app import create_app
+from geoloupe.catalog import Catalog
+from geoloupe.cli import config_for_paths
+from geoloupe.config import ConfigError, config_from_dict
+from geoloupe.vectors import VectorError, VectorRegistry
 
 pytest.importorskip("pyogrio")
 shapely = pytest.importorskip("shapely")
@@ -156,8 +156,8 @@ def test_config_checks_and_cli_paths(tmp_path: Path) -> None:
 def test_remote_vector_formats_are_allowed_for_gdal() -> None:
     # GDAL's allowed-extension list is process-wide: once a COG has been opened, remote vector
     # files must still be readable (regression: every remote overlay failed in the gallery)
-    from terrascope.readers import _GDAL_CLOUD_DEFAULTS
-    from terrascope.vectors import VECTOR_EXT
+    from geoloupe.readers import _GDAL_CLOUD_DEFAULTS
+    from geoloupe.vectors import VECTOR_EXT
 
     allowed = _GDAL_CLOUD_DEFAULTS["CPL_VSIL_CURL_ALLOWED_EXTENSIONS"].split(",")
     for ext in VECTOR_EXT:

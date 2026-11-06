@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 import xarray as xr
 
-from terrascope.catalog import Catalog
+from geoloupe.catalog import Catalog
 
 
 def latlon_ds(

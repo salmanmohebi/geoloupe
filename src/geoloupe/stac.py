@@ -18,8 +18,8 @@ import urllib.request
 from dataclasses import dataclass
 from typing import Any
 
-from terrascope.config import StacConfig
-from terrascope.readers import is_s3, s3_https
+from geoloupe.config import StacConfig
+from geoloupe.readers import is_s3, s3_https
 
 log = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ class StacAsset:
 def _fetch_json(url: str, body: dict[str, Any] | None = None) -> dict[str, Any]:
     """GET (or POST a JSON body) and parse the answer."""
     data = None if body is None else json.dumps(body).encode()
-    headers = {"Accept": "application/geo+json, application/json", "User-Agent": "terrascope"}
+    headers = {"Accept": "application/geo+json, application/json", "User-Agent": "geoloupe"}
     if data is not None:
         headers["Content-Type"] = "application/json"
     req = urllib.request.Request(url, data=data, headers=headers)

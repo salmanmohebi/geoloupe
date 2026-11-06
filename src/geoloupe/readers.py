@@ -254,7 +254,7 @@ def _open(
     except ImportError as e:
         extra = {"grib": "grib", "geotiff": "geotiff", "kerchunk": "remote"}.get(engine, "all")
         raise OpenError(
-            f"{engine} support is not installed ({e}); install terrascope[{extra}]"
+            f"{engine} support is not installed ({e}); install geoloupe[{extra}]"
         ) from e
     except FileNotFoundError as e:
         raise OpenError(f"not found: {location}") from e
@@ -307,7 +307,7 @@ def _open_netcdf(
     try:
         import dask  # noqa: F401
     except ImportError as e:
-        raise OpenError("multi-file NetCDF needs dask; install terrascope[dask]") from e
+        raise OpenError("multi-file NetCDF needs dask; install geoloupe[dask]") from e
     kw.setdefault("combine", "by_coords")
     kw.setdefault("data_vars", "minimal")
     kw.setdefault("coords", "minimal")

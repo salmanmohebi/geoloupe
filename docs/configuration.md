@@ -1,7 +1,7 @@
 # Configuration reference
 
-A TerraScope configuration is a YAML file. Only `datasets` is required. Check a configuration with
-`terrascope info config.yaml`; it lists every dataset, variable, grid, resolution level and time range,
+A GeoLoupe configuration is a YAML file. Only `datasets` is required. Check a configuration with
+`geoloupe info config.yaml`; it lists every dataset, variable, grid, resolution level and time range,
 and every error.
 
 ```yaml
@@ -26,7 +26,7 @@ datasets:                               # gridded data, opened with xarray
     #   assets: [visual, red, nir]      # default: every COG asset with role data/visual
     #   sortby: cloud                   # cloud (least cloudy wins) | newest | oldest
     # variable_name: elevation          # name of the single variable of a GeoTIFF or mosaic
-    overviews: data/era5.overviews.zarr # optional, written by `terrascope overviews build`
+    overviews: data/era5.overviews.zarr # optional, written by `geoloupe overviews build`
     engine: auto                        # auto | zarr | netcdf | grib | geotiff | kerchunk
     variables: [t2m, tp]                # default: all gridded variables
     crs: EPSG:3035                      # only if the metadata does not say it
@@ -140,7 +140,7 @@ settings:
   for composites.
 * **Units in composites.** All sources of a layer must end up in the same units. Use `scale` and
   `offset` per source (`value × scale + offset`), e.g. `scale: 1000` for m → mm or `offset: -273.15` for
-  K → °C. TerraScope does not convert units automatically.
+  K → °C. GeoLoupe does not convert units automatically.
 * **Resampling.** `mean` (default) suits continuous fields. `min` and `max` are also available.
   Categorical data (classes) is never averaged: tiles use `nearest`, and overviews built with
   `--method mode` keep the most frequent class of each block.
@@ -168,11 +168,11 @@ settings:
   also be drawn over a gridded layer (choose it in the layer panel; `layers:` sets the default), in
   the grid's colour scale, so a station that disagrees with the grid stands out. Wide tables (one
   column per variable) and long tables (variable + value columns) both work; columns are detected,
-  so `terrascope serve stations.csv` needs no configuration. Parquet tables are read with filter
+  so `geoloupe serve stations.csv` needs no configuration. Parquet tables are read with filter
   push-down (only the requested day; hive `year=` partitions are pruned); CSV tables are read once into memory. Station values keep their own
   time convention (often the local day): compare with gridded data on other day windows with care.
 * **Satellite rasters (GeoTIFF / COG).** Internal overviews of a Cloud-Optimized GeoTIFF are used
-  as resolution levels automatically (no `terrascope overviews build` needed). Nodata becomes missing,
+  as resolution levels automatically (no `geoloupe overviews build` needed). Nodata becomes missing,
   and the TIFF's own scale/offset tags are applied; use `decode` when the scale is known only from
   elsewhere (STAC). Several bands become a `band` dimension (named after the band descriptions).
   Over HTTP(S) and S3, only the needed blocks are read; for public S3 buckets set
@@ -189,8 +189,8 @@ settings:
   attributes next to the data value. The server reads a file once, reprojects it to lon/lat and sends
   GeoJSON (gzip); the browser simplifies per zoom. They are meant for thousands to a few hundred
   thousand features: above `max_vector_mb` the server asks for `simplify`, `where` or fewer
-  `properties`. `terrascope serve regions.geojson grid.zarr` shows a vector file as an overlay.
-  Needs `terrascope[vector]` (pyogrio, shapely).
+  `properties`. `geoloupe serve regions.geojson grid.zarr` shows a vector file as an overlay.
+  Needs `geoloupe[vector]` (pyogrio, shapely).
 * **STAC.** `stac:` runs one search (or reads one item) when the server starts. Every asset key becomes
   a variable, shown as a mosaic over the items found: `<dataset>:red`, `<dataset>:nir`, … The best
   item (by `sortby`) wins where items overlap. Scale and offset come from the STAC `raster:bands`
@@ -210,18 +210,18 @@ settings:
   (`https://<bucket>.s3.amazonaws.com/<key>`): Zarr, NetCDF, COG, CSV and single Parquet files.
   This is much faster than an S3 client from many networks (one CMIP6 field: 4 s instead of 54 s
   from our cluster). Folders (partitioned Parquet, Zarr without consolidated metadata) go through
-  s3fs. If the anonymous read fails, TerraScope tries once more with the AWS credentials of the
+  s3fs. If the anonymous read fails, GeoLoupe tries once more with the AWS credentials of the
   environment; `storage_options: {anon: false}` (or keys / a `profile`) skips the anonymous try,
   and `client_kwargs: {endpoint_url: …}` points to another S3 service.
 * **Remote data**: `s3://`, `gs://`, `https://` paths work for Zarr (through fsspec), NetCDF, GeoTIFF/COG
-  (through GDAL) and CSV/Parquet. Install `terrascope[remote]`. Pass credentials through
+  (through GDAL) and CSV/Parquet. Install `geoloupe[remote]`. Pass credentials through
   `storage_options` or the usual environment variables. Network failures at start-up (DNS, timeouts,
   HTTP 5xx) are retried twice; a missing file is reported at once.
 
 ## Overviews
 
 ```
-terrascope overviews build SOURCE OUTPUT.zarr [--variables a,b] [--start 1978-01-01 --end 1978-12-31]
+geoloupe overviews build SOURCE OUTPUT.zarr [--variables a,b] [--start 1978-01-01 --end 1978-12-31]
                                              [--min-factor 4] [--method mean] [--workers 16]
 ```
 
@@ -235,9 +235,9 @@ terrascope overviews build SOURCE OUTPUT.zarr [--variables a,b] [--start 1978-01
 
 ## Environment variables
 
-None are required. `terrascope serve` options: `--host` (default `127.0.0.1`), `--port` (default
+None are required. `geoloupe serve` options: `--host` (default `127.0.0.1`), `--port` (default
 `8000`), `--log-level`, `--allow-open` (the browser's "Add data" may open `https://`, `s3://` and
 `gs://` URLs) and `--open-root DIR` (it may open local files below `DIR`; repeatable; relative
 paths start in the first root). Both are off by default: anyone who can reach the server can then
-make it read those, so keep such a server on localhost or behind a login. `terrascope gallery` takes the same options and serves the configuration of
-open public data that ships with TerraScope (`--show-config` prints it).
+make it read those, so keep such a server on localhost or behind a login. `geoloupe gallery` takes the same options and serves the configuration of
+open public data that ships with GeoLoupe (`--show-config` prints it).

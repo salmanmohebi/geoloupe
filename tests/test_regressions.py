@@ -11,14 +11,14 @@ import pyproj
 import pytest
 import xarray as xr
 
-from terrascope.catalog import Catalog
-from terrascope.config import config_from_dict
-from terrascope.engine import Selection, TileEngine
-from terrascope.grid import Grid
-from terrascope.overviews import build
-from terrascope.query import point
-from terrascope.tiling import Tile
-from terrascope.timeaxis import TimeAxis
+from geoloupe.catalog import Catalog
+from geoloupe.config import config_from_dict
+from geoloupe.engine import Selection, TileEngine
+from geoloupe.grid import Grid
+from geoloupe.overviews import build
+from geoloupe.query import point
+from geoloupe.tiling import Tile
+from geoloupe.timeaxis import TimeAxis
 
 from .conftest import latlon_ds
 
@@ -198,7 +198,7 @@ def test_packed_integers_without_cf_decoding(tmp_path: Path) -> None:
 
 
 def test_field_cache_gives_identical_tiles_and_reads_once(monkeypatch: pytest.MonkeyPatch) -> None:
-    import terrascope.engine as eng_mod
+    import geoloupe.engine as eng_mod
 
     lon = np.arange(0.5, 360, 1.0)  # 0–360 longitudes: windows wrap at the date line
     lat = np.arange(89.5, -90, -1.0)

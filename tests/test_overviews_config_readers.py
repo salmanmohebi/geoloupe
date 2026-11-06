@@ -9,11 +9,11 @@ import pytest
 import xarray as xr
 import zarr
 
-from terrascope.catalog import Catalog
-from terrascope.config import ConfigError, config_from_dict, expand_env, load_config
-from terrascope.grid import Axis
-from terrascope.overviews import block_reduce, build, coarsen_axis, level_factors
-from terrascope.readers import OpenError, detect_engine, open_dataset
+from geoloupe.catalog import Catalog
+from geoloupe.config import ConfigError, config_from_dict, expand_env, load_config
+from geoloupe.grid import Axis
+from geoloupe.overviews import block_reduce, build, coarsen_axis, level_factors
+from geoloupe.readers import OpenError, detect_engine, open_dataset
 
 from .conftest import latlon_ds
 
@@ -188,7 +188,7 @@ def test_missing_path_is_a_clear_error(tmp_path) -> None:
 
 
 def test_cli_info_on_dataset(tmp_path, capsys) -> None:
-    from terrascope.cli import main
+    from geoloupe.cli import main
 
     latlon_ds((0, 40, 4, 44), 0.5).to_zarr(tmp_path / "x.zarr", zarr_format=3)
     assert main(["info", str(tmp_path / "x.zarr")]) == 0
@@ -201,8 +201,8 @@ def test_cli_info_on_dataset(tmp_path, capsys) -> None:
 
 def test_overview_stores_per_period_via_glob(tmp_path) -> None:
     """Overviews built per period (e.g. one Slurm task per year) are combined with a glob."""
-    from terrascope.engine import Selection, TileEngine
-    from terrascope.tiling import Tile
+    from geoloupe.engine import Selection, TileEngine
+    from geoloupe.tiling import Tile
 
     ds = latlon_ds((0, 40, 20, 50), 0.01, times=4)
     ds.to_zarr(tmp_path / "d.zarr", zarr_format=3)

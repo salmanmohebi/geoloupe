@@ -236,7 +236,7 @@ export function MapCanvas(p: MapCanvasProps) {
     const b = raw && raw[0] >= -180 && raw[2] <= 180 ? raw : null;
     map.addSource(src, {
       type: "raster",
-      tiles: [`terrascope://${sid}/{z}/{x}/{y}`],
+      tiles: [`geoloupe://${sid}/{z}/{x}/{y}`],
       tileSize: spec.tileSize,
       minzoom: 0,
       maxzoom: propsRef.current.maxzoom,

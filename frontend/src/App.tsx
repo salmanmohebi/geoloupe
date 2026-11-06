@@ -91,7 +91,7 @@ export default function App() {
       {!catalog && (
         <div className="splash">
           <div className="spinner big" />
-          <div>Connecting to the TerraScope server…</div>
+          <div>Connecting to the GeoLoupe server…</div>
         </div>
       )}
     </div>

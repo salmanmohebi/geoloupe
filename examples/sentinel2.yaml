@@ -2,7 +2,7 @@
 # HTTPS; nothing is downloaded). The COGs' internal overviews (20…160 m) are used as resolution
 # levels automatically.
 #
-#   terrascope serve examples/sentinel2.yaml
+#   geoloupe serve examples/sentinel2.yaml
 #
 # Scale: Element84 (earth-search) files of processing baseline ≥ 04.00 already have the BOA offset
 # applied ("earthsearch:boa_offset_applied": true), so reflectance = DN × 0.0001 with no −0.1 offset,
@@ -26,7 +26,7 @@ datasets:
     path: https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/32/T/MR/2023/8/S2A_32TMR_20230807_0_L2A/B03.tif
     decode: {B03: {scale: 0.0001}}
     attribution: Contains modified Copernicus Sentinel data 2023 (ESA); COGs by Element84
-  tci:   # a 3-band image: TerraScope adds the true-colour layer "tci:TCI:rgb" itself
+  tci:   # a 3-band image: GeoLoupe adds the true-colour layer "tci:TCI:rgb" itself
     title: Sentinel-2 true colour (TCI, 10 m)
     path: https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/32/T/MR/2023/8/S2A_32TMR_20230807_0_L2A/TCI.tif
     attribution: Contains modified Copernicus Sentinel data 2023 (ESA); COGs by Element84

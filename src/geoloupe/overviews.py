@@ -1,6 +1,6 @@
 """Build overview pyramids in the native grid (external overviews, like GDAL .ovr).
 
-``terrascope overviews build data.zarr data.overviews.zarr`` writes coarser
+``geoloupe overviews build data.zarr data.overviews.zarr`` writes coarser
 copies of a dataset — factors 2, 4, 8, ... (or starting at ``--min-factor``)
 — into a separate Zarr v3 store. The source is never modified, so read-only
 archives work, and the native level is not duplicated.
@@ -41,9 +41,9 @@ from typing import Any, cast
 import numpy as np
 import xarray as xr
 
-from terrascope.grid import Axis, Grid, find_spatial_dims
-from terrascope.readers import open_dataset
-from terrascope.timeaxis import TimeAxis
+from geoloupe.grid import Axis, Grid, find_spatial_dims
+from geoloupe.readers import open_dataset
+from geoloupe.timeaxis import TimeAxis
 
 log = logging.getLogger(__name__)
 
@@ -315,7 +315,7 @@ def build(
         if k > 0:
             entry["derived_from"] = str(int(math.log2(factors[k - 1])))
             entry["transform"] = {"scale": [2.0, 2.0], "translation": [0.0, 0.0]}
-        entry["terrascope:factor"] = f
+        entry["geoloupe:factor"] = f
         layout.append(entry)
         coords: dict[str, np.ndarray] = {x_dim: xc, y_dim: yc}
         for d in {d for dd in var_dims.values() for d in dd}:
@@ -371,7 +371,7 @@ def build(
                         "add_offset": p["add_offset"],
                     }
                 )
-            attrs["terrascope:resampling"] = method
+            attrs["geoloupe:resampling"] = method
             attrs["grid_mapping"] = "spatial_ref"
             attrs["coordinates"] = "spatial_ref"
             arr.attrs.update(attrs)
@@ -384,9 +384,9 @@ def build(
             },
             **({"proj:code": f"EPSG:{epsg}"} if epsg else {"proj:wkt2": crs.to_wkt()}),
             "spatial:dimensions": [y_dim, x_dim],
-            "terrascope:source": source,
-            "terrascope:variables": names,
-            "terrascope:min_factor": min_factor,
+            "geoloupe:source": source,
+            "geoloupe:variables": names,
+            "geoloupe:min_factor": min_factor,
             "title": f"Overviews of {os.path.basename(source.rstrip('/'))}",
         }
     )

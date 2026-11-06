@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from terrascope.config import Style
+from geoloupe.config import Style
 
 # (pattern on name/standard_name, colormap, resampling)
 _RULES: list[tuple[str, str, str | None]] = [

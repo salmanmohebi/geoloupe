@@ -1,12 +1,12 @@
-# TerraScope architecture
+# GeoLoupe architecture
 
-This document describes how TerraScope works, why it is built this way, and which alternatives were
+This document describes how GeoLoupe works, why it is built this way, and which alternatives were
 considered. The survey of existing tools is in [docs/research.md](docs/research.md); the individual
 decisions are logged in [docs/decisions.md](docs/decisions.md).
 
 ## 1. Goals and constraints
 
-TerraScope should let a researcher open large gridded datasets and explore them like a web map:
+GeoLoupe should let a researcher open large gridded datasets and explore them like a web map:
 pan, zoom, step through time, read values, compare datasets. The hard requirements are:
 
 1. **Seamless multi-resolution.** A coarse global dataset and a fine regional one (or several) must
@@ -29,7 +29,7 @@ pan, zoom, step through time, read values, compare datasets. The hard requiremen
 │ React UI (panels, time, charts, │        │ API  /api/layers/{id}/tiles/{z}/{x}/{y}.bin  .png    │
 │  gallery) · state (zustand, URL)│  HTTP  │      /preview.png /point /timeseries /stats /catalog  │
 │ MapLibre GL JS v6               │◄──────►│                     │                               │
-│   raster source "terrascope://" │ float  │ TileEngine: per tile and per source                   │
+│   raster source "geoloupe://" │ float  │ TileEngine: per tile and per source                   │
 │        │                        │ tiles  │   level choice → read budget → resample → composite  │
 │ protocol handler:               │        │                     │                               │
 │   fetch float tile → cache      │        │ Catalog: datasets → sources (levels) → layers         │
@@ -66,13 +66,13 @@ layers:        ──►     Layer = [Source, …] in priority order + style + u
   sources                (every gridded variable is also its own layer "<dataset>:<variable>")
 ```
 
-* **Grid** ([grid.py](src/terrascope/grid.py)) describes a rectilinear grid: 1-D cell centres for x and
+* **Grid** ([grid.py](src/geoloupe/grid.py)) describes a rectilinear grid: 1-D cell centres for x and
   y and a CRS. It finds the spatial dimensions (CF `axis`, `standard_name`, common names), the CRS (config
   override, CF `grid_mapping` with `crs_wkt`/`spatial_ref` or CF parameters, or lat/lon coordinates),
   and turns coordinates into *fractional cell positions* (regular axes by arithmetic, irregular ones such
   as Gaussian latitudes by binary search). Longitudes wrap: global grids in 0…360 or −180…180 both
   work, and so do regional grids that cross the antimeridian.
-* **TimeAxis** ([timeaxis.py](src/terrascope/timeaxis.py)) labels times in ISO 8601 and matches
+* **TimeAxis** ([timeaxis.py](src/geoloupe/timeaxis.py)) labels times in ISO 8601 and matches
   requests to the nearest time within a tolerance (default: half a step for monthly or coarser data, at
   most 12 h otherwise, so sparsely sampled daily data never show a neighbouring day). It works in each axis'
   own calendar, so cftime calendars (`noleap`, `360_day`) from climate models are supported.
@@ -83,7 +83,7 @@ layers:        ──►     Layer = [Source, …] in priority order + style + u
 
 ### Point observations
 
-Point sources ([points.py](src/terrascope/points.py)) are tables (CSV, Parquet, GeoParquet; long or wide,
+Point sources ([points.py](src/geoloupe/points.py)) are tables (CSV, Parquet, GeoParquet; long or wide,
 columns detected) or CF timeSeries NetCDF/Zarr. Every variable is a point layer `<source>:<variable>`, and
 any point layer can be drawn over a gridded layer. For a layer and a day, the server returns the
 stations in a compact JSON list, read from Parquet with filter push-down (only that day; hive `year=`
@@ -124,11 +124,11 @@ table), so observation and grid are compared by eye; hover adds the numbers and 
    7. *Composite.* Pixels still empty take this source's finite values; the source index is recorded
       per pixel. When no pixel is empty, the remaining sources are not read at all.
 3. **Encode.** Body = 256 × 256 float32 values, byte-shuffled, followed by 256 × 256 uint8 source
-   indices; gzip; headers `X-TerraScope-Sources` (source:level:pixels) and `X-TerraScope-Skipped`
+   indices; gzip; headers `X-GeoLoupe-Sources` (source:level:pixels) and `X-GeoLoupe-Skipped`
    (source:reason). An empty tile is HTTP 204 with the same headers. See
    [docs/data-tiles.md](docs/data-tiles.md).
 
-In the browser, MapLibre decides which tiles are visible and requests `terrascope://<spec>/{z}/{x}/{y}`.
+In the browser, MapLibre decides which tiles are visible and requests `geoloupe://<spec>/{z}/{x}/{y}`.
 The protocol handler fetches the data tile (from its own cache if possible), colours it with the
 current colour scale and returns an `ImageBitmap`. A "spec" is an immutable description of what to
 draw (layer, time, dims, colour scale, optional subtrahend); every change makes a new spec and a new
@@ -176,7 +176,7 @@ map and coloured once (colormap, RGB stretch or class colours).
 
 ## 5. What the user sees, and what it means
 
-TerraScope shows three kinds of numbers. They are deliberately different:
+GeoLoupe shows three kinds of numbers. They are deliberately different:
 
 | Where | Value | Resolution |
 |---|---|---|
@@ -249,11 +249,11 @@ thread at start.
 
 ## 8. Deployment
 
-* **Local:** `terrascope serve config.yaml` (uvicorn). The web client is a static bundle inside the
+* **Local:** `geoloupe serve config.yaml` (uvicorn). The web client is a static bundle inside the
   Python package, so no Node.js is needed to run it.
 * **HPC:** run on a compute node; open through an SSH tunnel, or through jupyter-server-proxy. All
   client URLs are relative, so a path prefix such as `/user/<name>/proxy/8000/` works.
-* **Notebook:** `terrascope.show({"era5": ds})` starts the server in a background thread and displays
+* **Notebook:** `geoloupe.show({"era5": ds})` starts the server in a background thread and displays
   the map inline (any in-memory or lazily opened xarray Dataset).
 * **Security:** the API is read-only. It serves only datasets named in the configuration; static file
   paths are confined to the bundled client. There is no authentication (bind to `127.0.0.1`, the
@@ -271,9 +271,9 @@ data already open is not touched; vector and point files go to their registries.
 
 | To add … | Change |
 |---|---|
-| A file format | a branch in [readers.py](src/terrascope/readers.py) returning an xarray Dataset |
-| A grid type (curvilinear, UGRID, HEALPix) | a new planner in [engine.py](src/terrascope/engine.py) next to `plan_separable` / `plan_projected` |
-| An aggregation | `resample()` in the engine and `block_reduce()` in [overviews.py](src/terrascope/overviews.py) |
+| A file format | a branch in [readers.py](src/geoloupe/readers.py) returning an xarray Dataset |
+| A grid type (curvilinear, UGRID, HEALPix) | a new planner in [engine.py](src/geoloupe/engine.py) next to `plan_separable` / `plan_projected` |
+| An aggregation | `resample()` in the engine and `block_reduce()` in [overviews.py](src/geoloupe/overviews.py) |
 | A colormap | an entry in [scripts/build_colormaps.py](scripts/build_colormaps.py), then regenerate |
 | A tile matrix set (polar stereographic, EPSG:4326 tiles) | `tiling.Tile` (MapLibre v6.15 supports custom projections) |
-| An API endpoint | [api/app.py](src/terrascope/api/app.py) |
+| An API endpoint | [api/app.py](src/geoloupe/api/app.py) |

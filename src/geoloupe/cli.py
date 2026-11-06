@@ -1,4 +1,4 @@
-"""Command line: ``terrascope serve | gallery | info | demo-data | overviews build``."""
+"""Command line: ``geoloupe serve | gallery | info | demo-data | overviews build``."""
 
 from __future__ import annotations
 
@@ -8,9 +8,9 @@ import logging
 import sys
 from pathlib import Path
 
-from terrascope import __version__
+from geoloupe import __version__
 
-log = logging.getLogger("terrascope")
+log = logging.getLogger("geoloupe")
 
 
 def config_for_paths(targets: list[str], engine: str = "auto") -> dict:
@@ -20,8 +20,8 @@ def config_for_paths(targets: list[str], engine: str = "auto") -> dict:
     timeSeries NetCDF become point datasets; everything else gridded datasets. Names come from the
     file names.
     """
-    from terrascope.points import looks_like_points
-    from terrascope.vectors import looks_like_vector
+    from geoloupe.points import looks_like_points
+    from geoloupe.vectors import looks_like_vector
 
     raw: dict = {"datasets": {}, "points": {}, "vectors": {}}
     used: set[str] = set()
@@ -38,14 +38,14 @@ def config_for_paths(targets: list[str], engine: str = "auto") -> dict:
         else:
             raw["datasets"][name] = {"path": t, "engine": engine}
     names = ", ".join(Path(t).name for t in targets[:3]) + (" …" if len(targets) > 3 else "")
-    raw["title"] = f"TerraScope · {names}"
+    raw["title"] = f"GeoLoupe · {names}"
     return raw
 
 
 def _catalog_from(targets: list[str], engine: str = "auto"):
     """A catalog from a YAML config or directly from data paths."""
-    from terrascope.catalog import Catalog
-    from terrascope.config import config_from_dict, load_config
+    from geoloupe.catalog import Catalog
+    from geoloupe.config import config_from_dict, load_config
 
     if len(targets) == 1 and targets[0].endswith((".yaml", ".yml")):
         return Catalog(load_config(targets[0]))
@@ -55,7 +55,7 @@ def _catalog_from(targets: list[str], engine: str = "auto"):
 
 
 def cmd_serve(a: argparse.Namespace) -> int:
-    from terrascope.server import serve
+    from geoloupe.server import serve
 
     cat = _catalog_from(a.target, a.engine)
     if getattr(a, "allow_open", False):
@@ -76,7 +76,7 @@ def cmd_serve(a: argparse.Namespace) -> int:
         return 1
     host = a.host
     print(
-        f"\n  TerraScope {__version__}: {len(cat.layers)} gridded layers from "
+        f"\n  GeoLoupe {__version__}: {len(cat.layers)} gridded layers from "
         f"{len(cat.datasets) - len(bad)} datasets, {len(cat.config.points)} point datasets"
     )
     print(
@@ -94,7 +94,7 @@ GALLERY = Path(__file__).with_name("gallery.yaml")
 
 
 def cmd_gallery(a: argparse.Namespace) -> int:
-    """Serve the gallery of open public datasets that ships with TerraScope."""
+    """Serve the gallery of open public datasets that ships with GeoLoupe."""
     if a.show_config:
         sys.stdout.write(GALLERY.read_text())
         return 0
@@ -105,7 +105,7 @@ def cmd_gallery(a: argparse.Namespace) -> int:
 def cmd_info(a: argparse.Namespace) -> int:
     cat = _catalog_from(a.target, a.engine)
     if a.json:
-        from terrascope.api.app import create_app, layer_json
+        from geoloupe.api.app import create_app, layer_json
 
         app = create_app(cat)
         out = {lid: layer_json(app.state.engine, lyr) for lid, lyr in cat.layers.items()}
@@ -140,7 +140,7 @@ def cmd_info(a: argparse.Namespace) -> int:
             print(f"    {lyr.id:<16} {' + '.join(s.id for s in lyr.sources)}")
     ok = all(d.status == "ok" for d in cat.datasets.values())
     if cat.config.points:
-        from terrascope.points import PointRegistry
+        from geoloupe.points import PointRegistry
 
         reg = PointRegistry(cat.config, set(cat.layers))
         for pid in cat.config.points:
@@ -159,7 +159,7 @@ def cmd_info(a: argparse.Namespace) -> int:
                 f"    time: {len(times)} [{times[0]} … {times[-1]}]; extent {w:.2f}…{e:.2f} E, {so:.2f}…{n:.2f} N"
             )
     if cat.config.vectors:
-        from terrascope.vectors import VectorError, VectorRegistry
+        from geoloupe.vectors import VectorError, VectorRegistry
 
         vreg = VectorRegistry(cat.config)
         for vid in cat.config.vectors:
@@ -180,15 +180,15 @@ def cmd_info(a: argparse.Namespace) -> int:
 
 
 def cmd_demo(a: argparse.Namespace) -> int:
-    from terrascope.demo import write_demo
+    from geoloupe.demo import write_demo
 
     cfg = write_demo(a.directory, days=a.days, overwrite=a.overwrite)
-    print(f"Demo data written. Start the server with:\n\n    terrascope serve {cfg}\n")
+    print(f"Demo data written. Start the server with:\n\n    geoloupe serve {cfg}\n")
     return 0
 
 
 def cmd_overviews(a: argparse.Namespace) -> int:
-    from terrascope.overviews import build
+    from geoloupe.overviews import build
 
     res = build(
         a.source,
@@ -225,9 +225,9 @@ def _open_args(s: argparse.ArgumentParser) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(
-        prog="terrascope", description="Explore large gridded datasets on a map."
+        prog="geoloupe", description="Explore large gridded datasets on a map."
     )
-    p.add_argument("--version", action="version", version=f"terrascope {__version__}")
+    p.add_argument("--version", action="version", version=f"geoloupe {__version__}")
     p.add_argument("-v", "--verbose", action="store_true", help="debug logging")
     sub = p.add_subparsers(dest="cmd", required=True)
 

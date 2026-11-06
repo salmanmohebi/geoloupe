@@ -1,6 +1,6 @@
 import type { TimeAxisCompact } from "../lib/timeline";
 
-// Types of the TerraScope HTTP API (see src/terrascope/api/app.py).
+// Types of the GeoLoupe HTTP API (see src/geoloupe/api/app.py).
 
 export interface DatasetInfo {
   id: string;
