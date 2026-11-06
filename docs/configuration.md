@@ -76,6 +76,23 @@ points:                                 # point observations: layers of their ow
                                         #   columns (and id, name, position, time) are read
     layers: {tas: tg, "regional:tas": tg} # default overlay of gridded layers
 
+vectors:                                # overlays: regions, rivers, tracks, sites (optional)
+  <vectors-id>:                         # letters, digits, -, _
+    title: Catchments
+    attribution: …
+    path: catchments.gpkg               # GeoJSON, Shapefile (also .zip), GeoPackage, FlatGeobuf,
+                                        # KML, GML, GeoParquet; path or URL
+    layer: level6                       # layer of a multi-layer file
+    where: "area_km2 > 100"             # attribute filter (OGR SQL; not for GeoParquet)
+    properties: [name, area_km2]        # attributes sent to the browser (default: all)
+    label: name                         # shown on hover (default: a name-like attribute)
+    simplify: 0.001                     # tolerance in degrees (≈ 100 m); default: none
+    color: "#1d4f91"                    # lines, outlines, points
+    width: 1.2
+    fill: "#1d4f91"                     # polygon fill (default: outlines only)
+    fill_opacity: 0.15
+    visible: false                      # shown when the page opens
+
 views:                                  # featured views: the gallery start screen (optional)
   - title: Europe's heatwave, July 2023
     description: Afternoon temperatures above 40 °C …
@@ -89,6 +106,7 @@ views:                                  # featured views: the gallery start scre
     # globe: true                       # optional: globe projection, basemap: minimal | light | dark
     # compare: other-layer              # optional: a second layer, compare_mode: split | diff,
     #                                   #   compare_time; overlay: <points-id> or none
+    # vectors: [regions]                # optional: the overlays shown in this view
 
 settings:
   max_read_cells: 6000000               # per tile and source; above → next coarser level or skip
@@ -96,6 +114,7 @@ settings:
   tile_cache_mb: 256                    # server tile cache
   max_timeseries_steps: 20000
   max_export_mb: 512
+  max_vector_mb: 60                     # GeoJSON size limit of one overlay
   cors_origins: ["*"]
 ```
 
@@ -144,6 +163,13 @@ settings:
   layer `<dataset>:<variable>:rgb`.
 * **Long time axes.** Layers with more than 20 000 regular time steps (e.g. decades of hourly data)
   are described to the browser by start, step and count instead of a list of labels.
+* **Vector overlays** (`vectors:`) are drawn above the data and below the stations and the map's
+  labels; each has a checkbox in the layer panel, and hovering a feature shows its label and a few
+  attributes next to the data value. The server reads a file once, reprojects it to lon/lat and sends
+  GeoJSON (gzip); the browser simplifies per zoom. They are meant for thousands to a few hundred
+  thousand features: above `max_vector_mb` the server asks for `simplify`, `where` or fewer
+  `properties`. `terrascope serve regions.geojson grid.zarr` shows a vector file as an overlay.
+  Needs `terrascope[vector]` (pyogrio, shapely).
 * **Featured views** (`views:`) are listed on a start screen (the gallery) with a preview image each.
   Opening a view is the same as opening a shared link with that state. A view whose layer is missing
   (for example, its dataset failed to open) is left out, with a warning in the server log.

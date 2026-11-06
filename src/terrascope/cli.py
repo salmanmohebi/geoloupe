@@ -16,12 +16,14 @@ log = logging.getLogger("terrascope")
 def config_for_paths(targets: list[str], engine: str = "auto") -> dict:
     """A configuration for data paths given on the command line.
 
-    Tables (CSV, Parquet) and CF timeSeries NetCDF become point datasets, everything else gridded
-    datasets. Names come from the file names.
+    Vector files (GeoJSON, Shapefile, GeoPackage, …) become overlays; tables (CSV, Parquet) and CF
+    timeSeries NetCDF become point datasets; everything else gridded datasets. Names come from the
+    file names.
     """
     from terrascope.points import looks_like_points
+    from terrascope.vectors import looks_like_vector
 
-    raw: dict = {"datasets": {}, "points": {}}
+    raw: dict = {"datasets": {}, "points": {}, "vectors": {}}
     used: set[str] = set()
     for t in targets:
         base = Path(t.rstrip("/")).name.split(".")[0].replace(":", "-") or "data"
@@ -29,7 +31,9 @@ def config_for_paths(targets: list[str], engine: str = "auto") -> dict:
         while name in used:
             name, k = f"{base}-{k}", k + 1
         used.add(name)
-        if looks_like_points(t):
+        if looks_like_vector(t):
+            raw["vectors"][name] = {"path": t, "visible": True}
+        elif looks_like_points(t):
             raw["points"][name] = {"path": t}
         else:
             raw["datasets"][name] = {"path": t, "engine": engine}
@@ -143,6 +147,24 @@ def cmd_info(a: argparse.Namespace) -> int:
             )
             print(
                 f"    time: {len(times)} [{times[0]} … {times[-1]}]; extent {w:.2f}…{e:.2f} E, {so:.2f}…{n:.2f} N"
+            )
+    if cat.config.vectors:
+        from terrascope.vectors import VectorError, VectorRegistry
+
+        vreg = VectorRegistry(cat.config)
+        for vid in cat.config.vectors:
+            try:
+                v = vreg.get(vid)
+            except VectorError as e:
+                print(f"✗ {vid}: {e}")
+                ok = False
+                continue
+            w, so, e_, n = v.bounds
+            print(f"✓ {vid}  (vectors: {cat.config.vectors[vid].title or vid})")
+            print(
+                f"    {v.count} features ({', '.join(v.geometry_types)}), "
+                f"{len(v.geojson) / 1e6:.1f} MB GeoJSON; label: {v.label}; "
+                f"extent {w:.2f}…{e_:.2f} E, {so:.2f}…{n:.2f} N"
             )
     return 0 if ok else 2
 

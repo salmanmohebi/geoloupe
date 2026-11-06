@@ -44,6 +44,7 @@ def test_gallery_config_is_valid_and_views_point_at_layers() -> None:
         for pc in cfg.points.values()
         for p in (pc.path if isinstance(pc.path, list) else [pc.path])
     ]
+    paths += [v.path for v in cfg.vectors.values()]
     assert paths and all(str(p).startswith("https://") for p in paths)
 
 

@@ -1085,6 +1085,25 @@ button:focus-visible {
   background: var(--surface-2);
 }
 
+.vector-overlays .check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 3px 0;
+}
+.vector-overlays .swatch {
+  flex: none;
+  width: 14px;
+  height: 10px;
+  border: 2px solid;
+  border-radius: 3px;
+}
+.tip-feature {
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
 .rgb-legend {
   display: flex;
   gap: 14px;

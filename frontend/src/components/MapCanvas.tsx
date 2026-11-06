@@ -3,11 +3,13 @@
 // the new tiles have loaded, so stepping through time does not flicker.
 
 import type { FeatureCollection } from "geojson";
+import type { VectorInfo } from "../api/types";
 import * as maplibregl from "maplibre-gl";
 import type { ExpressionSpecification, Map as MlMap } from "maplibre-gl";
 import { useEffect, useRef, useState } from "react";
 import { basemapStyle, firstOverlayLayer } from "../lib/basemaps";
 import { stationRadius } from "../lib/points";
+import { VEC_PREFIX, vectorLayers, vectorSourceId } from "../lib/vectors";
 import { registerProtocol, registerSpec, type RenderSpec } from "../lib/protocol";
 import { useLatest } from "../lib/useLatest";
 import type { Basemap } from "../state/store";
@@ -28,6 +30,13 @@ export interface MapEventInfo {
   x: number;
   y: number;
   station?: StationHit;
+  feature?: FeatureHit;
+}
+
+/** A vector-overlay feature under the cursor. */
+export interface FeatureHit {
+  vector: string;
+  props: Record<string, unknown>;
 }
 
 export interface MapCanvasProps {
@@ -48,6 +57,7 @@ export interface MapCanvasProps {
   onSpecShown?: (specId: string) => void;
   onTileError?: (message: string) => void;
   label?: string;
+  vectors?: VectorInfo[];
 }
 
 const PREFIX = "ts-";
@@ -76,6 +86,29 @@ function stationAt(map: MlMap, x: number, y: number): StationHit | undefined {
     lat,
     elevation: pr.elevation ?? null,
   };
+}
+
+/** The topmost vector-overlay feature at a screen point (a few pixels of tolerance for lines). */
+function featureAt(map: MlMap, x: number, y: number): FeatureHit | undefined {
+  const layers = (map.getStyle()?.layers ?? []).filter((l) => l.id.startsWith(VEC_PREFIX)).map((l) => l.id);
+  if (!layers.length) return undefined;
+  const f = map.queryRenderedFeatures(
+    [
+      [x - 3, y - 3],
+      [x + 3, y + 3],
+    ],
+    { layers },
+  )[0];
+  const vector = (f?.layer.metadata as { vector?: string } | undefined)?.vector;
+  return f && vector ? { vector, props: f.properties ?? {} } : undefined;
+}
+
+/** The first of our overlay layers (vectors, stations): data layers go below it. */
+function firstOverlay(map: MlMap): string | undefined {
+  const layers = map.getStyle()?.layers ?? [];
+  return (
+    layers.find((l) => l.id.startsWith(VEC_PREFIX) || l.id === POINTS_LYR)?.id ?? firstOverlayLayer(layers)
+  );
 }
 
 function whenLoaded(map: MlMap, sourceId: string, timeout = 5000): Promise<void> {
@@ -139,6 +172,7 @@ export function MapCanvas(p: MapCanvasProps) {
         x: e.point.x,
         y: e.point.y,
         station,
+        feature: station ? undefined : featureAt(m, e.point.x, e.point.y),
       });
     });
     m.on("mouseout", () => propsRef.current.onHover?.(null));
@@ -217,8 +251,8 @@ export function MapCanvas(p: MapCanvasProps) {
           }
         : {}),
     });
-    // data below the stations, both below borders and labels
-    const before = map.getLayer(POINTS_LYR) ? POINTS_LYR : firstOverlayLayer(map.getStyle().layers);
+    // data below vector overlays and stations, all below borders and labels
+    const before = firstOverlay(map);
     map.addLayer(
       {
         id: lyr,
@@ -276,6 +310,31 @@ export function MapCanvas(p: MapCanvasProps) {
       firstOverlayLayer(map.getStyle().layers),
     );
   }, [map, styleTick, p.points, propsRef]);
+
+  // vector overlays: above the data, below the stations and the basemap's borders and labels
+  const vectorKey = JSON.stringify(p.vectors ?? []);
+  useEffect(() => {
+    if (!map || styleTick === 0) return;
+    const want = new Map((propsRef.current.vectors ?? []).map((v) => [v.id, v]));
+    for (const l of map.getStyle().layers ?? []) {
+      const vid = (l.metadata as { vector?: string } | undefined)?.vector;
+      if (l.id.startsWith(VEC_PREFIX) && (!vid || !want.has(vid))) map.removeLayer(l.id);
+    }
+    for (const sid of Object.keys(map.getStyle().sources ?? {}))
+      if (sid.startsWith(VEC_PREFIX) && ![...want.keys()].some((id) => vectorSourceId(id) === sid))
+        map.removeSource(sid);
+    const before = map.getLayer(POINTS_LYR) ? POINTS_LYR : firstOverlayLayer(map.getStyle().layers);
+    for (const v of want.values()) {
+      if (map.getSource(vectorSourceId(v.id))) continue;
+      const url = new URL(`api/vectors/${encodeURIComponent(v.id)}.geojson`, window.location.href).href;
+      map.addSource(vectorSourceId(v.id), {
+        type: "geojson",
+        data: url,
+        attribution: v.attribution ?? undefined,
+      });
+      for (const layer of vectorLayers(v)) map.addLayer(layer, before);
+    }
+  }, [map, styleTick, vectorKey, propsRef]);
 
   const colorKey = JSON.stringify(p.pointColor ?? null);
   useEffect(() => {

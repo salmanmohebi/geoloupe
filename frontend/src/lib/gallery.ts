@@ -22,6 +22,7 @@ export function viewState(v: FeaturedView): Partial<UrlState> {
     cmpLayer: v.compare,
     cmpT: v.compare_time,
     ov: v.overlay,
+    vec: v.vectors,
   };
 }
 

@@ -76,6 +76,7 @@ and us-west-2, Google Cloud, NOAA). Network latency dominates; numbers vary betw
 | Load 21 GHCN-Daily station CSVs (1 million rows; 9 of ~40 columns kept) | 3.9 s, 109 MB in memory |
 | Open ARCO-ERA5 (6 variables, 761 160 hourly steps) — before / after vectorised time labels and one shared time axis per store | 15.3 s / 0.9 s |
 | 16 cold false-colour tiles at zoom 11 (3 remote COGs each), requested in parallel — with rioxarray's global read lock / without | 13.3 s / 2.0 s |
+| Vector overlays (Natural Earth 1:10m GeoJSON from GitHub): 4 596 provinces simplified to 0.02° / 1 454 rivers / 1 355 lakes | 3.3–7.3 s (6.2 MB) / 0.4–1.1 s (6.0 MB) / 0.4 s (3.8 MB) |
 | 11 gallery previews (480 × 240 px, stitched from up to 9 tiles each) | 6.6–7.4 s for all, in the browser |
 | Open a featured view until all tiles are loaded (browser) | 2.3–4.6 s; 7.2 s for the side-by-side Sentinel-2 view |
 
@@ -90,8 +91,8 @@ and us-west-2, Google Cloud, NOAA). Network latency dominates; numbers vary betw
 
 | Suite | Count | Time |
 |---|---|---|
-| Python (`pytest`): engine vs brute force, compositing, levels, budgets, CRSs, calendars, overviews, readers, API, stations, satellite rasters, classes, gallery, regressions | 115 | 7–90 s (file-system dependent) |
-| Web client (`vitest`): tile decoding (byte layout shared with Python), colour mapping, RGB, classes, Mercator math, URL state, timelines, gallery links, comparison scales | 24 | < 2 s |
+| Python (`pytest`): engine vs brute force, compositing, levels, budgets, CRSs, calendars, overviews, readers, API, stations, satellite rasters, classes, gallery, vectors, regressions | 121 | 7–90 s (file-system dependent) |
+| Web client (`vitest`): tile decoding (byte layout shared with Python), colour mapping, RGB, classes, Mercator math, URL state, timelines, gallery links, comparison scales, overlays | 28 | < 2 s |
 | Browser smoke test, demo data (`e2e/smoke.mjs`): global, Alps 1 km + hover, inspector, split, difference, LAEA grid, station hover + click | 7 scenarios | ~35 s |
 | Browser smoke tests on public remote data (Sentinel-2 true and false colour, ARCO-ERA5, NOAA GHCN stations) | 4 scenarios | ~60 s |
 | Gallery test (`e2e/gallery.mjs`): start screen and previews, then every featured view from its card | 11 views | ~60 s |

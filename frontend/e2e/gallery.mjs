@@ -82,6 +82,18 @@ for (const v of views) {
     title: document.title,
   }));
   if (!state.hash.includes(`layer=${v.layer}`)) fail(`view ${v.id}: hash ${state.hash}`);
+  if (v.vectors?.length) {
+    // an overlay is drawn and found under the cursor: hover the map centre
+    const box = await page.locator(".map-el").first().boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.move(box.x + box.width / 2 + 3, box.y + box.height / 2 + 2);
+    const tip = await page
+      .waitForSelector(".tip-feature", { timeout: 15_000 })
+      .then((el) => el.innerText())
+      .catch(() => null);
+    if (!tip) fail(`view ${v.id}: no overlay feature under the cursor`);
+    else console.log(`     hover: ${tip.replace(/\s+/g, " ")}`);
+  }
   if (state.gallery) fail(`view ${v.id}: gallery still open`);
   const name = `${String(v.id + 1).padStart(2, "0")}-${v.title
     .toLowerCase()

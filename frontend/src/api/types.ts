@@ -41,6 +41,21 @@ export interface Catalog {
   layers: LayerSummary[];
   points?: PointSourceInfo[];
   views?: FeaturedView[];
+  vectors?: VectorInfo[];
+}
+
+/** A vector overlay (regions, rivers, tracks, sites): GeoJSON from /api/vectors/{id}.geojson. */
+export interface VectorInfo {
+  id: string;
+  title: string;
+  attribution: string | null;
+  visible: boolean; // shown by default
+  style: { color: string; width: number; fill: string | null; fill_opacity: number };
+  label: string | null; // attribute shown on hover
+  status: "ok" | "error";
+  error: string | null;
+  count: number | null;
+  bounds: [number, number, number, number] | null;
 }
 
 /** A ready-made map from the configuration (`views:`), listed in the gallery. */
@@ -63,6 +78,7 @@ export interface FeaturedView {
   compare_mode?: "split" | "diff";
   compare_time?: string;
   overlay?: string;
+  vectors?: string[];
 }
 
 export interface LevelInfo {

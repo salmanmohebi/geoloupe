@@ -59,8 +59,11 @@ passes the browser smoke test.
       products, rotated grids without a grid mapping. Nearest-cell lookup with a KD-tree.
 - [ ] **6. Open data without a config.** ~~`terrascope serve a.zarr b.tif stations.csv`~~ (done);
       an "Add data" dialog (path or URL) when the server is started with `--allow-open`.
-- [ ] **7. Vector overlays.** GeoJSON, GeoParquet, Shapefile/GeoPackage polygons and lines (regions,
-      catchments, borders) with attribute styling and hover.
+- [x] **7. Vector overlays.** GeoJSON, Shapefile (also zipped), GeoPackage, FlatGeobuf, KML, GML and
+      GeoParquet; local or remote; reprojection, `where` filters, simplification, size limit; drawn
+      between the data and the stations; hover shows label and attributes; overlays in links and
+      views. Gallery: Natural Earth provinces, rivers and lakes. Later: colour by attribute, vector
+      tiles for very large files.
 - [ ] **8. STAC.** Open a STAC item or search (collection, bbox, time) as a mosaic of its assets.
 
 Later in this series: unstructured meshes (UGRID, ICON, HEALPix), vector fields (wind arrows),

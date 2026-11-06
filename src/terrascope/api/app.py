@@ -44,6 +44,7 @@ from terrascope.points import PointRegistry, PointsError
 from terrascope.query import QueryError, export_subset, point, stats, timeseries, to_netcdf_bytes
 from terrascope.tiling import Tile, TileError
 from terrascope.timeaxis import TimeError, compact_axis
+from terrascope.vectors import VectorError, VectorRegistry
 
 log = logging.getLogger(__name__)
 
@@ -201,6 +202,7 @@ def create_app(catalog: Catalog, warm: bool = True) -> FastAPI:
             threading.Thread(
                 target=warm_up, args=(engine, catalog), daemon=True, name="warm-up"
             ).start()
+            threading.Thread(target=vectors.preload, daemon=True, name="vectors").start()
         yield
 
     app = FastAPI(
@@ -229,6 +231,10 @@ def create_app(catalog: Catalog, warm: bool = True) -> FastAPI:
         views.append({"id": i, **view.model_dump(exclude_none=True, exclude_defaults=True)})
         views[-1].update(title=view.title, layer=view.layer)
 
+    # vector overlays (regions, rivers, tracks): GeoJSON for the browser
+    vectors = VectorRegistry(catalog.config)
+    app.state.vectors = vectors
+
     def points_meta(layer_id: str) -> dict[str, Any] | None:
         hit = registry.resolve(layer_id)
         return None if hit is None else registry.meta(*hit)
@@ -251,7 +257,7 @@ def create_app(catalog: Catalog, warm: bool = True) -> FastAPI:
     async def _not_found(_: Request, exc: KeyError) -> JSONResponse:
         return JSONResponse({"detail": str(exc.args[0] if exc.args else exc)}, status_code=404)
 
-    for exc_type in (SelectionError, TimeError, QueryError, TileError, PointsError):
+    for exc_type in (SelectionError, TimeError, QueryError, TileError, PointsError, VectorError):
 
         @app.exception_handler(exc_type)
         async def _bad_request(_: Request, exc: Exception) -> JSONResponse:
@@ -330,7 +336,21 @@ def create_app(catalog: Catalog, warm: bool = True) -> FastAPI:
                 }
                 for pid, pcfg in catalog.config.points.items()
             ],
+            "vectors": vectors.info(),
         }
+
+    @app.get("/api/vectors/{vid}.geojson")
+    def vector_geojson(vid: str) -> Response:
+        """A vector overlay as GeoJSON in longitude/latitude (read once, then from memory)."""
+        layer = vectors.get(vid)
+        return Response(
+            layer.geojson,
+            media_type="application/geo+json",
+            headers={
+                "Cache-Control": "public, max-age=3600",
+                "X-TerraScope-Count": str(layer.count),
+            },
+        )
 
     @app.get("/api/colormaps")
     def colormaps() -> Response:

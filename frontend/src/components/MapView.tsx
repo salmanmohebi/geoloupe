@@ -3,7 +3,7 @@
 
 import type { Map as MlMap } from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { LayerMeta } from "../api/types";
+import type { LayerMeta, VectorInfo } from "../api/types";
 import { classTable } from "../lib/classes";
 import { getLut } from "../lib/colormap";
 import { setMainMap } from "../lib/mapRegistry";
@@ -14,7 +14,8 @@ import { summarize, valueAt, type HoverValue } from "../lib/view";
 import { pointsLayerOf, useStore, type Style, type Target } from "../state/store";
 import { colorExpression, fetchPoints, toGeoJSON, type PointsResult } from "../lib/points";
 import { useFetch } from "../lib/useFetch";
-import { MapCanvas, type MapEventInfo, type StationHit } from "./MapCanvas";
+import { featureDetails, featureLabel, visibleVectors } from "../lib/vectors";
+import { MapCanvas, type FeatureHit, type MapEventInfo, type StationHit } from "./MapCanvas";
 
 interface Hover {
   pane: 0 | 1;
@@ -25,6 +26,7 @@ interface Hover {
   values: (HoverValue | null)[];
   station?: StationHit;
   stationGrid?: HoverValue | null; // grid value at the station's location
+  feature?: FeatureHit; // vector-overlay feature under the cursor
 }
 
 function makeSpec(
@@ -72,6 +74,9 @@ export function MapView() {
   const globe = useStore((s) => s.globe);
   const inspect = useStore((s) => s.inspect);
   const initialView = useStore((s) => s.view);
+  const catalog = useStore((s) => s.catalog);
+  const vectorsOn = useStore((s) => s.vectorsOn);
+  const vectors = useMemo(() => visibleVectors(catalog, vectorsOn), [catalog, vectorsOn]);
   const { setInspect, setView, setSummary, notify } = useStore.getState();
 
   const diff = compare.mode === "diff";
@@ -279,6 +284,7 @@ export function MapView() {
         onSpecShown={pane === 0 ? refreshSummary : undefined}
         onTileError={onTileError}
         label={label}
+        vectors={vectors}
       />
       {hover && hover.pane === pane && (
         <HoverTip
@@ -287,6 +293,7 @@ export function MapView() {
           split={split}
           diff={diff}
           layers={[main.layer, compare.layer]}
+          vectors={vectors}
         />
       )}
     </div>
@@ -310,12 +317,14 @@ function HoverTip({
   split: sp,
   diff: df,
   layers,
+  vectors,
 }: {
   hover: Hover;
   units: string;
   split: boolean;
   diff: boolean;
   layers: (LayerMeta | null)[];
+  vectors: VectorInfo[];
 }) {
   const rows = h.values.map((v, i) => {
     const layer = layers[i];
@@ -348,8 +357,23 @@ function HoverTip({
   });
   const st = h.station;
   const grid = h.stationGrid?.value ?? null;
+  const fv = h.feature && vectors.find((v) => v.id === h.feature!.vector);
+  const fname = fv ? featureLabel(h.feature!.props, fv.label) : null;
   return (
     <div className="hover-tip" style={{ left: h.x + 14, top: h.y + 14 }}>
+      {fv && !st && (
+        <div className="tip-feature">
+          <div className="tip-row">
+            <span className="tip-tag">{fv.title}</span>
+            {fname && <b>{fname}</b>}
+          </div>
+          {featureDetails(h.feature!.props, fv.label ?? "name").map((d) => (
+            <div className="tip-src" key={d}>
+              {d}
+            </div>
+          ))}
+        </div>
+      )}
       {st ? (
         <>
           <div className="tip-row">

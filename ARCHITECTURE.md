@@ -135,6 +135,16 @@ draw (layer, time, dims, colour scale, optional subtrahend); every change makes 
 MapLibre source, added on top of the old one, which is removed only after the new tiles have loaded.
 That double buffering keeps time animation and colour changes free of flicker.
 
+### Vector overlays
+
+`vectors:` files are read once per server (pyogrio/GDAL, or pyarrow for GeoParquet), reprojected to
+lon/lat, optionally filtered and simplified, and sent as one GeoJSON document
+(`/api/vectors/{id}.geojson`, gzip, cached by the browser). MapLibre tiles and simplifies it per zoom
+on the client (geojson-vt) and draws it between the data and the station circles. Polygons always get
+a fill layer, transparent when no fill colour is set, so that hovering inside a region finds it. This
+suits overlays up to a few hundred thousand features (limit `max_vector_mb`); larger collections need
+vector tiles (roadmap).
+
 ### Featured views and previews
 
 A configuration can list `views:` (layer, time, place, colour scale, optional comparison). The

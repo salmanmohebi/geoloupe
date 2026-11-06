@@ -231,6 +231,26 @@ class PointsConfig(_Model):
     layers: dict[str, str] = Field(default_factory=dict)
 
 
+class VectorConfig(_Model):
+    """A vector overlay (regions, borders, rivers, tracks, sites), drawn over the data."""
+
+    title: str | None = None
+    attribution: str | None = None
+    # GeoJSON, Shapefile (also zipped), GeoPackage, FlatGeobuf, KML, GML, GeoParquet; path or URL
+    path: str
+    layer: str | None = None  # layer of a multi-layer file (GeoPackage)
+    where: str | None = None  # attribute filter (OGR SQL), e.g. "scalerank <= 6"
+    properties: list[str] | None = None  # attributes to send (default: all)
+    label: str | None = None  # attribute shown on hover (default: a name-like attribute)
+    crs: str | None = None  # only if the file does not say it
+    simplify: float | None = None  # tolerance in degrees, e.g. 0.001 (≈ 100 m)
+    color: str = "#1d4f91"  # lines, outlines and points
+    width: float = 1.2
+    fill: str | None = None  # polygon fill colour; default: outlines only
+    fill_opacity: float = 0.15
+    visible: bool = False  # shown when the page opens
+
+
 class Settings(_Model):
     """Server limits. The defaults suit a workstation or a single compute node."""
 
@@ -243,6 +263,8 @@ class Settings(_Model):
     max_timeseries_steps: int = 20_000
     # Upper bound on the uncompressed size of a NetCDF export.
     max_export_mb: int = 512
+    # Upper bound on the GeoJSON size of one vector overlay.
+    max_vector_mb: float = 60
     cors_origins: list[str] = Field(default_factory=lambda: ["*"])
 
 
@@ -271,6 +293,8 @@ class ViewConfig(_Model):
     compare_time: str | None = None
     # Station overlay: a points id, or "none" to hide stations.
     overlay: str | None = None
+    # Vector overlays shown in this view (default: those with visible: true).
+    vectors: list[str] | None = None
 
 
 class Config(_Model):
@@ -279,6 +303,7 @@ class Config(_Model):
     datasets: dict[str, DatasetConfig] = Field(default_factory=dict)
     layers: dict[str, LayerConfig] = Field(default_factory=dict)
     points: dict[str, PointsConfig] = Field(default_factory=dict)
+    vectors: dict[str, VectorConfig] = Field(default_factory=dict)
     views: list[ViewConfig] = Field(default_factory=list)
     settings: Settings = Field(default_factory=Settings)
     # Directory used to resolve relative paths (not part of the YAML).
@@ -300,6 +325,13 @@ class Config(_Model):
         for pid in self.points:
             if ":" in pid or pid in self.datasets:
                 raise ValueError(f"points id {pid!r} must not contain ':' or repeat a dataset id")
+        for vid in self.vectors:
+            if not re.fullmatch(r"[A-Za-z0-9_-]+", vid):
+                raise ValueError(f"vectors id {vid!r}: use letters, digits, '-' and '_' only")
+        for view in self.views:
+            for vid in view.vectors or []:
+                if vid not in self.vectors:
+                    raise ValueError(f"view {view.title!r} uses unknown vectors {vid!r}")
         return self
 
     def resolve(self, location: str) -> str:

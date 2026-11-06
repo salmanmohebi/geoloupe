@@ -235,7 +235,10 @@ _GDAL_CLOUD_DEFAULTS = {
     "GDAL_HTTP_VERSION": "2",
     "VSI_CACHE": "TRUE",
     "VSI_CACHE_SIZE": str(256 * 2**20),
-    "CPL_VSIL_CURL_ALLOWED_EXTENSIONS": ".tif,.tiff,.TIF,.TIFF,.vrt,.jp2",
+    # Remote reads only for these extensions (no probing of sidecar files). Process-wide: it also
+    # applies to vector overlays read through pyogrio, so their formats are listed too.
+    "CPL_VSIL_CURL_ALLOWED_EXTENSIONS": ".tif,.tiff,.TIF,.TIFF,.vrt,.jp2,.geojson,.json,.gpkg,.fgb,"
+    ".shp,.shx,.dbf,.prj,.cpg,.kml,.gml,.zip,.parquet",
 }
 
 

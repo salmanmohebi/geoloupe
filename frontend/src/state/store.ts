@@ -64,6 +64,7 @@ export interface AppState {
   notices: Notice[];
   panelOpen: boolean;
   galleryOpen: boolean; // the start screen with featured views (only shown when there are views)
+  vectorsOn: string[] | null; // vector overlays shown; null = those visible by default
   summary: ViewSummary | null;
   loading: number;
   diffFitPending: boolean; // fit the A − B range once the first difference tiles are on screen
@@ -91,6 +92,7 @@ export interface AppState {
   dismiss: (id: number) => void;
   setPanelOpen: (o: boolean) => void;
   setGalleryOpen: (o: boolean) => void;
+  setVectorsOn: (ids: string[]) => void;
   setSummary: (s: ViewSummary | null) => void;
   setLoading: (n: number) => void;
 }
@@ -113,6 +115,7 @@ export interface UrlState {
   cmpT: string;
   pt: [number, number];
   ov: string; // point overlay: a point layer id, or "none"
+  vec: string[]; // vector overlays shown (empty: none)
 }
 
 const emptyTarget: Target = { layerId: null, layer: null, time: null, dims: {} };
@@ -195,6 +198,7 @@ export const useStore = create<AppState>((set, get) => ({
   notices: [],
   panelOpen: true,
   galleryOpen: false,
+  vectorsOn: null,
   summary: null,
   loading: 0,
   diffFitPending: false,
@@ -207,6 +211,7 @@ export const useStore = create<AppState>((set, get) => ({
       const [catalog, colormaps] = await Promise.all([api.catalog(), api.colormaps()]);
       if (initial.ov)
         set({ overlay: initial.ov === "none" ? null : initial.ov, showPoints: initial.ov !== "none" });
+      if (initial.vec) set({ vectorsOn: initial.vec });
       // view, basemap and globe were set from the URL before the first render (main.tsx)
       set({ catalog, colormaps, inspect: initial.pt ? { lng: initial.pt[0], lat: initial.pt[1] } : null });
       for (const d of catalog.datasets)
@@ -359,6 +364,7 @@ export const useStore = create<AppState>((set, get) => ({
   dismiss: (id) => set({ notices: get().notices.filter((n) => n.id !== id) }),
   setPanelOpen: (o) => set({ panelOpen: o }),
   setGalleryOpen: (o) => set({ galleryOpen: o }),
+  setVectorsOn: (ids) => set({ vectorsOn: ids }),
   setSummary: (s) => {
     set({ summary: s });
     const { diffFitPending, compare } = get();

@@ -334,3 +334,45 @@ describe("comparison colour scales", async () => {
     expect(comparable(fc, fc)).toBe(true);
   });
 });
+
+describe("vector overlays", async () => {
+  const { featureDetails, featureLabel, vectorLayers, visibleVectors } = await import("./vectors");
+  const { buildHash, parseHash } = await import("./urlState");
+  const v = (id: string, visible: boolean, fill: string | null = null) => ({
+    id,
+    title: id,
+    attribution: null,
+    visible,
+    style: { color: "#123456", width: 1, fill, fill_opacity: 0.3 },
+    label: null,
+    status: "ok" as const,
+    error: null,
+    count: null,
+    bounds: null,
+  });
+  const catalog = { vectors: [v("rivers", true), v("regions", false, "#ff0000")] } as never;
+  it("shows the default overlays until the user chooses", () => {
+    expect(visibleVectors(catalog, null).map((x) => x.id)).toEqual(["rivers"]);
+    expect(visibleVectors(catalog, ["regions"]).map((x) => x.id)).toEqual(["regions"]);
+    expect(visibleVectors(catalog, [])).toEqual([]);
+  });
+  it("styles polygons, lines and points; outline-only polygons stay hoverable", () => {
+    const [fill, line, pt] = vectorLayers(v("a", true)) as { type: string; paint: Record<string, unknown> }[];
+    expect([fill.type, line.type, pt.type]).toEqual(["fill", "line", "circle"]);
+    expect(fill.paint["fill-opacity"]).toBe(0); // invisible, but found by queryRenderedFeatures
+    expect(
+      (vectorLayers(v("b", true, "#ff0000"))[0] as { paint: Record<string, unknown> }).paint["fill-opacity"],
+    ).toBe(0.3);
+  });
+  it("labels features and lists short attributes", () => {
+    expect(featureLabel({ NAME: "Valais", pop: 3 }, null)).toBe("Valais");
+    expect(featureLabel({ canton: "VS" }, "canton")).toBe("VS");
+    expect(featureLabel({ pop: 3 }, null)).toBeNull();
+    expect(featureDetails({ name: "x", pop: 1234.56789, empty: "" }, "name")).toEqual(["pop: 1234.57"]);
+  });
+  it("keeps the chosen overlays in the link", () => {
+    expect(parseHash(buildHash({ layer: "a", vec: ["rivers", "lakes"] })).vec).toEqual(["rivers", "lakes"]);
+    expect(parseHash(buildHash({ layer: "a", vec: [] })).vec).toEqual([]);
+    expect(parseHash("#layer=a").vec).toBeUndefined();
+  });
+});

@@ -8,6 +8,7 @@ import { fmt, unitLabel } from "../lib/format";
 import { tileZoom } from "../lib/mercator";
 import { pointsSample } from "../lib/points";
 import { timelineOf } from "../lib/timeline";
+import { visibleVectors } from "../lib/vectors";
 import { percentiles } from "../lib/view";
 import { useStore } from "../state/store";
 import { Icon } from "./Icon";
@@ -74,6 +75,33 @@ function SourceList({ layer }: { layer: LayerMeta }) {
         );
       })}
     </ul>
+  );
+}
+
+/** Vector overlays (regions, rivers, tracks): one checkbox each. */
+function VectorOverlays() {
+  const catalog = useStore((s) => s.catalog);
+  const chosen = useStore((s) => s.vectorsOn);
+  const all = catalog?.vectors ?? [];
+  if (!all.length) return null;
+  const on = new Set(visibleVectors(catalog, chosen).map((v) => v.id));
+  const toggle = (id: string, show: boolean) =>
+    useStore.getState().setVectorsOn(all.filter((v) => (v.id === id ? show : on.has(v.id))).map((v) => v.id));
+  return (
+    <div className="stations-toggle vector-overlays">
+      <div className="eyebrow">Overlays</div>
+      {all.map((v) => (
+        <label className="check" key={v.id} title={v.error ?? v.attribution ?? undefined}>
+          <input type="checkbox" checked={on.has(v.id)} onChange={(e) => toggle(v.id, e.target.checked)} />
+          <span
+            className="swatch"
+            style={{ borderColor: v.style.color, background: v.style.fill ?? "transparent" }}
+          />
+          <span>{v.title}</span>
+          {v.status === "error" && <span className="muted small"> · cannot be read</span>}
+        </label>
+      ))}
+    </div>
   );
 }
 
@@ -430,6 +458,7 @@ export function LayerPanel() {
             <SourceList layer={layer} />
             <PointsInfo />
             <PointsOverlay />
+            <VectorOverlays />
           </>
         )}
       </section>

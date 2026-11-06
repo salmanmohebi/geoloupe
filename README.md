@@ -29,6 +29,7 @@ the internet.
 | Copernicus DEM GLO-30 (30 m), six 1° tiles in the Western Alps, over ERA5's 31 km orography | [Copernicus DEM](https://registry.opendata.aws/copernicus-dem/) COGs on AWS | zoom from 31 km to 30 m in one layer |
 | Sentinel-2 L2A scene, 10 m, 7 August 2023 (Monte Rosa, Lake Maggiore) | [Sentinel-2 COGs](https://registry.opendata.aws/sentinel-2-l2a-cogs/) on AWS (Element84) | true colour, false colour (near infrared), single bands, side by side |
 | ESA WorldCover 2021, 10 m, 45–48° N, 6–9° E | [ESA WorldCover](https://registry.opendata.aws/esa-worldcover-vito/) COG on AWS | 11 land-cover classes with names, colours and shares of the view |
+| States and provinces, rivers, lakes (overlays) | [Natural Earth](https://www.naturalearthdata.com/) 1:10m GeoJSON | switch on in the layer panel; hover a region for its name next to the data value |
 | GHCN-Daily stations, 21 long records (Milan since 1763) | [NOAA NCEI](https://www.ncei.noaa.gov/products/land-based-station/global-historical-climatology-network-daily) CSV files | daily max/min temperature and precipitation; click a station for its whole record |
 
 The gallery is a normal configuration file: `terrascope gallery --show-config` prints it, so you can
@@ -41,6 +42,7 @@ No configuration is needed for a first look:
 ```bash
 uv run terrascope serve /path/to/data.zarr        # or .nc, .grib2, .tif, a URL
 uv run terrascope serve grid.zarr stations.csv     # several files; tables become point layers
+uv run terrascope serve grid.zarr regions.geojson  # vector files become overlays
 uv run terrascope info  /path/to/data.zarr        # what TerraScope sees: variables, grid, CRS, times
 ```
 
@@ -98,6 +100,9 @@ terrascope.show({"data": ds})           # interactive map in the cell output
 * **Stations and point data.** Station tables (CSV, Parquet, GeoParquet; long or wide; columns
   detected) and CF timeSeries NetCDF are layers of their own, or are drawn over a gridded layer in its
   colour scale: hover shows observation, grid value and difference.
+* **Vector overlays.** Regions, borders, rivers, catchments, tracks or sites from GeoJSON, Shapefile,
+  GeoPackage, FlatGeobuf or GeoParquet, drawn over the data; hover shows the feature's name and
+  attributes next to the value under the cursor.
 * **Compare.** Side by side (two synchronised maps) or a difference map A − B, across layers or times.
 * **Many formats and grids.** Zarr v2/v3 (sharded, consolidated or not), NetCDF 3/4 and HDF5 (also
   multi-file), GRIB, GeoTIFF/COG (multi-band, palettes), kerchunk/VirtualiZarr references; local or
@@ -165,4 +170,5 @@ by F. Crameri (MIT). Country borders: Natural Earth (public domain).
 Gallery data: ERA5 © ECMWF / Copernicus Climate Change Service, ARCO-ERA5 by Google Research;
 Copernicus DEM GLO-30 © DLR e.V. and Airbus Defence and Space GmbH, provided under COPERNICUS by the
 EU and ESA; Sentinel-2 contains modified Copernicus Sentinel data 2023, COGs by Element84; ESA
-WorldCover 2021 © ESA WorldCover project (CC BY 4.0); GHCN-Daily, NOAA NCEI (Menne et al. 2012).
+WorldCover 2021 © ESA WorldCover project (CC BY 4.0); GHCN-Daily, NOAA NCEI (Menne et al. 2012);
+Natural Earth (public domain).

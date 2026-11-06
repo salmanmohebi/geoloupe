@@ -14,6 +14,7 @@ src/terrascope/           Python package
   engine.py               the tile engine (level choice, budget, resampling, compositing)
   query.py                point values, time series, statistics, export
   points.py               point observations (stations) from Parquet/CSV/NetCDF
+  vectors.py              vector overlays (GeoJSON, Shapefile, GeoPackage, GeoParquet, …)
   gallery.yaml            the gallery of open public data (`terrascope gallery`)
   overviews.py            overview pyramid builder
   colormaps.py/.json      lookup tables shared with the web client

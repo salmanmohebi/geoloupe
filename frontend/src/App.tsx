@@ -36,6 +36,7 @@ function useUrlSync() {
           cmpT: s.compare.linkTime ? undefined : (s.compare.time ?? undefined),
           pt: s.inspect ? [s.inspect.lng, s.inspect.lat] : undefined,
           ov: !s.showPoints ? "none" : (s.overlay ?? undefined),
+          vec: s.vectorsOn ?? undefined,
         });
         if (hash !== window.location.hash) history.replaceState(null, "", hash || window.location.pathname);
       }, 250);

@@ -38,6 +38,8 @@ export function parseHash(hash: string): Partial<UrlState> {
   if (q.get("ct")) out.cmpT = q.get("ct")!;
   out.pt = pair(q.get("pt"));
   if (q.get("ov")) out.ov = q.get("ov")!;
+  const vec = q.get("vec");
+  if (vec !== null) out.vec = vec === "-" || vec === "" ? [] : vec.split(",");
   for (const k of Object.keys(out) as (keyof UrlState)[]) if (out[k] === undefined) delete out[k];
   return out;
 }
@@ -72,5 +74,6 @@ export function buildHash(s: Partial<UrlState>): string {
   }
   if (s.pt) add("pt", s.pt.map((v) => v.toFixed(4)).join(","));
   add("ov", s.ov);
+  if (s.vec) add("vec", s.vec.length ? s.vec.join(",") : "-");
   return q.length ? `#${q.join("&")}` : "";
 }
