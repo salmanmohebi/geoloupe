@@ -245,7 +245,7 @@ def build(
     variables can be mixed; extra dimensions (levels, members) are kept.
     """
     import zarr
-    from zarr.codecs import BloscCodec, BloscShuffle
+    from zarr.codecs import BloscCodec
 
     ds = open_dataset(source, engine)
     names = variables or [str(v) for v in ds.data_vars if find_spatial_dims(ds[v]) is not None]
@@ -356,7 +356,7 @@ def build(
                 fill_value=fill,
                 dimension_names=[*lead_dims, y_dim, x_dim],
                 # byte shuffle + zstd: smooth geophysical fields compress ~5-10×
-                compressors=BloscCodec(cname="zstd", clevel=5, shuffle=BloscShuffle.shuffle),
+                compressors=BloscCodec(cname="zstd", clevel=5, shuffle="shuffle"),
             )
             attrs = {
                 k2: val

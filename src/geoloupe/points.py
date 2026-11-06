@@ -266,8 +266,8 @@ class PointSource(ABC):
         p = np.percentile(v, [2, 25, 50, 75, 98])
         return {
             "count": int(v.size),
-            "min": float(v.min()),
-            "max": float(v.max()),
+            "min": float(np.min(v)),  # (np.min: numpy 2.5 stubs reject v.min() here)
+            "max": float(np.max(v)),
             "mean": float(v.mean()),
             "p2": float(p[0]),
             "p25": float(p[1]),
