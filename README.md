@@ -125,9 +125,10 @@ All from `geoloupe gallery`:
 
 | | |
 |---|---|
-| ![Heatwave](docs/images/heatwave.jpg) **Europe's heatwave, 18 July 2023, 14 UTC.** ERA5 2 m temperature, one of 761 160 hourly steps read straight from Google Cloud. | ![Atmospheric river](docs/images/atmospheric-river.jpg) **An atmospheric river reaches California, 9 January 2023.** Total column water vapour. |
-| ![True and false colour](docs/images/true-false-colour.jpg) **Sentinel-2, true vs false colour.** Two synchronised maps; the false-colour side (near infrared as red) keeps its own colour scale. | ![Land cover](docs/images/landcover.jpg) **ESA WorldCover around Lake Geneva.** Class colours from the file's palette, names from the config, shares of the view in the legend. |
+| ![Heatwave](docs/images/heatwave.jpg) **Europe's heatwave, 18 July 2023, 14 UTC.** ERA5 2 m temperature, one of 761 160 hourly steps read straight from Google Cloud, with provinces as an overlay: the hover shows the region and the value. | ![Atmospheric river](docs/images/atmospheric-river.jpg) **An atmospheric river reaches California, 9 January 2023.** Total column water vapour. |
+| ![True and false colour](docs/images/true-false-colour.jpg) **Sentinel-2, true vs false colour.** Two synchronised maps of a STAC mosaic; the false-colour side (near infrared as red) keeps its own colour scale. | ![Land cover](docs/images/landcover.jpg) **ESA WorldCover around Lake Geneva.** Class colours from the file's palette, names from the config, shares of the view in the legend. |
 | ![Elevation](docs/images/elevation.jpg) **The Matterhorn in the Copernicus DEM (30 m).** Six 1° tiles form one layer, with ERA5's orography outside them. | ![Stations](docs/images/stations.jpg) **GHCN-Daily stations, 18 July 2023.** Click one for its whole daily record. |
+| ![Ocean warming](docs/images/ocean-warming.jpg) **165 years of ocean warming in a climate model.** GFDL-ESM4 (CMIP6) sea surface temperature on its own curvilinear (tripolar) grid, August 2014 minus August 1850. | ![Western Alps](docs/images/alps-stac.jpg) **The Western Alps from space.** The 10 least cloudy Sentinel-2 scenes of August 2023, found with a STAC search and shown as one seamless mosaic. |
 
 The synthetic demo (`geoloupe demo-data demo && geoloupe serve demo/demo.yaml`) works offline
 and shows compositing, pressure levels and a LAEA-projected grid ([images](docs/images/)).
