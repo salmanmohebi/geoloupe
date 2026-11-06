@@ -286,6 +286,10 @@ class Settings(_Model):
     max_read_cells: int = 6_000_000
     tile_size: int = 256
     tile_cache_mb: int = 256
+    # Grids up to this many cells are read whole once per time step and shared by all tiles
+    # (memory: field_cache_mb). 0 turns it off.
+    field_cache_cells: int = 4_000_000
+    field_cache_mb: int = 512
     # Upper bound on time steps in one time-series request.
     max_timeseries_steps: int = 20_000
     # Upper bound on the uncompressed size of a NetCDF export.

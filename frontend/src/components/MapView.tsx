@@ -59,8 +59,8 @@ export function sourceLabel(layer: LayerMeta | null, source: number | null, leve
   if (!s) return "";
   const lv = level !== null ? s.levels[level] : null;
   const res = lv ? lv.resolution.split(" (")[0] : s.resolution.split(" (")[0];
-  const native = !lv || lv.origin !== "overview";
-  return `${s.dataset_title.split(" (")[0]} · ${res}${native ? "" : " overview"}`;
+  const tag = lv?.origin === "overview" ? " overview" : lv?.origin === "subsampled" ? " subsampled" : "";
+  return `${s.dataset_title.split(" (")[0]} · ${res}${tag}`;
 }
 
 export function MapView() {

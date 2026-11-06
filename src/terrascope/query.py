@@ -34,19 +34,21 @@ class QueryError(ValueError):
 
 
 def _cell(level: Level, lon: float, lat: float) -> tuple[int, int] | None:
-    g = level.grid
-    gx, gy = g.from_lonlat(np.array([lon]), np.array([lat]))
-    px, py = g.x.position(gx), g.y.position(gy)
-    if not (np.isfinite(px[0]) and np.isfinite(py[0])):
+    rows, cols = level.grid.locate(np.array([lon]), np.array([lat]))
+    if rows[0] < 0:
         return None
-    c, r = math.floor(px[0]), math.floor(py[0])
-    if not (0 <= c < g.x.n and 0 <= r < g.y.n):
-        return None
-    return r, c
+    return int(rows[0]), int(cols[0])
 
 
 def _cell_info(level: Level, r: int, c: int) -> dict[str, Any]:
     g = level.grid
+    if g.curvi is not None:  # the cell centre from the 2-D coordinates
+        return {
+            "lon": float(g.curvi.lon[r, c]),
+            "lat": float(g.curvi.lat[r, c]),
+            "row": r,
+            "col": c,
+        }
     x, y = float(g.x.centers[c]), float(g.y.centers[r])
     if g.geographic:
         lon = ((x + 180.0) % 360.0) - 180.0
@@ -246,8 +248,9 @@ def export_subset(
     w, s, e, n = bbox
     lons = np.array([w, e, e, w, (w + e) / 2])
     lats = np.array([s, s, n, n, (s + n) / 2])
-    gx, gy = g.from_lonlat(lons, lats)
-    px, py = g.x.position(gx), g.y.position(gy)
+    if g.curvi is None:
+        gx, gy = g.from_lonlat(lons, lats)
+        px, py = g.x.position(gx), g.y.position(gy)
 
     def cells(lo: float, hi: float, n: int) -> tuple[int, int]:
         """Cells whose centres lie in [lo, hi] (positions); at least the cell under the middle."""
@@ -257,14 +260,23 @@ def export_subset(
             b = a + 1
         return max(0, a), min(n, b)
 
-    if g.geographic and e - w >= 360:
+    if g.curvi is not None:  # the index window around all cells whose centres lie in the box
+        lon2, lat2 = g.curvi.lon, g.curvi.lat
+        inside = (lat2 >= s) & (lat2 <= n)
+        inside &= ((lon2 - w) % 360 <= (e - w)) if e - w < 360 else np.isfinite(lon2)
+        rows, cols = np.flatnonzero(inside.any(axis=1)), np.flatnonzero(inside.any(axis=0))
+        if rows.size == 0:
+            raise QueryError("the box does not overlap the data")
+        r0, r1, c0, c1 = int(rows[0]), int(rows[-1]) + 1, int(cols[0]), int(cols[-1]) + 1
+    elif g.geographic and e - w >= 360:
         c0, c1 = 0, g.x.n
+        r0, r1 = cells(float(np.nanmin(py)), float(np.nanmax(py)), g.y.n)
     else:
         c0, c1 = cells(float(np.nanmin(px)), float(np.nanmax(px)), g.x.n)
-    r0, r1 = cells(float(np.nanmin(py)), float(np.nanmax(py)), g.y.n)
+        r0, r1 = cells(float(np.nanmin(py)), float(np.nanmax(py)), g.y.n)
     if c1 <= c0 or r1 <= r0:
         raise QueryError("the box does not overlap the data")
-    if g.geographic and px[1] < px[0] and not (e - w >= 360):
+    if g.geographic and px[1] < px[0] and not (e - w >= 360):  # (never true for curvilinear)
         raise QueryError(
             "boxes across the dataset's longitude seam are not supported yet; split the box"
         )

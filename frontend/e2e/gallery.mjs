@@ -82,6 +82,8 @@ for (const v of views) {
     title: document.title,
   }));
   if (!state.hash.includes(`layer=${v.layer}`)) fail(`view ${v.id}: hash ${state.hash}`);
+  if (v.compare_time && !state.hash.includes(`ct=${v.compare_time}`))
+    fail(`view ${v.id}: the comparison time was lost (${state.hash})`);
   if (v.vectors?.length) {
     // an overlay is drawn and found under the cursor: hover the map centre
     const box = await page.locator(".map-el").first().boundingBox();

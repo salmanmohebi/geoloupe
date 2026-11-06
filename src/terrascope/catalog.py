@@ -36,7 +36,7 @@ from terrascope.config import (
     Style,
     config_from_dict,
 )
-from terrascope.grid import Grid, GridError, find_spatial_dims
+from terrascope.grid import Grid, GridError, find_curvilinear, find_spatial_dims
 from terrascope.readers import (
     OpenError,
     detect_engine,
@@ -58,7 +58,7 @@ class Level:
     da: xr.DataArray
     grid: Grid
     time: TimeAxis | None
-    origin: str  # "native", "copy" or "overview"
+    origin: str  # "native", "copy", "overview" or "subsampled" (curvilinear, on the fly)
     location: str
 
     @property
@@ -452,13 +452,29 @@ class Catalog:
         for var in names:
             da0 = base[var]
             dims = find_spatial_dims(da0, dcfg.x, dcfg.y)
-            if dims is None:
+            # (`d in coords`, not coords.get(d): xarray returns a default index for bare dims)
+            rectilinear = dims is not None and all(
+                d in da0.coords and da0.coords[d].ndim == 1 for d in dims
+            )
+            # 2-D longitude/latitude (ocean models, WRF, swaths); for these, `x` and `y` in the
+            # config may name the longitude and latitude coordinates. They are the truth unless
+            # the 1-D axes come with a CRS (projected grids carry 2-D lon/lat only as a help):
+            # model grids often have 1-D *nominal* axes (CMIP6 GFDL: x, y "degrees").
+            curv = find_curvilinear(da0, dcfg.x, dcfg.y)
+            has_crs = bool(
+                dcfg.crs or "grid_mapping" in da0.attrs or "grid_mapping" in da0.encoding
+            )
+            forced = bool(dcfg.x and dcfg.y and dcfg.x in da0.dims and dcfg.y in da0.dims)
+            if rectilinear and (has_crs or forced):
+                curv = None
+            if curv is not None:
+                dims = (curv[0], curv[1])
+            elif not rectilinear or dims is None:
                 if dcfg.variables:
                     raise GridError(
-                        f"{var!r} has no recognisable x/y dimensions {da0.dims}; set 'x' and 'y'"
+                        f"{var!r} has no recognisable x/y dimensions or 2-D longitude/latitude "
+                        f"{da0.dims}; set 'x' and 'y'"
                     )
-                continue
-            if any(da0.coords.get(d) is not None and da0.coords[d].ndim != 1 for d in dims):
                 continue
             levels: list[Level] = []
             for origin, ds, loc in levels_ds:
@@ -470,7 +486,12 @@ class Catalog:
                 if origin == "overview" and levels:
                     override = levels[0].grid.crs.to_wkt()
                 try:
-                    grid = Grid.from_dataarray(ds, da, *dims, crs_override=override)
+                    if curv is not None:
+                        grid = Grid.from_curvilinear(
+                            dims[0], dims[1], da.coords[curv[2]].values, da.coords[curv[3]].values
+                        )
+                    else:
+                        grid = Grid.from_dataarray(ds, da, *dims, crs_override=override)
                 except GridError as e:
                     if not levels:
                         raise
@@ -485,6 +506,19 @@ class Catalog:
                 levels.append(Level(da, grid, taxis, origin, loc))
             if not levels:
                 continue
+            if curv is not None:  # coarser levels on the fly: every 2nd, 4th, … cell
+                lv0 = levels[0]
+                f = 2
+                while max(lv0.grid.shape) // f >= 128:
+                    sub = lv0.da.isel(
+                        {dims[1]: slice(None, None, f), dims[0]: slice(None, None, f)}
+                    )
+                    levels.append(
+                        Level(
+                            sub, lv0.grid.subsample(f), lv0.time, "subsampled", f"every {f}th cell"
+                        )
+                    )
+                    f *= 2
             native_crs = levels[0].grid.crs
             same = [lv for lv in levels if lv.grid.crs.equals(native_crs, ignore_axis_order=True)]
             for lv in levels:

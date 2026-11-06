@@ -205,17 +205,12 @@ def plan_separable(level: Level, tile: Tile) -> _Plan | None:
 
 
 def plan_projected(level: Level, tile: Tile) -> _Plan | None:
-    """Read plan for a projected grid: nearest cell of each pixel centre."""
-    g = level.grid
+    """Read plan for a projected or curvilinear grid: nearest cell of each pixel centre."""
     lon, lat = tile.lonlat_grid()
-    gx, gy = g.from_lonlat(lon, lat)
-    cx = np.floor(g.x.position(gx))
-    cy = np.floor(g.y.position(gy))
-    ok = np.isfinite(cx) & np.isfinite(cy) & (cx >= 0) & (cx < g.x.n) & (cy >= 0) & (cy < g.y.n)
+    ri, ci = level.grid.locate(lon, lat)
+    ok = ri >= 0
     if not ok.any():
         return None
-    ci = np.where(ok, cx, -1).astype(np.int64)
-    ri = np.where(ok, cy, -1).astype(np.int64)
     r0, r1 = int(ri[ok].min()), int(ri[ok].max()) + 1
     c0, c1 = int(ci[ok].min()), int(ci[ok].max()) + 1
     empty = (np.empty(0, np.int64), np.empty(0, np.int64))
@@ -225,7 +220,7 @@ def plan_projected(level: Level, tile: Tile) -> _Plan | None:
 def pixel_size(level: Level, tile: Tile) -> tuple[float, float]:
     """Size of a tile pixel in the level's CRS units (x, y), at the tile centre."""
     g = level.grid
-    if g.geographic:
+    if g.geographic or g.curvi is not None:
         return tile.pixel_size_deg()
     w, s, e, n = tile.bounds()
     clon, clat = (w + e) / 2, (s + n) / 2
@@ -401,6 +396,37 @@ class TileEngine:
         self.catalog = catalog
         self.settings = catalog.settings
         self.cache = LRUCache(self.settings.tile_cache_mb * 2**20)
+        # Whole 2-D fields of small grids, shared by all tiles of one time step (see _window).
+        self.fields = LRUCache(self.settings.field_cache_mb * 2**20)
+        self._field_locks: dict[Any, threading.Lock] = {}
+        self._field_locks_guard = threading.Lock()
+
+    def _window(
+        self, lv: Level, source: Source, t_idx: int, extra: dict[str, int], p: _Plan
+    ) -> np.ndarray:
+        """The read window of a plan. Grids up to `field_cache_cells` are read whole, once per
+        time step, and every tile cuts its window from memory: stores whose chunks hold the whole
+        field (or many time steps, as in CMIP6) would otherwise be decompressed again for every
+        tile."""
+        ny, nx = lv.grid.shape
+        if ny * nx > self.settings.field_cache_cells:
+            return read_window(lv, source, t_idx, extra, p.r0, p.r1, p.c0, p.c1)
+        key = (id(lv.da), t_idx, tuple(sorted(extra.items())))
+        whole = self.fields.get(key)
+        if whole is None:
+            with self._field_locks_guard:
+                lock = self._field_locks.setdefault(key, threading.Lock())
+            with lock:  # one read per field, even when many tiles ask at once
+                whole = self.fields.get(key)
+                if whole is None:
+                    whole = read_window(lv, source, t_idx, extra, 0, ny, 0, nx)
+                    self.fields.put(key, whole, whole.nbytes)
+            with self._field_locks_guard:
+                self._field_locks.pop(key, None)
+        cols = np.arange(p.c0, p.c1) % nx  # windows may wrap around in longitude
+        if p.c1 > nx or p.c0 < 0:
+            return whole[p.r0 : p.r1][:, cols]
+        return whole[p.r0 : p.r1, p.c0 : p.c1]
 
     # -- one source -------------------------------------------------------
     def plan(self, source: Source, tile: Tile, time: str | None) -> tuple[_Plan | None, str | None]:
@@ -442,7 +468,7 @@ class TileEngine:
         t_idx = time_index(lv, source.time_for(sel.time))
         assert t_idx is not None
         extra = resolve_extra_dims(source, sel.dims)
-        win = read_window(lv, source, t_idx, extra, p.r0, p.r1, p.c0, p.c1)
+        win = self._window(lv, source, t_idx, extra, p)
         # categorical data: nearest on the fly (overviews hold the majority class)
         method = "nearest" if p.nearest or source.resampling == "mode" else source.resampling
         vals = resample(win, p, method, tile.size)

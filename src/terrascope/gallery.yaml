@@ -9,7 +9,8 @@ title: TerraScope gallery
 description: >-
   Open Earth data, read live from public cloud archives: hourly weather since 1940 (ERA5),
   Sentinel-2 satellite images, a 30 m elevation model, ESA WorldCover land cover, NOAA
-  weather stations, and regions, rivers and lakes as overlays. Nothing is copied in advance. Pick a view to start, or explore freely:
+  weather stations, a CMIP6 climate model's ocean on its own grid, and regions, rivers and lakes as
+  overlays. Nothing is copied in advance. Pick a view to start, or explore freely:
   every map shows the values under the cursor, and a click gives the time series.
 
 datasets:
@@ -88,6 +89,17 @@ datasets:
       green: {colormap: gray, vmin: 0, vmax: 0.3, units: reflectance}
       nir: {colormap: gray, vmin: 0, vmax: 0.5, units: reflectance}
     attribution: Contains modified Copernicus Sentinel data 2023 (ESA); COGs and STAC API by Element84
+
+  # A climate model's ocean on its native tripolar grid (2-D longitude/latitude per cell), from
+  # the Pangeo CMIP6 archive on Google Cloud. Monthly means, 1850–2014.
+  ocean-model:
+    title: GFDL-ESM4 climate model ocean (CMIP6 historical)
+    description: NOAA-GFDL's Earth system model, sea surface temperature on its native 0.5° tripolar ocean grid.
+    path: https://storage.googleapis.com/cmip6/CMIP6/CMIP/NOAA-GFDL/GFDL-ESM4/historical/r1i1p1f1/Omon/tos/gn/v20190726
+    variables: [tos]
+    styles:
+      tos: {title: Sea surface temperature (GFDL-ESM4 model), colormap: thermal, vmin: -2, vmax: 32, units: °C}
+    attribution: GFDL-ESM4 CMIP6 historical r1i1p1f1 (Krasting et al. 2018, CC BY 4.0); Pangeo CMIP6 on Google Cloud
 
 layers:
   temperature:
@@ -256,6 +268,21 @@ views:
     zoom: 4.4
     vmin: 0
     vmax: 3
+  - title: A climate model's ocean, on its own grid
+    description: Sea surface temperature in the GFDL-ESM4 model, August 2014, drawn on the model's curvilinear (tripolar) grid. Click for the 165-year monthly series.
+    layer: ocean-model:tos
+    time: "2014-08-16T12:00"
+    center: [-40, 45]
+    zoom: 2.3
+  - title: 165 years of ocean warming in a model
+    description: August 2014 minus August 1850 in the same historical simulation (one month each, so weather-like noise remains).
+    layer: ocean-model:tos
+    time: "2014-08-16T12:00"
+    compare: ocean-model:tos
+    compare_time: "1850-08-16T12:00"
+    compare_mode: diff
+    center: [-20, 30]
+    zoom: 1.6
   - title: From 31 km to 30 m
     description: The Matterhorn in the Copernicus DEM. Zoom out to see ERA5's coarse orography take over outside the Alps.
     layer: elevation

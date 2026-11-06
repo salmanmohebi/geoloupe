@@ -231,6 +231,7 @@ export const useStore = create<AppState>((set, get) => ({
           mode: initial.cmp,
           layerId: initial.cmpLayer ?? first.id,
           time: initial.cmpT ?? null,
+          linkTime: !initial.cmpT, // a link with its own B time (ct=) must keep it
         });
     } catch (e) {
       get().notify("error", (e as Error).message);

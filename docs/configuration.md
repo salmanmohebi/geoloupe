@@ -121,6 +121,8 @@ settings:
   max_read_cells: 6000000               # per tile and source; above → next coarser level or skip
   tile_size: 256
   tile_cache_mb: 256                    # server tile cache
+  field_cache_cells: 4000000            # grids up to this size are read whole, once per time step
+  field_cache_mb: 512                   #   and shared by all tiles (0 cells: off)
   max_timeseries_steps: 20000
   max_export_mb: 512
   max_vector_mb: 60                     # GeoJSON size limit of one overlay
@@ -148,6 +150,14 @@ settings:
 * **Mosaics.** `mosaic:` lists files that tile an area (DEM tiles, satellite granules); they become one
   layer `<dataset>:<variable_name>`, opened in parallel. A composite layer can use a mosaic like any
   dataset (`{dataset: dem, variable: elevation}`): it stands for all its files.
+* **Curvilinear grids** (2-D longitude/latitude per cell: ocean models such as NEMO, ROMS, MOM and
+  POP, WRF, CMIP6 native grids, satellite swaths) are detected from CF `standard_name`/`units` or
+  common names (`nav_lon`, `XLONG`, `lon_rho`, …); `x` and `y` may name the 2-D longitude and
+  latitude coordinates. Each pixel shows the nearest cell centre (KD-tree; empty beyond ¾ of a cell,
+  so the grid's outline stays sharp). When a variable has both 1-D axes and 2-D longitude/latitude,
+  the 2-D coordinates win unless the variable declares a CRS (`grid_mapping` or `crs:`): model
+  grids often carry 1-D *nominal* axes. Coarser levels for low zooms are made on the fly by taking
+  every 2nd, 4th, … cell (shown as "subsampled").
 * **The read budget** (`max_read_cells`) bounds the work per tile and source. With overviews, every
   zoom has a cheap level. Without them, a large source appears only from the zoom at which its native
   cells fit the budget; the UI shows that zoom and says why the source is hidden.
@@ -191,6 +201,8 @@ settings:
 * **Featured views** (`views:`) are listed on a start screen (the gallery) with a preview image each.
   Opening a view is the same as opening a shared link with that state. A view whose layer is missing
   (for example, its dataset failed to open) is left out, with a warning in the server log.
+* **Remote Zarr without `.zarr` in the URL** (e.g. the CMIP6 archive) is recognised by its metadata
+  files (`zarr.json`, `.zmetadata`, `.zgroup`); otherwise set `engine`.
 * **Remote data**: `s3://`, `gs://`, `https://` paths work for Zarr (through fsspec), NetCDF, GeoTIFF/COG
   (through GDAL) and CSV/Parquet. Install `terrascope[remote]`. Pass credentials through
   `storage_options` or the usual environment variables. Network failures at start-up (DNS, timeouts,

@@ -79,6 +79,8 @@ and us-west-2, Google Cloud, NOAA). Network latency dominates; numbers vary betw
 | Vector overlays (Natural Earth 1:10m GeoJSON from GitHub): 4 596 provinces simplified to 0.02° / 1 454 rivers / 1 355 lakes | 3.3–7.3 s (6.2 MB) / 0.4–1.1 s (6.0 MB) / 0.4 s (3.8 MB) |
 | STAC search of Earth Search (Sentinel-2, 10 items) and opening its 40 COGs in parallel | 1 s search; catalog ready ~5 s after start with all other gallery data |
 | One zoom-9 RGB tile from 3 × 12 Sentinel-2 mosaics (true colour or false colour), cold | 1.9–2.1 s |
+| CMIP6 CESM2 ocean (384 × 320 curvilinear, many months per chunk): 8 more tiles of the same month after panning — without / with the field cache | 3.9 s / 0.15 s |
+| CMIP6 GFDL-ESM4 ocean (576 × 720 tripolar): open; one cold tile at the Arctic fold | 3.1 s; 2.7 s |
 | 11 gallery previews (480 × 240 px, stitched from up to 9 tiles each) | 6.6–16 s for all, in the browser (the cold Sentinel-2 mosaics take longest) |
 | Open a featured view until all tiles are loaded (browser) | 2.3–4.6 s; 7.2 s for the side-by-side Sentinel-2 view |
 
@@ -93,7 +95,7 @@ and us-west-2, Google Cloud, NOAA). Network latency dominates; numbers vary betw
 
 | Suite | Count | Time |
 |---|---|---|
-| Python (`pytest`): engine vs brute force, compositing, levels, budgets, CRSs, calendars, overviews, readers, API, stations, satellite rasters, classes, gallery, vectors, STAC, regressions | 125 | 7–90 s (file-system dependent) |
+| Python (`pytest`): engine vs brute force, compositing, levels, budgets, CRSs, calendars, overviews, readers, API, stations, satellite rasters, classes, gallery, vectors, STAC, curvilinear grids, regressions | 134 | 7–90 s (file-system dependent) |
 | Web client (`vitest`): tile decoding (byte layout shared with Python), colour mapping, RGB, classes, Mercator math, URL state, timelines, gallery links, comparison scales, overlays | 28 | < 2 s |
 | Browser smoke test, demo data (`e2e/smoke.mjs`): global, Alps 1 km + hover, inspector, split, difference, LAEA grid, station hover + click | 7 scenarios | ~35 s |
 | Browser smoke tests on public remote data (Sentinel-2 true and false colour, ARCO-ERA5, NOAA GHCN stations) | 4 scenarios | ~60 s |

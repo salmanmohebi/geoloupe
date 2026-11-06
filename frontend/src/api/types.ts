@@ -84,7 +84,7 @@ export interface FeaturedView {
 export interface LevelInfo {
   resolution: string;
   shape: [number, number];
-  origin: "native" | "copy" | "overview";
+  origin: "native" | "copy" | "overview" | "subsampled"; // subsampled: every n-th cell, on the fly
   times: number | null;
 }
 

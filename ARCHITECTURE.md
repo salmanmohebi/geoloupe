@@ -135,6 +135,18 @@ draw (layer, time, dims, colour scale, optional subtrahend); every change makes 
 MapLibre source, added on top of the old one, which is removed only after the new tiles have loaded.
 That double buffering keeps time animation and colour changes free of flicker.
 
+### Curvilinear grids
+
+A grid with 2-D longitude/latitude keeps its cells as they are: `Grid.locate()` finds the nearest cell
+centre of every pixel with a KD-tree on 3-D unit vectors (no special cases at the date line or the
+poles) and leaves pixels empty beyond ¾ of a cell. The resulting per-pixel (row, col) plan is the same
+as for projected grids, so reading, compositing, queries and exports are shared. Coarser levels are
+views of every 2nd, 4th, … cell, so low zooms stay within the read budget.
+
+Small grids (≤ `field_cache_cells`, e.g. ERA5's 1440 × 721 or a 1° ocean model) are read whole
+once per time step and every tile cuts its window from memory. Stores whose chunks hold a whole
+field, or many time steps (CMIP6), would otherwise be decompressed again for every tile.
+
 ### Mosaics and STAC
 
 A `mosaic:` (a list of files) or a `stac:` search is expanded when the catalog opens into hidden

@@ -28,7 +28,15 @@ export function ProvenanceBadge() {
   // one entry per dataset and level: the bands of one RGB file, or the files of a mosaic, together
   const byKey = new Map<
     string,
-    { key: string; label: string; res: string; overview: boolean; fraction: number; title: string }
+    {
+      key: string;
+      label: string;
+      res: string;
+      overview: boolean;
+      kind: string;
+      fraction: number;
+      title: string;
+    }
   >();
   for (const p of parts) {
     const s = layer.sources[p.source];
@@ -43,7 +51,8 @@ export function ProvenanceBadge() {
         key,
         label,
         res: lv.resolution,
-        overview: lv.origin === "overview",
+        overview: lv.origin === "overview" || lv.origin === "subsampled",
+        kind: lv.origin === "subsampled" ? "subsampled" : lv.origin === "overview" ? "overview" : "native",
         fraction: p.fraction,
         title: `${s.dataset_title}: ${lv.origin} level ${p.level}, ${lv.shape.join(" × ")} cells`,
       });
@@ -57,7 +66,7 @@ export function ProvenanceBadge() {
       {groups.map((g) => (
         <span key={g.key} className="prov-part" title={g.title}>
           <b>{g.label}</b> {g.res}
-          <span className={`tag ${g.overview ? "ov" : "nat"}`}>{g.overview ? "overview" : "native"}</span>
+          <span className={`tag ${g.overview ? "ov" : "nat"}`}>{g.kind}</span>
           {groups.length > 1 && layer.kind !== "rgb" && (
             <span className="muted"> {Math.round(g.fraction * 100)}%</span>
           )}

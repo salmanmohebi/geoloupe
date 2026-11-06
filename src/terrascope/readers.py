@@ -108,7 +108,24 @@ def detect_engine(location: str | list[str]) -> str:
         return "geotiff"
     if loc.endswith(_REF_EXT):
         return "kerchunk"
+    if location.startswith(("http://", "https://")) and _remote_zarr(location):
+        return "zarr"  # a store without .zarr in its name (e.g. the CMIP6 archive)
     raise OpenError(f"cannot tell the format of {location!r}; set 'engine' in the dataset config")
+
+
+def _remote_zarr(url: str) -> bool:
+    """Whether an HTTP(S) URL is a Zarr store: look for its metadata files (one small request each)."""
+    import urllib.request
+
+    for meta in ("zarr.json", ".zmetadata", ".zgroup"):
+        req = urllib.request.Request(f"{url.rstrip('/')}/{meta}", method="HEAD")
+        try:
+            with urllib.request.urlopen(req, timeout=15) as r:
+                if r.status == 200:
+                    return True
+        except OSError:
+            continue
+    return False
 
 
 def open_dataset(

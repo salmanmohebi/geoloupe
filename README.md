@@ -29,6 +29,7 @@ the internet.
 | Copernicus DEM GLO-30 (30 m), six 1° tiles in the Western Alps, over ERA5's 31 km orography | [Copernicus DEM](https://registry.opendata.aws/copernicus-dem/) COGs on AWS | zoom from 31 km to 30 m in one layer |
 | Sentinel-2 L2A, 10 m: the 10 least cloudy scenes of August 2023 over the Western Alps | a STAC search of [Earth Search](https://element84.com/earth-search/) (Element84), COGs on AWS | one seamless mosaic in true colour, false colour (near infrared) or single bands, side by side |
 | ESA WorldCover 2021, 10 m, 45–48° N, 6–9° E | [ESA WorldCover](https://registry.opendata.aws/esa-worldcover-vito/) COG on AWS | 11 land-cover classes with names, colours and shares of the view |
+| GFDL-ESM4 climate model ocean (CMIP6 historical), monthly 1850–2014, on its native tripolar grid | [Pangeo CMIP6](https://pangeo-data.github.io/pangeo-cmip6-cloud/) Zarr on Google Cloud | a curvilinear model grid drawn as it is; difference of two months 165 years apart |
 | States and provinces, rivers, lakes (overlays) | [Natural Earth](https://www.naturalearthdata.com/) 1:10m GeoJSON | switch on in the layer panel; hover a region for its name next to the data value |
 | GHCN-Daily stations, 21 long records (Milan since 1763) | [NOAA NCEI](https://www.ncei.noaa.gov/products/land-based-station/global-historical-climatology-network-daily) CSV files | daily max/min temperature and precipitation; click a station for its whole record |
 
@@ -108,8 +109,9 @@ terrascope.show({"data": ds})           # interactive map in the cell output
 * **Compare.** Side by side (two synchronised maps) or a difference map A − B, across layers or times.
 * **Many formats and grids.** Zarr v2/v3 (sharded, consolidated or not), NetCDF 3/4 and HDF5 (also
   multi-file), GRIB, GeoTIFF/COG (multi-band, palettes), kerchunk/VirtualiZarr references; local or
-  remote (HTTPS, S3, GCS). Lat/lon grids in either longitude convention, Gaussian grids, and projected
-  CRSs (UTM, LAEA, rotated pole, …).
+  remote (HTTPS, S3, GCS). Lat/lon grids in either longitude convention, Gaussian grids, projected
+  CRSs (UTM, LAEA, rotated pole, …), and curvilinear grids with 2-D longitude/latitude (ocean models,
+  WRF, CMIP6 native grids, swaths).
 * **Gallery and sharing.** Featured views as a start screen; every view is a link; PNG export with
   title, colour bar and attribution; the data in view as NetCDF; time series as CSV.
 * **Python and Jupyter.** `terrascope.show(...)` puts any xarray Dataset on the map inside a
@@ -147,8 +149,9 @@ the decision log.
 
 TerraScope 0.1 is a working first version (see [ROADMAP.md](ROADMAP.md)):
 
-* Grids: rectilinear only (1-D x/y coordinates). Curvilinear (2-D lat/lon) and unstructured meshes
-  (UGRID, HEALPix, ICON) are not supported yet.
+* Grids: rectilinear and curvilinear. Unstructured meshes (UGRID, HEALPix, ICON) are not supported
+  yet. Curvilinear grids show the nearest cell (no averaging) and get coarser levels by subsampling;
+  `terrascope overviews build` does not support them yet.
 * Tiles: Web Mercator (plus MapLibre's globe view). Polar regions beyond ±85° are not shown.
 * On-the-fly aggregation is an unweighted mean of the cells whose centres fall in a pixel; projected
   grids use nearest neighbour (build overviews for means).

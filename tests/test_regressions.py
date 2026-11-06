@@ -8,6 +8,7 @@ import cftime
 import numpy as np
 import pandas as pd
 import pyproj
+import pytest
 import xarray as xr
 
 from terrascope.catalog import Catalog
@@ -194,3 +195,28 @@ def test_packed_integers_without_cf_decoding(tmp_path: Path) -> None:
     assert abs(p["value"] - expected) < 1e-4  # float32
     corner = point(layer, float(ds.lon[0]), float(ds.lat[0]), Selection.make("2021-01-01"))
     assert corner["value"] is None  # the fill value is missing data, not 6553.5
+
+
+def test_field_cache_gives_identical_tiles_and_reads_once(monkeypatch: pytest.MonkeyPatch) -> None:
+    import terrascope.engine as eng_mod
+
+    lon = np.arange(0.5, 360, 1.0)  # 0–360 longitudes: windows wrap at the date line
+    lat = np.arange(89.5, -90, -1.0)
+    t = pd.date_range("2000-01-01", periods=2)
+    rng = np.random.default_rng(3)
+    v = rng.normal(size=(2, lat.size, lon.size)).astype(np.float32)
+    ds = xr.Dataset({"v": (("time", "lat", "lon"), v)}, {"time": t, "lat": lat, "lon": lon})
+    tiles = [Tile(0, 0, 0), Tile(2, 0, 1), Tile(2, 3, 1), Tile(3, 7, 3), Tile(3, 0, 3)]
+    sel = Selection.make("2000-01-02")
+    cached = Catalog.from_xarray({"d": ds})
+    plain = Catalog.from_xarray({"d": ds}, settings={"field_cache_cells": 0})
+    reads = []
+    real = eng_mod.read_window
+    monkeypatch.setattr(eng_mod, "read_window", lambda *a: reads.append(a[3:]) or real(*a))
+    e1, e2 = TileEngine(cached), TileEngine(plain)
+    for tile in tiles:
+        a = e1.render(cached.layer("d:v"), tile, sel).data
+        b = e2.render(plain.layer("d:v"), tile, sel).data
+        np.testing.assert_array_equal(a, b)
+    whole = [r for r in reads if r[1:] == (0, lat.size, 0, lon.size)]
+    assert len(whole) == 1  # the cached engine read the field once for all tiles

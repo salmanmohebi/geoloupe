@@ -55,8 +55,14 @@ passes the browser smoke test.
       screen with centred preview images (`/preview.png`); every view is a shareable link. On the way:
       parallel GeoTIFF reads (6.6× faster cold tiles), 16× faster opening of long time axes,
       `time_range`, mosaics in composites, retries of remote opens, side-by-side with different units.
-- [ ] **5. Curvilinear grids.** 2-D latitude/longitude coordinates: ocean models, WRF, swath satellite
-      products, rotated grids without a grid mapping. Nearest-cell lookup with a KD-tree.
+- [x] **5. Curvilinear grids.** 2-D latitude/longitude coordinates (NEMO, ROMS, MOM, POP, WRF, CMIP6
+      native grids, swaths): nearest cell through a KD-tree on unit vectors (date line and poles
+      work), empty beyond ¾ cell, subsampled levels for low zooms, point queries, time series and
+      export. Nominal 1-D axes lose to the 2-D coordinates unless a CRS is declared. Gallery: the
+      GFDL-ESM4 ocean (CMIP6). On the way: a whole-field cache for small grids (CMIP6 pan/zoom
+      3.9 s → 0.15 s), Zarr detection for URLs without `.zarr`, time labels rounded to the minute,
+      shared links that keep the comparison time. Later: overviews (block means) for curvilinear
+      grids.
 - [ ] **6. Open data without a config.** ~~`terrascope serve a.zarr b.tif stations.csv`~~ (done);
       an "Add data" dialog (path or URL) when the server is started with `--allow-open`.
 - [x] **7. Vector overlays.** GeoJSON, Shapefile (also zipped), GeoPackage, FlatGeobuf, KML, GML and

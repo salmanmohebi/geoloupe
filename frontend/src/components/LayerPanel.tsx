@@ -38,6 +38,7 @@ function SourceList({ layer }: { layer: LayerMeta }) {
         );
         const hidden = summary?.skipped.find((k) => idx.includes(k.source));
         const overviews = s.levels.filter((l) => l.origin !== "native").length;
+        const subsampled = s.levels.some((l) => l.origin === "subsampled");
         const parts =
           layer.kind === "rgb" && idx.length > 3 && idx.length % 3 === 0
             ? `files × 3 bands`
@@ -63,7 +64,11 @@ function SourceList({ layer }: { layer: LayerMeta }) {
                   : " · static"}
             </div>
             <div className="muted small">
-              {overviews ? `${overviews} overview level${overviews > 1 ? "s" : ""}` : "no overviews"}
+              {subsampled
+                ? `curvilinear grid · ${overviews} subsampled level${overviews > 1 ? "s" : ""}`
+                : overviews
+                  ? `${overviews} overview level${overviews > 1 ? "s" : ""}`
+                  : "no overviews"}
               {s.min_zoom > 0 ? ` · visible from zoom ${zoomText(Math.ceil(s.min_zoom))}` : ""}
             </div>
             {hidden && (

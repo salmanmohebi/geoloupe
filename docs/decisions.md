@@ -172,3 +172,33 @@ with one handle per thread), and GDAL's caches keep re-opening cheap.
 local files this costs little, with remote files the header is cached by GDAL. *Revisit when* reading
 many local GeoTIFFs on a file system with slow `open()`.
 
+### D13 · Curvilinear grids through the nearest cell (2026-11-06)
+
+**Problem.** Ocean and regional models, CMIP6 native grids and satellite swaths store 2-D longitude
+and latitude per cell; they were skipped.
+
+**Decision.** Find the nearest cell centre of every pixel with a KD-tree on unit vectors, leave pixels
+beyond ¾ of a cell empty, and reuse the projected-grid plan (per-pixel row/col). Coarser levels are
+strided views (every 2nd, 4th, … cell), labelled "subsampled". The 2-D coordinates win over 1-D axes
+unless the variable declares a CRS.
+
+**Alternatives.** Regridding to lat/lon first (xESMF): changes values and needs a target grid;
+datashader quadmesh rasterisation (xpublish-tiles): exact cell polygons, heavier dependency; per-cell
+polygons in the browser: does not scale.
+
+**Consequences.** Values are the stored cells (nearest, no averaging) at every zoom; the date line,
+poles and tripolar folds need no special code. Building the tree and the cell sizes costs ~0.5 s per million
+cells, once per level; locating the 65 536 pixels of a tile takes ~30 ms. *Revisit when* block-mean overviews for curvilinear grids are needed (very large grids).
+
+### D14 · Whole fields of small grids are read once per time step (2026-11-06)
+
+**Problem.** Many stores chunk small grids as whole fields or many time steps per chunk (ERA5, CMIP6).
+Every tile then decompresses the same chunk again: 3.9 s per batch of tiles when panning a CMIP6 map.
+
+**Decision.** Grids up to `field_cache_cells` (4 M) are read whole once per time step into a
+byte-bounded LRU cache with one lock per field; tiles cut their windows from it.
+
+**Consequences.** Panning and zooming at one time step is instant after the first read (0.15 s for 8
+tiles). The first tile of a large window reads the whole field even if it needs part of it: bounded by
+the size limit.
+

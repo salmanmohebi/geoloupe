@@ -73,10 +73,13 @@ class TimeAxis:
         if np.issubdtype(raw.dtype, np.datetime64):
             ns = raw.astype("datetime64[ns]")
             days = ns.astype("int64") / 86_400e9
-            idx = pd.DatetimeIndex(ns)
+            # labels to the nearest minute: model times often carry float noise (12:59:59.99)
+            minute = 60_000_000_000
+            ns_r = ((ns.astype("int64") + minute // 2) // minute * minute).astype("datetime64[ns]")
+            idx = pd.DatetimeIndex(ns_r)
             midnight = bool((idx.normalize() == idx).all())
             # vectorised ISO labels ("2023-07-18" or "2023-07-18T14:00"): hourly axes have ~10^6
-            labels = np.datetime_as_string(ns, unit="D" if midnight else "m").tolist()
+            labels = np.datetime_as_string(ns_r, unit="D" if midnight else "m").tolist()
             calendar = "standard"
         elif raw.dtype == object and raw.size and hasattr(raw.flat[0], "calendar"):
             import cftime
@@ -85,6 +88,10 @@ class TimeAxis:
             days = np.asarray(
                 cftime.date2num(list(raw), "days since 1970-01-01", calendar=calendar),
                 dtype=np.float64,
+            )
+            # labels to the nearest minute: model times often carry float noise (12:59:59.99)
+            raw = np.asarray(
+                cftime.num2date(np.round(days * 1440) / 1440, "days since 1970-01-01", calendar)
             )
             midnight = all(t.hour == 0 and t.minute == 0 and t.second == 0 for t in raw)
             labels = [
