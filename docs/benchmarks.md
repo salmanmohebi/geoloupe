@@ -95,8 +95,8 @@ and us-west-2, Google Cloud, NOAA). Network latency dominates; numbers vary betw
 
 | Suite | Count | Time |
 |---|---|---|
-| Python (`pytest`): engine vs brute force, compositing, levels, budgets, CRSs, calendars, overviews, readers, API, stations, satellite rasters, classes, gallery, vectors, STAC, curvilinear grids, regressions | 134 | 7–90 s (file-system dependent) |
+| Python (`pytest`): engine vs brute force, compositing, levels, budgets, CRSs, calendars, overviews, readers, API, stations, satellite rasters, classes, gallery, vectors, STAC, curvilinear grids, Add data, regressions | 137 | 7–90 s (file-system dependent) |
 | Web client (`vitest`): tile decoding (byte layout shared with Python), colour mapping, RGB, classes, Mercator math, URL state, timelines, gallery links, comparison scales, overlays | 28 | < 2 s |
-| Browser smoke test, demo data (`e2e/smoke.mjs`): global, Alps 1 km + hover, inspector, split, difference, LAEA grid, station hover + click | 7 scenarios | ~35 s |
+| Browser smoke test, demo data (`e2e/smoke.mjs`): global, Alps 1 km + hover, inspector, split, difference, LAEA grid, station hover + click, points layer, Add data | 9 scenarios | ~35 s |
 | Browser smoke tests on public remote data (Sentinel-2 true and false colour, ARCO-ERA5, NOAA GHCN stations) | 4 scenarios | ~60 s |
 | Gallery test (`e2e/gallery.mjs`): start screen and previews, then every featured view from its card | 11 views | ~60 s |

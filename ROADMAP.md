@@ -26,7 +26,7 @@ so the gaps are visible.
 * CI (GitHub Actions): pytest on Python 3.11–3.13, ruff, mypy, vitest, eslint, build, browser smoke
   test on demo data, and the gallery test on live public data (reported, not blocking).
 
-## Now: any kind of data, not only gridded reanalyses (started 2026-11-06)
+## Done: any kind of data, not only gridded reanalyses (2026-11-06)
 
 TerraScope is a general explorer: anyone should be able to open, visit and play with the main kinds of
 geoscience data — reanalyses and model output, satellite imagery, stations, elevation, land cover —
@@ -63,8 +63,10 @@ passes the browser smoke test.
       3.9 s → 0.15 s), Zarr detection for URLs without `.zarr`, time labels rounded to the minute,
       shared links that keep the comparison time. Later: overviews (block means) for curvilinear
       grids.
-- [ ] **6. Open data without a config.** ~~`terrascope serve a.zarr b.tif stations.csv`~~ (done);
-      an "Add data" dialog (path or URL) when the server is started with `--allow-open`.
+- [x] **6. Open data without a config.** `terrascope serve a.zarr b.tif stations.csv regions.geojson`;
+      an "Add data" dialog in the browser (gridded data, stations or vectors; path or URL), only
+      when the server is started with `--allow-open` (URLs) or `--open-root DIR` (local files below
+      DIR). New datasets open through their own small catalog; failures are reported, not kept.
 - [x] **7. Vector overlays.** GeoJSON, Shapefile (also zipped), GeoPackage, FlatGeobuf, KML, GML and
       GeoParquet; local or remote; reprojection, `where` filters, simplification, size limit; drawn
       between the data and the stations; hover shows label and attributes; overlays in links and

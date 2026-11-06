@@ -127,6 +127,8 @@ settings:
   max_export_mb: 512
   max_vector_mb: 60                     # GeoJSON size limit of one overlay
   cors_origins: ["*"]
+  allow_open: false                     # "Add data" in the browser may open remote URLs
+  open_roots: []                        #   … and local files below these folders
 ```
 
 ## Notes
@@ -226,5 +228,8 @@ terrascope overviews build SOURCE OUTPUT.zarr [--variables a,b] [--start 1978-01
 ## Environment variables
 
 None are required. `terrascope serve` options: `--host` (default `127.0.0.1`), `--port` (default
-`8000`), `--log-level`. `terrascope gallery` takes the same options and serves the configuration of
+`8000`), `--log-level`, `--allow-open` (the browser's "Add data" may open `https://`, `s3://` and
+`gs://` URLs) and `--open-root DIR` (it may open local files below `DIR`; repeatable; relative
+paths start in the first root). Both are off by default: anyone who can reach the server can then
+make it read those, so keep such a server on localhost or behind a login. `terrascope gallery` takes the same options and serves the configuration of
 open public data that ships with TerraScope (`--show-config` prints it).

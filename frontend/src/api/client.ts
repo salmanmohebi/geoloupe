@@ -2,7 +2,15 @@
 // path prefix (for example behind jupyter-server-proxy).
 
 import { track } from "../lib/activity";
-import type { Catalog, Colormap, LayerMeta, PointResult, Stats, TimeSeriesResult } from "./types";
+import type {
+  AddDataResult,
+  Catalog,
+  Colormap,
+  LayerMeta,
+  PointResult,
+  Stats,
+  TimeSeriesResult,
+} from "./types";
 
 export class ApiError extends Error {
   constructor(
@@ -28,10 +36,10 @@ function getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
   return track(getJsonUntracked<T>(url, signal));
 }
 
-async function getJsonUntracked<T>(url: string, signal?: AbortSignal): Promise<T> {
+async function getJsonUntracked<T>(url: string, signal?: AbortSignal, init?: RequestInit): Promise<T> {
   let r: Response;
   try {
-    r = await fetch(url, { signal });
+    r = await fetch(url, { signal, ...init });
   } catch (e) {
     if ((e as Error).name === "AbortError") throw e;
     throw new ApiError("The TerraScope server cannot be reached. Is it still running?", 0);
@@ -101,4 +109,13 @@ export const api = {
       time: time ?? undefined,
       dims: dimsParam(dims),
     }),
+  /** Open a file or URL on the server ("Add data"; only when the server allows it). */
+  addData: (path: string, name?: string) =>
+    track(
+      getJsonUntracked<AddDataResult>(apiUrl("datasets"), undefined, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path, name: name || undefined }),
+      }),
+    ),
 };

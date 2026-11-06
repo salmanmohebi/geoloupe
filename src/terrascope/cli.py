@@ -58,6 +58,16 @@ def cmd_serve(a: argparse.Namespace) -> int:
     from terrascope.server import serve
 
     cat = _catalog_from(a.target, a.engine)
+    if getattr(a, "allow_open", False):
+        cat.settings.allow_open = True
+    for root in getattr(a, "open_root", None) or []:
+        cat.settings.open_roots.append(str(Path(root).expanduser().resolve()))
+    if cat.settings.allow_open or cat.settings.open_roots:
+        log.warning(
+            "'Add data' is on (%s): anyone who can reach this server can make it read those; "
+            "keep it on localhost or behind a login",
+            ", ".join(["remote URLs"] * cat.settings.allow_open + cat.settings.open_roots),
+        )
     bad = [d for d in cat.datasets.values() if d.status != "ok"]
     for d in bad:
         log.error("dataset %s: %s", d.id, d.error)
@@ -199,6 +209,20 @@ def cmd_overviews(a: argparse.Namespace) -> int:
     return 0
 
 
+def _open_args(s: argparse.ArgumentParser) -> None:
+    s.add_argument(
+        "--allow-open",
+        action="store_true",
+        help="let the browser open remote data (https://, s3://, gs:// URLs) with 'Add data'",
+    )
+    s.add_argument(
+        "--open-root",
+        action="append",
+        metavar="DIR",
+        help="let the browser open local files below DIR with 'Add data' (repeatable)",
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(
         prog="terrascope", description="Explore large gridded datasets on a map."
@@ -219,6 +243,7 @@ def main(argv: list[str] | None = None) -> int:
         "--engine", default="auto", help="reader for a dataset path (default: from the extension)"
     )
     s.add_argument("--log-level", default="info")
+    _open_args(s)
     s.set_defaults(func=cmd_serve)
 
     s = sub.add_parser(
@@ -230,6 +255,7 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument(
         "--show-config", action="store_true", help="print the gallery configuration and exit"
     )
+    _open_args(s)
     s.set_defaults(func=cmd_gallery)
 
     s = sub.add_parser("info", help="check a config or dataset and list its layers")

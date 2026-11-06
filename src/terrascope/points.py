@@ -756,21 +756,27 @@ class PointRegistry:
         self.errors: dict[str, str] = {}
         self.overlays: dict[str, tuple[str, str]] = {}  # grid layer → (source, variable)
         for pid, pcfg in config.points.items():
-            try:
-                paths = pcfg.path if isinstance(pcfg.path, list) else [pcfg.path]
-                remote = any("://" in p for p in paths)
-                src = with_retries(lambda: open_points(pid, pcfg, config), remote, pid)  # noqa: B023
-                src.variables()  # fail early on unusable tables
-            except Exception as e:  # any reader error is reported, the server still starts
-                self.errors[pid] = str(e)
-                log.error("points %r: %s", pid, e)
-                continue
-            self.sources[pid] = src
-            for lid, var in pcfg.layers.items():
-                if lid in grid_layers:
-                    self.overlays[lid] = (pid, var)
-                else:
-                    log.warning("points %r: unknown layer %r", pid, lid)
+            self.add(pid, pcfg, config, grid_layers)
+
+    def add(self, pid: str, pcfg: PointsConfig, config: Config, grid_layers: set[str]) -> bool:
+        """Open one point source (also while the server runs); False if it failed (see errors)."""
+        try:
+            paths = pcfg.path if isinstance(pcfg.path, list) else [pcfg.path]
+            remote = any("://" in p for p in paths)
+            src = with_retries(lambda: open_points(pid, pcfg, config), remote, pid)
+            src.variables()  # fail early on unusable tables
+        except Exception as e:  # any reader error is reported, the server still starts
+            self.errors[pid] = str(e)
+            log.error("points %r: %s", pid, e)
+            return False
+        self.errors.pop(pid, None)
+        self.sources[pid] = src
+        for lid, var in pcfg.layers.items():
+            if lid in grid_layers:
+                self.overlays[lid] = (pid, var)
+            else:
+                log.warning("points %r: unknown layer %r", pid, lid)
+        return True
 
     def layer_ids(self) -> dict[str, tuple[str, str]]:
         """Point layers: '<source>:<variable>' → (source, variable)."""

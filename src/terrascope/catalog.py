@@ -307,6 +307,35 @@ class Catalog:
             self.datasets[did] = parent
         self._build_layers()
 
+    def add_datasets(self, datasets: dict[str, DatasetConfig]) -> tuple[list[str], list[str]]:
+        """Open more datasets while the server runs: (new visible layer ids, error messages).
+
+        The new datasets are opened through a small catalog of their own, so the ones already
+        open are not touched.
+        """
+        sub = Catalog(
+            self.config.model_copy(
+                update={
+                    "datasets": datasets,
+                    "layers": {},
+                    "points": {},
+                    "vectors": {},
+                    "views": [],
+                }
+            )
+        )
+        failed = {d.id for d in sub.datasets.values() if d.status != "ok" and not d.hidden}
+
+        def keep(did: str) -> bool:  # failed datasets (and their mosaic members) are not kept
+            return not any(did == f or did.startswith(f + ".") for f in failed)
+
+        self.datasets.update({k: v for k, v in sub.datasets.items() if keep(k)})
+        layers = {k: v for k, v in sub.layers.items() if all(keep(s.dataset_id) for s in v.sources)}
+        self.layers.update(layers)
+        self.config.datasets.update({k: v for k, v in datasets.items() if keep(k)})
+        errors = [f"{f}: {sub.datasets[f].error}" for f in sorted(failed)]
+        return [lid for lid, lyr in layers.items() if not lyr.hidden], errors
+
     # ---------------------------------------------------------------- creation
     @classmethod
     def from_xarray(

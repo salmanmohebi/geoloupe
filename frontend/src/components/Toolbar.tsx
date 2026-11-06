@@ -9,6 +9,7 @@ import { unitLabel } from "../lib/format";
 import { timelineOf } from "../lib/timeline";
 import { useStore, validTime, type Basemap, type CompareMode } from "../state/store";
 import { niceTicks } from "./Colorbar";
+import { AddDataButton } from "./AddData";
 import { Icon } from "./Icon";
 
 function Menu({ label, children, active }: { label: string; children: React.ReactNode; active?: boolean }) {
@@ -184,6 +185,7 @@ export function Toolbar() {
 
   return (
     <div className="toolbar">
+      <AddDataButton />
       {!!catalog?.views?.length && (
         <button className="btn tool" onClick={() => useStore.getState().setGalleryOpen(true)}>
           Gallery

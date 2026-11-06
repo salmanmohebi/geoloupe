@@ -47,7 +47,7 @@ jobs:
           node-version: 24
       - run: uv sync
       - run: uv run terrascope demo-data demo --days 200
-      - run: uv run terrascope serve demo/demo.yaml --port 8765 &
+      - run: uv run terrascope serve demo/demo.yaml --port 8765 --open-root demo &
       - run: cd frontend && npm ci && npx playwright install --with-deps chromium && npm run build
       - run: until curl -sf http://127.0.0.1:8765/api/health; do sleep 2; done
       - run: cd frontend && node e2e/smoke.mjs http://127.0.0.1:8765 shots

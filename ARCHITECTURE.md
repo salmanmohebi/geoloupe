@@ -260,6 +260,13 @@ thread at start.
   default, or put it behind an authenticating proxy). CORS is open by default for read-only use and is
   configurable.
 
+### Opening data at run time
+
+`POST /api/datasets` ("Add data") is off unless the server allows remote URLs (`--allow-open`) or
+local folders (`--open-root`); local paths are resolved (symlinks, `..`) and must stay below a
+root. The new dataset is opened by a small catalog of its own and merged into the running one, so
+data already open is not touched; vector and point files go to their registries.
+
 ## 9. Extension points
 
 | To add … | Change |

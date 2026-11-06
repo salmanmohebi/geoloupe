@@ -197,6 +197,12 @@ class VectorRegistry:
         self.errors: dict[str, str] = {}
         self._locks = {vid: threading.Lock() for vid in config.vectors}
 
+    def add(self, vid: str, cfg: VectorConfig) -> VectorLayer:
+        """Add and load one overlay while the server runs (raises VectorError)."""
+        self.config.vectors[vid] = cfg
+        self._locks.setdefault(vid, threading.Lock())
+        return self.get(vid)
+
     def get(self, vid: str) -> VectorLayer:
         if vid not in self.config.vectors:
             raise KeyError(f"unknown vector layer {vid!r}")

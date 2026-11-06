@@ -61,6 +61,7 @@ Browser tests (need a running server and Playwright's Chromium):
 ```bash
 cd frontend && npx playwright install chromium
 node e2e/smoke.mjs http://127.0.0.1:8000 /tmp/shots     # demo data; fails on console errors or missing content
+                                                        # (start the server with --open-root demo to test "Add data")
 node e2e/gallery.mjs http://127.0.0.1:8000 /tmp/gallery # `terrascope gallery` (needs internet)
 ```
 

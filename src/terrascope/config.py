@@ -297,6 +297,10 @@ class Settings(_Model):
     # Upper bound on the GeoJSON size of one vector overlay.
     max_vector_mb: float = 60
     cors_origins: list[str] = Field(default_factory=lambda: ["*"])
+    # "Add data" from the browser (off by default): remote URLs (https, s3, gs) when allow_open,
+    # local files only below open_roots. Never expose such a server to untrusted users.
+    allow_open: bool = False
+    open_roots: list[str] = Field(default_factory=list)
 
 
 class ViewConfig(_Model):

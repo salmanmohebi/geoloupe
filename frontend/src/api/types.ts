@@ -42,6 +42,14 @@ export interface Catalog {
   points?: PointSourceInfo[];
   views?: FeaturedView[];
   vectors?: VectorInfo[];
+  allow_open?: boolean; // "Add data": remote URLs
+  open_roots?: string[]; // "Add data": local folders
+}
+
+export interface AddDataResult {
+  layers: string[];
+  vectors: string[];
+  errors: string[];
 }
 
 /** A vector overlay (regions, rivers, tracks, sites): GeoJSON from /api/vectors/{id}.geojson. */

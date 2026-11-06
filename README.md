@@ -44,6 +44,7 @@ No configuration is needed for a first look:
 uv run terrascope serve /path/to/data.zarr        # or .nc, .grib2, .tif, a URL
 uv run terrascope serve grid.zarr stations.csv     # several files; tables become point layers
 uv run terrascope serve grid.zarr regions.geojson  # vector files become overlays
+uv run terrascope serve config.yaml --allow-open --open-root ~/data   # "Add data" in the browser
 uv run terrascope info  /path/to/data.zarr        # what TerraScope sees: variables, grid, CRS, times
 ```
 
@@ -159,7 +160,9 @@ TerraScope 0.1 is a working first version (see [ROADMAP.md](ROADMAP.md)):
   long series slow (seconds per year of daily data).
 * Remote data is as fast as the network: the first view of a remote COG or Zarr store takes a few
   seconds; later reads use GDAL's and the server's caches.
-* No authentication or multi-user features; bind to localhost or use an authenticating proxy.
+* No authentication or multi-user features; bind to localhost or use an authenticating proxy. This
+  matters most with `--allow-open` / `--open-root`, which let any visitor make the server read URLs
+  or local files below the given folders.
 
 ## Development
 

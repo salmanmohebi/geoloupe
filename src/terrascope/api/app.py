@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import logging
 import mimetypes
+import re
 import threading
 import time as _time
 import zlib
@@ -35,10 +36,12 @@ from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
+from pydantic import BaseModel
 
 from terrascope import __version__
 from terrascope.catalog import Catalog, Layer
 from terrascope.colormaps import apply_classes, apply_colormap, colormap_table
+from terrascope.config import DatasetConfig, PointsConfig, VectorConfig
 from terrascope.engine import Selection, SelectionError, TileEngine
 from terrascope.points import PointRegistry, PointsError
 from terrascope.query import QueryError, export_subset, point, stats, timeseries, to_netcdf_bytes
@@ -191,6 +194,14 @@ def cached_stats(
     return dict(hit)
 
 
+class OpenRequest(BaseModel):
+    """Body of POST /api/datasets."""
+
+    path: str
+    name: str | None = None
+    engine: str = "auto"
+
+
 def create_app(catalog: Catalog, warm: bool = True) -> FastAPI:
     """The TerraScope web application for a catalog."""
     engine = TileEngine(catalog)
@@ -294,7 +305,7 @@ def create_app(catalog: Catalog, warm: bool = True) -> FastAPI:
                     or sorted({v for m in d.members for v in catalog.datasets[m].sources}),
                     "open_seconds": round(d.open_seconds, 3),
                 }
-                for d in catalog.datasets.values()
+                for d in list(catalog.datasets.values())
                 if not d.hidden
             ],
             "layers": [
@@ -307,7 +318,7 @@ def create_app(catalog: Catalog, warm: bool = True) -> FastAPI:
                     "has_time": bool(lyr.times),
                     "dims": list(lyr.dims),
                 }
-                for lyr in catalog.layers.values()
+                for lyr in list(catalog.layers.values())
                 if not lyr.hidden
             ]
             + [
@@ -334,9 +345,11 @@ def create_app(catalog: Catalog, warm: bool = True) -> FastAPI:
                     if pid in registry.sources
                     else [],
                 }
-                for pid, pcfg in catalog.config.points.items()
+                for pid, pcfg in list(catalog.config.points.items())
             ],
             "vectors": vectors.info(),
+            "allow_open": settings.allow_open,
+            "open_roots": settings.open_roots,
         }
 
     @app.get("/api/vectors/{vid}.geojson")
@@ -351,6 +364,86 @@ def create_app(catalog: Catalog, warm: bool = True) -> FastAPI:
                 "X-TerraScope-Count": str(layer.count),
             },
         )
+
+    open_lock = threading.Lock()
+
+    @app.post("/api/datasets")
+    def add_data(req: OpenRequest) -> dict[str, Any]:
+        """Open a file or URL while the server runs ("Add data" in the browser).
+
+        Off by default: remote URLs need `allow_open`, local files must lie below `open_roots`.
+        """
+        from terrascope.cli import config_for_paths
+
+        loc = req.path.strip()
+        if not loc:
+            raise HTTPException(400, "give a path or a URL")
+        remote = loc.startswith(("http://", "https://", "s3://", "gs://"))
+        if remote and not settings.allow_open:
+            raise HTTPException(403, "opening URLs is off: start the server with --allow-open")
+        if not remote:
+            roots = [Path(r).expanduser().resolve() for r in settings.open_roots]
+            if not roots:
+                raise HTTPException(
+                    403, "opening local files is off: start the server with --open-root DIR"
+                )
+            p = Path(loc).expanduser()
+            p = (p if p.is_absolute() else roots[0] / p).resolve()
+            if not any(p == r or p.is_relative_to(r) for r in roots):
+                raise HTTPException(
+                    403, f"local files must be inside {', '.join(str(r) for r in roots)}"
+                )
+            if not p.exists():
+                raise HTTPException(404, f"not found: {p}")
+            loc = str(p)
+        raw = config_for_paths([loc], req.engine)
+        out: dict[str, list[str]] = {"layers": [], "vectors": [], "errors": []}
+        with open_lock:
+            cfg = catalog.config
+            taken = set(cfg.datasets) | set(cfg.points) | set(cfg.vectors)
+
+            def fresh(name: str) -> str:
+                base = re.sub(r"[^A-Za-z0-9_-]+", "-", req.name or name).strip("-") or "data"
+                new, k = base, 2
+                while new in taken:
+                    new, k = f"{base}-{k}", k + 1
+                taken.add(new)
+                return new
+
+            try:
+                if raw["datasets"]:
+                    found = {
+                        fresh(k): DatasetConfig.model_validate(v)
+                        for k, v in raw["datasets"].items()
+                    }
+                    layers, errors = catalog.add_datasets(found)
+                    out["layers"] += layers
+                    out["errors"] += errors
+                for k, v in raw["points"].items():
+                    pid, pcfg = fresh(k), PointsConfig.model_validate(v)
+                    cfg.points[pid] = pcfg
+                    if registry.add(pid, pcfg, cfg, set(catalog.layers)):
+                        out["layers"] += [
+                            lid for lid, (src, _) in registry.layer_ids().items() if src == pid
+                        ]
+                    else:
+                        out["errors"].append(f"{pid}: {registry.errors.pop(pid)}")
+                        del cfg.points[pid]
+                for k, v in raw["vectors"].items():
+                    vid = fresh(k)
+                    try:
+                        vectors.add(vid, VectorConfig.model_validate(v))
+                        out["vectors"].append(vid)
+                    except VectorError as e:
+                        out["errors"].append(f"{vid}: {e}")
+                        cfg.vectors.pop(vid, None)
+                        vectors.errors.pop(vid, None)
+            except ValueError as e:  # an invalid option (e.g. engine)
+                raise HTTPException(400, str(e)) from None
+        if not out["layers"] and not out["vectors"]:
+            raise HTTPException(400, "; ".join(out["errors"]) or "nothing to show in this file")
+        log.info("opened %s: %s", loc, out)
+        return out
 
     @app.get("/api/colormaps")
     def colormaps() -> Response:

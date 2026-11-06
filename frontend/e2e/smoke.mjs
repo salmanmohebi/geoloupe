@@ -121,6 +121,39 @@ for (const step of scenario) {
   );
 }
 
+// "Add data" (only when the server allows it, e.g. --open-root demo): open a file from the browser
+const cat = await page.evaluate(() => window.fetch("api/catalog").then((r) => r.json()));
+if (cat.allow_open || cat.open_roots?.length) {
+  const t0 = Date.now();
+  const file = process.env.SMOKE_ADD_FILE ?? "global-plev-monthly.nc";
+  await page.goto(`${base}/#layer=tas&t=2021-07-15&c=10,30&z=1.4`, { waitUntil: "load" });
+  await settle();
+  await page.click("button.btn.tool:has-text('Add data')");
+  await page.fill(".add-data input", file);
+  await page.click(".add-data button[type=submit]");
+  const closed = await page
+    .waitForSelector(".add-data", { state: "detached", timeout: 60_000 })
+    .then(() => true)
+    .catch(() => false);
+  const errText = closed
+    ? null
+    : await page
+        .locator(".add-data-error")
+        .innerText()
+        .catch(() => "?");
+  await settle();
+  const hash = await page.evaluate(() => decodeURIComponent(window.location.hash));
+  const stem = file.split("/").pop().split(".")[0];
+  await page.screenshot({ path: `${out}/09-add-data.png` });
+  if (!closed || !hash.includes(`layer=${stem}`)) {
+    console.log(`✗ 09-add-data: ${errText ?? hash}`);
+    failed++;
+  } else
+    console.log(
+      `✓ 09-add-data (${((Date.now() - t0) / 1000).toFixed(1)} s): opened ${file} → ${hash.split("&")[0]}`,
+    );
+}
+
 await browser.close();
 if (errors.length) {
   console.error(`console errors:\n  ${[...new Set(errors)].join("\n  ")}`);

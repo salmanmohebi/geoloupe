@@ -1007,6 +1007,35 @@ button:focus-visible {
   }
 }
 
+.add-data {
+  width: min(560px, 100%);
+  background: var(--surface-solid);
+}
+.add-data-body {
+  display: grid;
+  gap: 10px;
+  padding: 4px 20px 12px;
+}
+.add-data-body label {
+  display: grid;
+  gap: 3px;
+}
+.add-data-body input {
+  font: inherit;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-2);
+  color: inherit;
+}
+.add-data-error {
+  padding: 6px 9px;
+  border-radius: 7px;
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 12px;
+}
+
 /* MapLibre controls follow the theme */
 .maplibregl-ctrl-group {
   background: var(--surface) !important;

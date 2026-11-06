@@ -93,6 +93,7 @@ export interface AppState {
   setPanelOpen: (o: boolean) => void;
   setGalleryOpen: (o: boolean) => void;
   setVectorsOn: (ids: string[]) => void;
+  refreshCatalog: () => Promise<void>;
   setSummary: (s: ViewSummary | null) => void;
   setLoading: (n: number) => void;
 }
@@ -366,6 +367,7 @@ export const useStore = create<AppState>((set, get) => ({
   setPanelOpen: (o) => set({ panelOpen: o }),
   setGalleryOpen: (o) => set({ galleryOpen: o }),
   setVectorsOn: (ids) => set({ vectorsOn: ids }),
+  refreshCatalog: async () => set({ catalog: await api.catalog() }),
   setSummary: (s) => {
     set({ summary: s });
     const { diffFitPending, compare } = get();
