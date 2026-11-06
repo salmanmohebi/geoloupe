@@ -1,0 +1,107 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "terrascope"
+version = "0.1.0"
+description = "Interactive, multi-resolution exploration of large scientific and geospatial datasets in the browser."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+authors = [{ name = "Salman Mohebi" }]
+keywords = ["xarray", "zarr", "netcdf", "climate", "geospatial", "visualization", "tiles", "maplibre"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Atmospheric Science",
+    "Topic :: Scientific/Engineering :: GIS",
+    "Topic :: Scientific/Engineering :: Visualization",
+]
+dependencies = [
+    "numpy>=1.26",
+    "pandas>=2.1",
+    "xarray>=2024.10",
+    "zarr>=3.0.8",
+    "h5netcdf>=1.3",
+    "h5py>=3.10",
+    "cftime>=1.6",
+    "scipy>=1.11",
+    "pyproj>=3.6",
+    "pyyaml>=6.0",
+    "pydantic>=2.6",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+]
+
+[project.optional-dependencies]
+# Multi-file NetCDF collections (xarray.open_mfdataset) need dask.
+dask = ["dask>=2024.8"]
+# Remote object storage (s3://, gs://, https://) through fsspec.
+remote = ["fsspec>=2024.6", "s3fs>=2024.6", "aiohttp>=3.9"]
+# GRIB through cfgrib (the eccodes wheel bundles the C library).
+grib = ["cfgrib>=0.9.14", "eccodes>=2.38", "eccodeslib>=2.38; platform_system != \"Windows\""]
+# GeoTIFF / Cloud-Optimized GeoTIFF through rioxarray (GDAL).
+geotiff = ["rioxarray>=0.17"]
+# Station / point observations from Parquet.
+stations = ["pyarrow>=16"]
+all = ["terrascope[dask,remote,grib,geotiff,stations]"]
+
+[project.scripts]
+terrascope = "terrascope.cli:main"
+
+[project.urls]
+Documentation = "https://github.com/terrascope/terrascope#readme"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.2",
+    "httpx>=0.27",
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "types-PyYAML>=6.0",
+    "pyarrow>=16",
+    "dask>=2024.8",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/terrascope"]
+# The built web client is shipped inside the package (src/terrascope/static).
+artifacts = ["src/terrascope/static/**"]
+
+[tool.hatch.build.targets.sdist]
+exclude = ["frontend/node_modules", "frontend/dist", "data"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+filterwarnings = [
+    # zarr v3 warns that some v2-era codecs are not in the v3 spec yet.
+    "ignore::zarr.errors.UnstableSpecificationWarning",
+    "ignore:Consolidated metadata is currently not part in the Zarr format 3 specification:UserWarning",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "NPY", "RUF"]
+# E501: `ruff format` wraps code; long user-facing strings and regexes stay readable.
+ignore = ["E501", "RUF001", "RUF002", "RUF003"]  # also allow unicode (°, ×, −) in text
+
+[tool.mypy]
+python_version = "3.11"
+packages = ["terrascope"]
+mypy_path = "src"
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+check_untyped_defs = true
+
+[tool.ruff.lint.per-file-ignores]
+# notebook-style scripts: a bare expression at the end of a cell displays it
+"examples/notebook_*.py" = ["B018", "E402"]

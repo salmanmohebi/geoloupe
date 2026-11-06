@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+
+# Web client (the built client in src/terrascope/static IS committed: the package ships it)
+frontend/node_modules
+frontend/dist
+frontend/test-results/
+frontend/playwright-report/
+
+# Data and outputs (regenerable)
+demo/
+samples/
+*.overviews.zarr/
+slurm_logs/
+*.out
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/

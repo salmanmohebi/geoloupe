@@ -1,0 +1,268 @@
+# The TerraScope gallery: open Earth data read live from public archives (nothing is downloaded
+# in advance, no account or key is needed).
+#
+#   terrascope gallery                 # serve it
+#   terrascope gallery --show-config   # print this file, to copy and change it
+#
+# Opening takes ~10 s (remote metadata); tiles take 0.3–1.5 s each over the internet.
+title: TerraScope gallery
+description: >-
+  Open Earth data, read live from public cloud archives: hourly weather since 1940 (ERA5),
+  Sentinel-2 satellite images, a 30 m elevation model, ESA WorldCover land cover and NOAA
+  weather stations. Nothing is copied in advance. Pick a view to start, or explore freely:
+  every map shows the values under the cursor, and a click gives the time series.
+
+datasets:
+  era5:
+    title: ERA5 hourly reanalysis, 0.25° (ARCO-ERA5)
+    description: ECMWF's global reanalysis of the atmosphere, land and ocean, hour by hour since 1940.
+    path: https://storage.googleapis.com/gcp-public-data-arco-era5/ar/full_37-1h-0p25deg-chunk-1.zarr-v3
+    variables:
+      - 2m_temperature
+      - total_precipitation
+      - total_column_water_vapour
+      - instantaneous_10m_wind_gust
+      - sea_surface_temperature
+      - geopotential_at_surface
+    # The store's time axis runs 1900–2050; data exists from 1940 to about one week ago.
+    time_range: ["1940-01-01", "2026-10-30"]
+    decode:
+      geopotential_at_surface: {scale: 0.10197162}  # geopotential / g = height (m)
+    styles:
+      geopotential_at_surface: {title: Surface height (ERA5 orography), units: m, colormap: terrain}
+    attribution: ERA5 © ECMWF / Copernicus Climate Change Service; ARCO-ERA5 by Google Research
+
+  dem:
+    title: Copernicus DEM GLO-30 (30 m), Western Alps
+    description: Surface elevation from the TanDEM-X mission; six 1° × 1° Cloud-Optimized GeoTIFFs.
+    mosaic:
+      - https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_N45_00_E006_00_DEM/Copernicus_DSM_COG_10_N45_00_E006_00_DEM.tif
+      - https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_N45_00_E007_00_DEM/Copernicus_DSM_COG_10_N45_00_E007_00_DEM.tif
+      - https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_N45_00_E008_00_DEM/Copernicus_DSM_COG_10_N45_00_E008_00_DEM.tif
+      - https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_N46_00_E006_00_DEM/Copernicus_DSM_COG_10_N46_00_E006_00_DEM.tif
+      - https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_N46_00_E007_00_DEM/Copernicus_DSM_COG_10_N46_00_E007_00_DEM.tif
+      - https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_N46_00_E008_00_DEM/Copernicus_DSM_COG_10_N46_00_E008_00_DEM.tif
+    variable_name: elevation
+    styles:
+      elevation: {units: m, colormap: terrain}
+    attribution: Copernicus DEM GLO-30 © DLR e.V. 2010–2014 and © Airbus Defence and Space GmbH 2014–2018, provided under COPERNICUS by the EU and ESA
+
+  landcover:
+    title: ESA WorldCover 2021 (10 m), 45–48° N, 6–9° E
+    description: Global land cover at 10 m from Sentinel-1 and Sentinel-2, eleven classes.
+    path: https://esa-worldcover.s3.eu-central-1.amazonaws.com/v200/2021/map/ESA_WorldCover_10m_2021_v200_N45E006_Map.tif
+    variable_name: landcover
+    styles:
+      landcover:
+        title: Land cover (ESA WorldCover 2021)
+        classes:  # colours come from the file's palette
+          10: {name: Tree cover}
+          20: {name: Shrubland}
+          30: {name: Grassland}
+          40: {name: Cropland}
+          50: {name: Built-up}
+          60: {name: Bare / sparse vegetation}
+          70: {name: Snow and ice}
+          80: {name: Permanent water bodies}
+          90: {name: Herbaceous wetland}
+          95: {name: Mangroves}
+          100: {name: Moss and lichen}
+    attribution: © ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by the ESA WorldCover consortium (CC BY 4.0)
+
+  # One Sentinel-2 L2A scene (tile 32TMR, 7 August 2023): Monte Rosa, Lake Orta and Lake Maggiore.
+  # Element84's files have the BOA offset applied already, so reflectance = DN × 0.0001.
+  s2-red:
+    title: Sentinel-2 B04 red (10 m), 2023-08-07
+    path: https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/32/T/MR/2023/8/S2A_32TMR_20230807_0_L2A/B04.tif
+    decode: {B04: {scale: 0.0001}}
+    styles: {B04: {colormap: gray, vmin: 0, vmax: 0.3, units: reflectance}}
+    attribution: Contains modified Copernicus Sentinel data 2023 (ESA); COGs by Element84
+  s2-nir:
+    title: Sentinel-2 B08 near infrared (10 m), 2023-08-07
+    path: https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/32/T/MR/2023/8/S2A_32TMR_20230807_0_L2A/B08.tif
+    decode: {B08: {scale: 0.0001}}
+    styles: {B08: {colormap: gray, vmin: 0, vmax: 0.5, units: reflectance}}
+    attribution: Contains modified Copernicus Sentinel data 2023 (ESA); COGs by Element84
+  s2-green:
+    title: Sentinel-2 B03 green (10 m), 2023-08-07
+    path: https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/32/T/MR/2023/8/S2A_32TMR_20230807_0_L2A/B03.tif
+    decode: {B03: {scale: 0.0001}}
+    styles: {B03: {colormap: gray, vmin: 0, vmax: 0.3, units: reflectance}}
+    attribution: Contains modified Copernicus Sentinel data 2023 (ESA); COGs by Element84
+  s2-tci:  # a 3-band image: TerraScope adds the true-colour layer "s2-tci:TCI:rgb" itself
+    title: Sentinel-2 true colour (10 m), 2023-08-07
+    path: https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/32/T/MR/2023/8/S2A_32TMR_20230807_0_L2A/TCI.tif
+    variable_name: TCI
+    styles: {TCI: {title: Sentinel-2 true colour}}
+    attribution: Contains modified Copernicus Sentinel data 2023 (ESA); COGs by Element84
+
+layers:
+  temperature:
+    title: Air temperature at 2 m
+    units: °C
+    colormap: RdYlBu_r
+    sources:
+      - {dataset: era5, variable: 2m_temperature, offset: -273.15}
+  precipitation:
+    title: Precipitation (hourly)
+    units: mm/h
+    colormap: YlGnBu
+    vmin: 0
+    vmax: 8
+    sources:
+      - {dataset: era5, variable: total_precipitation, scale: 1000}
+  water-vapour:
+    title: Water vapour in the air column
+    units: mm
+    colormap: dense
+    vmin: 0
+    vmax: 60
+    sources:
+      - {dataset: era5, variable: total_column_water_vapour}
+  wind-gust:
+    title: Wind gusts at 10 m
+    units: m/s
+    colormap: speed
+    vmin: 0
+    vmax: 40
+    sources:
+      - {dataset: era5, variable: instantaneous_10m_wind_gust}
+  sea-temperature:
+    title: Sea surface temperature
+    units: °C
+    colormap: thermal
+    vmin: -2
+    vmax: 32
+    sources:
+      - {dataset: era5, variable: sea_surface_temperature, offset: -273.15}
+  elevation:
+    title: Elevation (30 m in the Alps, 31 km elsewhere)
+    description: Copernicus DEM where it exists, ERA5's smooth model orography everywhere else.
+    units: m
+    colormap: terrain
+    vmin: 0
+    vmax: 4500
+    sources:
+      - {dataset: dem, variable: elevation}
+      - {dataset: era5, variable: geopotential_at_surface, time: "1940-01-01T00:00"}
+  false-colour:
+    title: Sentinel-2 false colour (vegetation in red)
+    rgb: true
+    gamma: 1.3
+    vmin: 0
+    vmax: 0.45
+    sources:
+      - {dataset: s2-nir, variable: B08}
+      - {dataset: s2-red, variable: B04}
+      - {dataset: s2-green, variable: B03}
+
+points:
+  ghcn:
+    title: GHCN-Daily weather stations (NOAA NCEI)
+    attribution: NOAA NCEI, Global Historical Climatology Network – Daily (Menne et al. 2012)
+    # One CSV per station from NCEI's "access" folder: Swiss stations and long records worldwide.
+    path:
+      - https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/SZ000001940.csv
+      - https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/SZ000002220.csv
+      - https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/SZ000003700.csv
+      - https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/SZ000006717.csv
+      - https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/SZ000008440.csv
+      - https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/SZ000009480.csv
+      - https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/SZE00105086.csv
+      - https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/SZE00116090.csv
+      - https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/GM000004204.csv
+      - https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/ITE00100554.csv
+      - https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/AU000005901.csv
+      - https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/NLM00006260.csv
+      - https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/UK000056225.csv
+      - https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/SP000003195.csv
+      - https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/IC000004030.csv
+      - https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/USW00094728.csv
+      - https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/BR00E3-0520.csv
+      - https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/IN022021900.csv
+      - https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/CHM00054511.csv
+      - https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/JA000047662.csv
+      - https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/ASN00066062.csv
+    variables:  # NCEI stores tenths of °C and tenths of mm; only these columns are read
+      TMAX: {scale: 0.1, units: °C}
+      TMIN: {scale: 0.1, units: °C}
+      PRCP: {scale: 0.1, units: mm}
+
+views:
+  - title: The whole planet, one hour
+    description: Air temperature on 15 January 2024 at 12 UTC. Drag the globe; the time bar steps hour by hour back to 1940.
+    layer: temperature
+    time: "2024-01-15T12:00"
+    center: [10, 25]
+    zoom: 1.4
+    globe: true
+    vmin: -45
+    vmax: 40
+  - title: Europe's heatwave, July 2023
+    description: Afternoon temperatures above 40 °C in Sardinia, Sicily and Greece on 18 July 2023.
+    layer: temperature
+    time: "2023-07-18T14:00"
+    center: [14, 42]
+    zoom: 3.6
+    vmin: 5
+    vmax: 45
+  - title: Hurricane Ian reaches Florida
+    description: Wind gusts on 28 September 2022 at 18 UTC, as the storm makes landfall.
+    layer: wind-gust
+    time: "2022-09-28T18:00"
+    center: [-82, 26.5]
+    zoom: 4.8
+    vmin: 0
+    vmax: 50
+    basemap: dark
+  - title: Atmospheric rivers over the Pacific
+    description: Long bands of water vapour that brought floods to California on 9 January 2023.
+    layer: water-vapour
+    time: "2023-01-09T12:00"
+    center: [-145, 33]
+    zoom: 2.7
+  - title: The Gulf Stream
+    description: Warm water along the US coast and across the Atlantic, 15 August 2023.
+    layer: sea-temperature
+    time: "2023-08-15T12:00"
+    center: [-58, 38]
+    zoom: 3.4
+    vmin: 5
+    vmax: 31
+  - title: Storm Ciarán reaches Europe
+    description: The rain bands of a deep Atlantic cyclone wind around its centre, 2 November 2023 at 00 UTC.
+    layer: precipitation
+    time: "2023-11-02T00:00"
+    center: [-5, 48.5]
+    zoom: 4.4
+    vmin: 0
+    vmax: 3
+  - title: From 31 km to 30 m
+    description: The Matterhorn in the Copernicus DEM. Zoom out to see ERA5's coarse orography take over outside the Alps.
+    layer: elevation
+    center: [7.66, 45.98]
+    zoom: 10.5
+    vmin: 1000
+    vmax: 4500
+  - title: Monte Rosa to Lake Maggiore
+    description: A Sentinel-2 image in real colour (10 m), 7 August 2023, from the glaciers of Monte Rosa to the Italian lakes.
+    layer: s2-tci:TCI:rgb
+    center: [8.2, 45.84]
+    zoom: 9.4
+  - title: True vs false colour
+    description: The same scene with near infrared as red (healthy vegetation is bright red). Drag the divider.
+    layer: s2-tci:TCI:rgb
+    compare: false-colour
+    center: [8.46, 45.86]
+    zoom: 10.6
+  - title: Land cover around Lake Geneva
+    description: ESA WorldCover classes at 10 m; hover for the class name, the legend shows each class's share.
+    layer: landcover:landcover
+    center: [6.6, 46.42]
+    zoom: 10
+  - title: Weather stations since 1763
+    description: Daily maximum temperature on 18 July 2023 at long-running NOAA GHCN stations. Click one for its whole record; Milan's starts in 1763.
+    layer: ghcn:TMAX
+    time: "2023-07-18"
+    center: [6, 49]
+    zoom: 3.7
