@@ -1,0 +1,15 @@
+name: Feature or data support request
+description: A new feature, file format, grid type or dataset to support
+labels: [enhancement]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What do you want to do, and why?
+      description: Describe the research task. A public example dataset helps a lot.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Ideas for how it could work (optional)

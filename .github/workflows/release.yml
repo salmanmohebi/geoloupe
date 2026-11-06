@@ -1,0 +1,78 @@
+name: Release
+# Push a tag "vX.Y.Z" (equal to __version__ in src/geoloupe/__init__.py) to publish that version on
+# PyPI and create a GitHub release. PyPI accepts the upload through "trusted publishing" (OpenID
+# Connect): no password or token is stored anywhere. See RELEASING.md for the one-time setup.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch: # build and check only (no upload): a dry run
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: The tag equals the package version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          v=$(sed -n 's/^__version__ = "\(.*\)"/\1/p' src/geoloupe/__init__.py)
+          if [ "v$v" != "$GITHUB_REF_NAME" ]; then
+            echo "tag $GITHUB_REF_NAME does not match __version__ $v"; exit 1
+          fi
+      - name: Build the web client from this commit (shipped inside the wheel)
+        run: cd frontend && npm ci && npm run build
+      - run: uv build
+      - run: uvx twine check dist/*
+      - name: Smoke test the wheel in a clean environment
+        run: |
+          uv venv /tmp/wheel-test
+          uv pip install --python /tmp/wheel-test/bin/python dist/*.whl
+          /tmp/wheel-test/bin/geoloupe --version
+          /tmp/wheel-test/bin/geoloupe gallery --show-config > /dev/null
+          cd /tmp && /tmp/wheel-test/bin/geoloupe demo-data demo --days 20
+          (/tmp/wheel-test/bin/geoloupe serve demo/demo.yaml --port 8799 &)
+          timeout 120 bash -c 'until curl -sf http://127.0.0.1:8799/api/health; do sleep 2; done'
+          curl -sf http://127.0.0.1:8799/ > /dev/null
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/geoloupe/
+    permissions:
+      id-token: write # trusted publishing
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  github-release:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Create the GitHub release with the built files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY"
+          --title "GeoLoupe ${GITHUB_REF_NAME#v}" --generate-notes

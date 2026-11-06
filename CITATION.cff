@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use GeoLoupe in your research, please cite it as below."
+title: "GeoLoupe: interactive, multi-resolution exploration of large geodata in the browser"
+type: software
+authors:
+  - family-names: Mohebi
+    given-names: Salman
+license: Apache-2.0
+repository-code: "https://github.com/salmanmohebi/geoloupe"
+keywords:
+  - xarray
+  - zarr
+  - climate data
+  - geospatial
+  - visualization
+  - web map
+version: 0.1.0
+date-released: "2026-11-06"

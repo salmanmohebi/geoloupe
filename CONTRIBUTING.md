@@ -67,7 +67,12 @@ node e2e/gallery.mjs http://127.0.0.1:8000 /tmp/gallery # `geoloupe gallery` (ne
 
 > **HPC / shared machines:** keep environments and caches out of the home directory. Point
 > `UV_PROJECT_ENVIRONMENT` (or a `.venv` symlink), `UV_CACHE_DIR`, `npm_config_cache` and
-> `PLAYWRIGHT_BROWSERS_PATH` to a project store, and link `frontend/node_modules` there too.
+> `PLAYWRIGHT_BROWSERS_PATH` to a project store, and link `frontend/node_modules` there too. The
+> target folder must itself be called `node_modules` (Node finds packages by that name from the real
+> path), e.g. `ln -s <store>/geoloupe-frontend/node_modules frontend/node_modules`. Never run
+> `npm ci` in `frontend/` (even with `--dry-run`): it deletes the link and installs into the home
+> directory. Install in the store folder instead:
+> `cp frontend/package*.json <store>/geoloupe-frontend/ && (cd <store>/geoloupe-frontend && npm ci)`.
 
 ### Run the CI before you push
 

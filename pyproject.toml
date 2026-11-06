@@ -1,12 +1,11 @@
 [build-system]
-requires = ["hatchling>=1.25"]
+requires = ["hatchling>=1.25", "hatch-fancy-pypi-readme>=24.1"]
 build-backend = "hatchling.build"
 
 [project]
 name = "geoloupe"
-version = "0.1.0"
+dynamic = ["version", "readme"]  # version: src/geoloupe/__init__.py; readme: see below
 description = "Interactive, multi-resolution exploration of large scientific and geospatial datasets in the browser."
-readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 requires-python = ">=3.11"
@@ -14,8 +13,14 @@ authors = [{ name = "Salman Mohebi" }]
 keywords = ["xarray", "zarr", "netcdf", "climate", "geospatial", "visualization", "tiles", "maplibre"]
 classifiers = [
     "Development Status :: 3 - Alpha",
+    "Framework :: FastAPI",
     "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: JavaScript",
     "Topic :: Scientific/Engineering :: Atmospheric Science",
     "Topic :: Scientific/Engineering :: GIS",
     "Topic :: Scientific/Engineering :: Visualization",
@@ -70,13 +75,32 @@ dev = [
     "dask>=2024.8",
 ]
 
+[tool.hatch.version]
+path = "src/geoloupe/__init__.py"
+
+# The README for PyPI: relative links and images become absolute GitHub URLs (PyPI cannot
+# resolve relative paths); GitHub keeps the plain relative links.
+[tool.hatch.metadata.hooks.fancy-pypi-readme]
+content-type = "text/markdown"
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.fragments]]
+path = "README.md"
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = '!\[([^\]]*)\]\((?!https?://)([^)]+)\)'
+replacement = '![\1](https://raw.githubusercontent.com/salmanmohebi/geoloupe/main/\2)'
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = '\]\((?!https?://|#)([^)]+)\)'
+replacement = '](https://github.com/salmanmohebi/geoloupe/blob/main/\1)'
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/geoloupe"]
 # The built web client is shipped inside the package (src/geoloupe/static).
 artifacts = ["src/geoloupe/static/**"]
 
 [tool.hatch.build.targets.sdist]
-exclude = ["frontend/node_modules", "frontend/dist", "data"]
+exclude = ["frontend/node_modules", "frontend/dist", "data", "demo", "docs/images"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

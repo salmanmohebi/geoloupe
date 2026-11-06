@@ -804,7 +804,6 @@ wheels = [
 
 [[package]]
 name = "geoloupe"
-version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "cftime" },
@@ -881,33 +880,43 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "aiohttp", marker = "extra == 'all'", specifier = ">=3.9" },
     { name = "aiohttp", marker = "extra == 'remote'", specifier = ">=3.9" },
+    { name = "cfgrib", marker = "extra == 'all'", specifier = ">=0.9.14" },
     { name = "cfgrib", marker = "extra == 'grib'", specifier = ">=0.9.14" },
     { name = "cftime", specifier = ">=1.6" },
+    { name = "dask", marker = "extra == 'all'", specifier = ">=2024.8" },
     { name = "dask", marker = "extra == 'dask'", specifier = ">=2024.8" },
+    { name = "eccodes", marker = "extra == 'all'", specifier = ">=2.38" },
     { name = "eccodes", marker = "extra == 'grib'", specifier = ">=2.38" },
+    { name = "eccodeslib", marker = "sys_platform != 'win32' and extra == 'all'", specifier = ">=2.38" },
     { name = "eccodeslib", marker = "sys_platform != 'win32' and extra == 'grib'", specifier = ">=2.38" },
     { name = "fastapi", specifier = ">=0.115" },
+    { name = "fsspec", marker = "extra == 'all'", specifier = ">=2024.6" },
     { name = "fsspec", marker = "extra == 'remote'", specifier = ">=2024.6" },
-    { name = "geoloupe", extras = ["dask", "remote", "grib", "geotiff", "stations", "vector"], marker = "extra == 'all'" },
     { name = "h5netcdf", specifier = ">=1.3" },
     { name = "h5py", specifier = ">=3.10" },
     { name = "numpy", specifier = ">=1.26" },
     { name = "pandas", specifier = ">=2.1" },
+    { name = "pyarrow", marker = "extra == 'all'", specifier = ">=16" },
     { name = "pyarrow", marker = "extra == 'stations'", specifier = ">=16" },
     { name = "pydantic", specifier = ">=2.6" },
+    { name = "pyogrio", marker = "extra == 'all'", specifier = ">=0.10" },
     { name = "pyogrio", marker = "extra == 'vector'", specifier = ">=0.10" },
     { name = "pyproj", specifier = ">=3.6" },
     { name = "pyyaml", specifier = ">=6.0" },
+    { name = "rioxarray", marker = "extra == 'all'", specifier = ">=0.17" },
     { name = "rioxarray", marker = "extra == 'geotiff'", specifier = ">=0.17" },
+    { name = "s3fs", marker = "extra == 'all'", specifier = ">=2024.6" },
     { name = "s3fs", marker = "extra == 'remote'", specifier = ">=2024.6" },
     { name = "scipy", specifier = ">=1.11" },
+    { name = "shapely", marker = "extra == 'all'", specifier = ">=2.0" },
     { name = "shapely", marker = "extra == 'vector'", specifier = ">=2.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.30" },
     { name = "xarray", specifier = ">=2024.10" },
     { name = "zarr", specifier = ">=3.0.8" },
 ]
-provides-extras = ["dask", "remote", "grib", "geotiff", "stations", "vector", "all"]
+provides-extras = ["all", "dask", "geotiff", "grib", "remote", "stations", "vector"]
 
 [package.metadata.requires-dev]
 dev = [

@@ -1,5 +1,10 @@
 # GeoLoupe
 
+[![CI](https://github.com/salmanmohebi/geoloupe/actions/workflows/ci.yml/badge.svg)](https://github.com/salmanmohebi/geoloupe/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/geoloupe)](https://pypi.org/project/geoloupe/)
+[![Python](https://img.shields.io/pypi/pyversions/geoloupe)](https://pypi.org/project/geoloupe/)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+
 **Explore large scientific and geospatial datasets on an interactive map: from the whole planet down
 to 10 m, through time, with the values one click away.**
 
@@ -9,15 +14,25 @@ NetCDF, GRIB, GeoTIFF/COG, CSV, Parquet; local or in public cloud buckets) and r
 screen can show. Datasets of different resolution become one seamless layer: zoomed out, you see the
 coarse global field; zoom in, and the fine data takes over where it exists.
 
-![The GeoLoupe gallery: featured views of open data, each a shareable link](docs/images/gallery.jpg)
+![A tour of GeoLoupe: the gallery, ERA5 hour by hour with a region hover, a zoom from 31 km to 30 m, Sentinel-2 true vs false colour, and 165 years of ocean warming in a climate model](docs/images/geoloupe-tour.gif)
+
+## Install
+
+```bash
+pip install "geoloupe[all]"      # Python ≥ 3.11; or: uv tool install "geoloupe[all]"
+```
+
+`geoloupe` alone installs the core (Zarr, NetCDF); the extras add readers: `remote` (S3, GCS,
+HTTPS), `geotiff` (COG), `grib`, `stations` (Parquet), `vector` (GeoJSON, Shapefile, …), `dask`
+(many NetCDF files as one). `all` installs them all.
 
 ## Try it: the gallery of open data
 
 ```bash
-git clone https://github.com/salmanmohebi/geoloupe.git && cd geoloupe
-uv sync                          # or: pip install -e .
-uv run geoloupe gallery        # → http://localhost:8000
+geoloupe gallery                 # → http://localhost:8000
 ```
+
+![The GeoLoupe gallery: featured views of open data, each a shareable link](docs/images/gallery.jpg)
 
 The gallery needs an internet connection and nothing else: no download in advance, no account, no
 key. The server starts in 10–30 s (it reads the remote metadata), and a map tile takes 0.3–1.5 s over
@@ -166,11 +181,26 @@ GeoLoupe 0.1 is a working first version (see [ROADMAP.md](ROADMAP.md)):
   matters most with `--allow-open` / `--open-root`, which let any visitor make the server read URLs
   or local files below the given folders.
 
-## Development
+## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). In short: `uv sync --all-extras`, `uv run pytest`,
-`cd frontend && npm ci && npm run dev` (with the API on port 8000), `npm run build` to update the
-bundled client.
+Contributions are welcome: bug reports, data that does not open, ideas, code and docs. Start with
+[CONTRIBUTING.md](CONTRIBUTING.md) (development setup, tests, conventions) and the open items in
+[ROADMAP.md](ROADMAP.md). In short:
+
+```bash
+git clone https://github.com/salmanmohebi/geoloupe.git && cd geoloupe
+uv sync --all-extras && uv run pytest              # Python
+cd frontend && npm ci && npm test && npm run dev   # web client (with the API on port 8000)
+scripts/ci_local.sh                                # all CI checks on a fresh clone, before a PR
+```
+
+Please report security problems privately ([SECURITY.md](SECURITY.md)). Everyone taking part follows
+the [code of conduct](CODE_OF_CONDUCT.md). Changes are listed in [CHANGELOG.md](CHANGELOG.md).
+
+## Citing
+
+If GeoLoupe helps your research, please cite it ([CITATION.cff](CITATION.cff); GitHub's "Cite this
+repository" button gives BibTeX and APA).
 
 ## License and data credits
 
