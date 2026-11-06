@@ -135,6 +135,14 @@ draw (layer, time, dims, colour scale, optional subtrahend); every change makes 
 MapLibre source, added on top of the old one, which is removed only after the new tiles have loaded.
 That double buffering keeps time animation and colour changes free of flicker.
 
+### Mosaics and STAC
+
+A `mosaic:` (a list of files) or a `stac:` search is expanded when the catalog opens into hidden
+member datasets, one per file, opened in parallel. Each variable becomes one composite layer over the
+members, in order, so the first file with data at a pixel wins (for STAC: the best item by
+`sortby`). RGB layers record the channel of each source; the engine composites each channel over its
+sources the same way, so true colour works across many scenes.
+
 ### Vector overlays
 
 `vectors:` files are read once per server (pyogrio/GDAL, or pyarrow for GeoParquet), reprojected to

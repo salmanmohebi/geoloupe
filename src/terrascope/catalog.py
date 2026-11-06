@@ -26,7 +26,16 @@ from typing import Any
 import numpy as np
 import xarray as xr
 
-from terrascope.config import Config, DatasetConfig, LayerConfig, SourceRef, Style, config_from_dict
+from terrascope import stac
+from terrascope.config import (
+    Config,
+    DatasetConfig,
+    Decode,
+    LayerConfig,
+    SourceRef,
+    Style,
+    config_from_dict,
+)
 from terrascope.grid import Grid, GridError, find_spatial_dims
 from terrascope.readers import (
     OpenError,
@@ -170,6 +179,14 @@ class Layer:
     dims: dict[str, list[Any]] = field(default_factory=dict)
     gamma: float = 1.0
     hidden: bool = False  # not listed (member of a mosaic), but reachable by id
+    # RGB layers: the channel (0 red, 1 green, 2 blue) of each source; None = sources 0, 1, 2.
+    # Several sources per channel (mosaics) are composited per channel, the first value wins.
+    channels: list[int] | None = None
+
+    def channel_heads(self) -> list[Source]:
+        """The first source of each RGB channel."""
+        chans = self.channels or list(range(len(self.sources)))
+        return [self.sources[chans.index(c)] for c in range(3)]
 
     @property
     def units(self) -> str | None:
@@ -212,18 +229,49 @@ class Catalog:
         self.datasets: dict[str, DatasetEntry] = {}
         self.layers: dict[str, Layer] = {}
         in_memory = datasets or {}
-        # Mosaics become hidden member datasets (one per file) plus one layer per variable.
+        # Mosaics and STAC datasets become hidden member datasets (one per file) plus one layer
+        # per variable.
         jobs: dict[str, DatasetConfig] = {}
+        members_of: dict[str, list[str]] = {}
+        failed: dict[str, str] = {}
         for did, dcfg in config.datasets.items():
-            if dcfg.mosaic is None:
+            if dcfg.stac is not None:
+                members_of[did] = []
+                scfg = dcfg.stac
+                try:
+                    assets = with_retries(lambda: stac.resolve(scfg), True, did)  # noqa: B023
+                except (stac.StacError, OSError) as e:
+                    failed[did] = str(e)
+                    log.error("dataset %r: %s", did, e)
+                    continue
+                for k, a in enumerate(assets):
+                    decode = dict(dcfg.decode)
+                    if a.key not in decode and (a.scale, a.offset) != (1.0, 0.0):
+                        decode[a.key] = Decode(scale=a.scale, offset=a.offset)
+                    jobs[f"{did}.{k}"] = dcfg.model_copy(
+                        update={
+                            "stac": None,
+                            "path": a.href,
+                            "variable_name": a.key,
+                            "decode": decode,
+                        }
+                    )
+                    members_of[did].append(f"{did}.{k}")
+            elif dcfg.mosaic is not None:
+                members_of[did] = []
+                for k, loc in enumerate(dcfg.mosaic):
+                    jobs[f"{did}.{k}"] = dcfg.model_copy(
+                        update={
+                            "mosaic": None,
+                            "path": loc,
+                            "variable_name": dcfg.variable_name or did,
+                        }
+                    )
+                    members_of[did].append(f"{did}.{k}")
+            else:
                 jobs[did] = dcfg
-                continue
-            for k, loc in enumerate(dcfg.mosaic):
-                jobs[f"{did}.{k}"] = dcfg.model_copy(
-                    update={"mosaic": None, "path": loc, "variable_name": dcfg.variable_name or did}
-                )
-        # Open in parallel: remote files take a round trip or two each.
-        with ThreadPoolExecutor(max_workers=8) as pool:
+        # Open in parallel: remote files take a round trip or two each (I/O bound).
+        with ThreadPoolExecutor(max_workers=16) as pool:
             entries = dict(
                 zip(
                     jobs,
@@ -235,22 +283,26 @@ class Catalog:
                 )
             )
         for did, dcfg in config.datasets.items():
-            if dcfg.mosaic is None:
+            if did not in members_of:
                 self.datasets[did] = entries[did]
                 continue
-            members = [f"{did}.{k}" for k in range(len(dcfg.mosaic))]
+            members = members_of[did]
             for m in members:
                 entries[m].hidden = True
                 self.datasets[m] = entries[m]
             ok = [entries[m] for m in members if entries[m].status == "ok"]
             parent = DatasetEntry(did, dcfg, members=members)
             parent.status = "ok" if ok else "error"
-            parent.error = None if ok else "; ".join(f"{m}: {entries[m].error}" for m in members)
+            parent.error = (
+                None
+                if ok
+                else failed.get(did) or "; ".join(f"{m}: {entries[m].error}" for m in members)
+            )
             parent.open_seconds = max((entries[m].open_seconds for m in members), default=0.0)
-            failed = len(members) - len(ok)
-            if failed and ok:
+            n_bad = len(members) - len(ok)
+            if n_bad and ok:
                 log.warning(
-                    "mosaic %r: %d of %d files could not be opened", did, failed, len(members)
+                    "mosaic %r: %d of %d files could not be opened", did, n_bad, len(members)
                 )
             self.datasets[did] = parent
         self._build_layers()
@@ -511,6 +563,19 @@ class Catalog:
                         style,
                         "composite",
                     )
+                    rgb = _auto_rgb_bands(tiles[0])
+                    if rgb:  # mosaics of 3-band images (e.g. STAC "visual") in true colour
+                        chans = [replace(t, fixed_dims=(("band", b),)) for b in rgb for t in tiles]
+                        lyr = self._make_layer(
+                            f"{did}:{var}:rgb",
+                            f"{entry.title} ({var}, RGB)",
+                            f"mosaic of {len(tiles)} files, bands {', '.join(rgb)} as red, green, blue",
+                            chans,
+                            style,
+                            "rgb",
+                        )
+                        lyr.channels = [c for c in range(3) for _ in tiles]
+                        self.layers[lyr.id] = lyr
                 continue
             for var, src in entry.sources.items():
                 lid = f"{did}:{var}"
@@ -530,10 +595,12 @@ class Catalog:
                         src.style,
                         "rgb",
                     )
+                    self.layers[f"{lid}:rgb"].hidden = entry.hidden
         for lid, lcfg in self.config.layers.items():
             srcs: list[Source] = []
+            channels: list[int] = []
             problems: list[str] = []
-            for ref in lcfg.sources:
+            for c, ref in enumerate(lcfg.sources):
                 entry = self.datasets[ref.dataset]
                 # a mosaic stands for all its member files
                 found = [
@@ -547,11 +614,12 @@ class Catalog:
                     problems.append(f"{ref.dataset!r} has no gridded variable {ref.variable!r}")
                 else:
                     srcs += [src.with_ref(ref) for src in found]
+                    channels += [c] * len(found)
             if problems:
                 log.error("layer %r: %s", lid, "; ".join(problems))
             if not srcs:
                 continue
-            if lcfg.rgb and len(srcs) != 3:
+            if lcfg.rgb and len(set(channels)) != 3:
                 continue  # a channel failed to open (reported above)
             if lcfg.priority == "resolution" and not lcfg.rgb:
                 srcs.sort(key=lambda s: s.native.grid.cell_size_m())
@@ -565,6 +633,8 @@ class Catalog:
                 "rgb" if lcfg.rgb else "composite",
             )
             self.layers[lid].gamma = lcfg.gamma
+            if lcfg.rgb:
+                self.layers[lid].channels = channels
 
     @staticmethod
     def _make_layer(

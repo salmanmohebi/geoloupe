@@ -134,7 +134,7 @@ def layer_json(
             for v, c in sorted((layer.sources[0].classes or {}).items())
         ]
         or None,
-        "bands": [dict(s.fixed_dims).get("band") for s in layer.sources]
+        "bands": [str(dict(s.fixed_dims).get("band") or s.variable) for s in layer.channel_heads()]
         if layer.kind == "rgb"
         else None,
         "bounds": list(layer.bounds),

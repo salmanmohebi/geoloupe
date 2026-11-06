@@ -15,6 +15,7 @@ src/terrascope/           Python package
   query.py                point values, time series, statistics, export
   points.py               point observations (stations) from Parquet/CSV/NetCDF
   vectors.py              vector overlays (GeoJSON, Shapefile, GeoPackage, GeoParquet, …)
+  stac.py                 STAC searches and items → files of mosaic datasets
   gallery.yaml            the gallery of open public data (`terrascope gallery`)
   overviews.py            overview pyramid builder
   colormaps.py/.json      lookup tables shared with the web client

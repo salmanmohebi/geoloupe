@@ -38,7 +38,13 @@ function SourceList({ layer }: { layer: LayerMeta }) {
         );
         const hidden = summary?.skipped.find((k) => idx.includes(k.source));
         const overviews = s.levels.filter((l) => l.origin !== "native").length;
-        const parts = layer.kind === "rgb" ? "bands" : "files";
+        const parts =
+          layer.kind === "rgb" && idx.length > 3 && idx.length % 3 === 0
+            ? `files × 3 bands`
+            : layer.kind === "rgb"
+              ? "bands"
+              : "files";
+        const count = parts === "files × 3 bands" ? idx.length / 3 : idx.length;
         return (
           <li key={s.id}>
             <div className="src-head">
@@ -49,7 +55,7 @@ function SourceList({ layer }: { layer: LayerMeta }) {
               {frac > 0 && <span className="pill">{Math.round(frac * 100)}% of view</span>}
             </div>
             <div className="muted small">
-              {idx.length > 1 ? `${idx.length} ${parts}` : s.variable} · {s.resolution} · {s.crs}
+              {idx.length > 1 ? `${count} ${parts}` : s.variable} · {s.resolution} · {s.crs}
               {s.fixed_time
                 ? ` · fixed time ${s.fixed_time}`
                 : s.time_range

@@ -480,25 +480,30 @@ class TileEngine:
         return result
 
     def _render_rgb(self, layer: Layer, tile: Tile, sel: Selection) -> TileResult:
-        bands: list[np.ndarray] = []
-        result = TileResult(
-            np.full((tile.size, tile.size), np.nan, np.float32),
-            np.full((tile.size, tile.size), 255, np.uint8),
-        )
+        """Three value planes. A channel may have several sources (a mosaic): per pixel, the
+        first source with a value wins, as in composite layers."""
+        shape = (tile.size, tile.size)
+        bands = [np.full(shape, np.nan, np.float32) for _ in range(3)]
+        result = TileResult(np.full(shape, np.nan, np.float32), np.full(shape, 255, np.uint8))
+        chans = layer.channels or list(range(len(layer.sources)))
         for k, src in enumerate(layer.sources):
+            band = bands[chans[k]]
+            missing = ~np.isfinite(band)
+            if not missing.any():
+                continue  # this channel is full: later sources are hidden anyway
             vals, lvl, reason = self.sample(src, tile, sel)
             if vals is None:
                 if reason != "outside":
                     result.skipped.append((k, reason or "unknown"))
-                vals = np.full((tile.size, tile.size), np.nan, np.float32)
-            else:
-                result.contributions.append(Contribution(k, lvl, int(np.isfinite(vals).sum())))
-            bands.append(vals)
+                continue
+            fill = missing & np.isfinite(vals)
+            band[fill] = vals[fill]
+            if chans[k] == 0:
+                result.source_map[fill] = min(k, 254)
+            if fill.any():
+                result.contributions.append(Contribution(k, lvl, int(fill.sum())))
         result.bands = bands
         result.data = bands[0]
-        result.source_map[np.isfinite(bands[0])] = 0
-        if not any(c.pixels for c in result.contributions):
-            result.contributions = []
         return result
 
     def tile_bytes(

@@ -69,32 +69,25 @@ datasets:
           100: {name: Moss and lichen}
     attribution: © ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by the ESA WorldCover consortium (CC BY 4.0)
 
-  # One Sentinel-2 L2A scene (tile 32TMR, 7 August 2023): Monte Rosa, Lake Orta and Lake Maggiore.
-  # Element84's files have the BOA offset applied already, so reflectance = DN × 0.0001.
-  s2-red:
-    title: Sentinel-2 B04 red (10 m), 2023-08-07
-    path: https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/32/T/MR/2023/8/S2A_32TMR_20230807_0_L2A/B04.tif
-    decode: {B04: {scale: 0.0001}}
-    styles: {B04: {colormap: gray, vmin: 0, vmax: 0.3, units: reflectance}}
-    attribution: Contains modified Copernicus Sentinel data 2023 (ESA); COGs by Element84
-  s2-nir:
-    title: Sentinel-2 B08 near infrared (10 m), 2023-08-07
-    path: https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/32/T/MR/2023/8/S2A_32TMR_20230807_0_L2A/B08.tif
-    decode: {B08: {scale: 0.0001}}
-    styles: {B08: {colormap: gray, vmin: 0, vmax: 0.5, units: reflectance}}
-    attribution: Contains modified Copernicus Sentinel data 2023 (ESA); COGs by Element84
-  s2-green:
-    title: Sentinel-2 B03 green (10 m), 2023-08-07
-    path: https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/32/T/MR/2023/8/S2A_32TMR_20230807_0_L2A/B03.tif
-    decode: {B03: {scale: 0.0001}}
-    styles: {B03: {colormap: gray, vmin: 0, vmax: 0.3, units: reflectance}}
-    attribution: Contains modified Copernicus Sentinel data 2023 (ESA); COGs by Element84
-  s2-tci:  # a 3-band image: TerraScope adds the true-colour layer "s2-tci:TCI:rgb" itself
-    title: Sentinel-2 true colour (10 m), 2023-08-07
-    path: https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/32/T/MR/2023/8/S2A_32TMR_20230807_0_L2A/TCI.tif
-    variable_name: TCI
-    styles: {TCI: {title: Sentinel-2 true colour}}
-    attribution: Contains modified Copernicus Sentinel data 2023 (ESA); COGs by Element84
+  # Sentinel-2 L2A found with a STAC search of Element84's Earth Search: the 10 least cloudy
+  # scenes of August 2023 over the Western Alps, one mosaic per band. Element84's files have the
+  # BOA offset applied already; TerraScope reads that from the items (reflectance = DN × 0.0001).
+  s2:
+    title: Sentinel-2 L2A, Western Alps, August 2023
+    description: The least cloudy scenes of the month, found with a STAC search and shown as one mosaic.
+    stac:
+      url: https://earth-search.aws.element84.com/v1
+      collections: [sentinel-2-l2a]
+      bbox: [6.8, 45.6, 8.8, 46.6]
+      datetime: 2023-08-01/2023-08-31
+      query: {"eo:cloud_cover": {"lt": 5}}
+      limit: 10
+      assets: [visual, red, green, nir]
+    styles:
+      red: {colormap: gray, vmin: 0, vmax: 0.3, units: reflectance}
+      green: {colormap: gray, vmin: 0, vmax: 0.3, units: reflectance}
+      nir: {colormap: gray, vmin: 0, vmax: 0.5, units: reflectance}
+    attribution: Contains modified Copernicus Sentinel data 2023 (ESA); COGs and STAC API by Element84
 
 layers:
   temperature:
@@ -152,9 +145,9 @@ layers:
     vmin: 0
     vmax: 0.45
     sources:
-      - {dataset: s2-nir, variable: B08}
-      - {dataset: s2-red, variable: B04}
-      - {dataset: s2-green, variable: B03}
+      - {dataset: s2, variable: nir}
+      - {dataset: s2, variable: red}
+      - {dataset: s2, variable: green}
 
 points:
   ghcn:
@@ -270,14 +263,14 @@ views:
     zoom: 10.5
     vmin: 1000
     vmax: 4500
-  - title: Monte Rosa to Lake Maggiore
-    description: A Sentinel-2 image in real colour (10 m), 7 August 2023, from the glaciers of Monte Rosa to the Italian lakes.
-    layer: s2-tci:TCI:rgb
-    center: [8.2, 45.84]
-    zoom: 9.4
+  - title: The Western Alps from space
+    description: Sentinel-2 in real colour (10 m) from Mont Blanc to Lake Maggiore, a mosaic of the least cloudy scenes of August 2023 found with a STAC search.
+    layer: s2:visual:rgb
+    center: [7.45, 45.95]
+    zoom: 8.6
   - title: True vs false colour
     description: The same scene with near infrared as red (healthy vegetation is bright red). Drag the divider.
-    layer: s2-tci:TCI:rgb
+    layer: s2:visual:rgb
     compare: false-colour
     center: [8.46, 45.86]
     zoom: 10.6

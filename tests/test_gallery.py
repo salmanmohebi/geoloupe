@@ -38,7 +38,11 @@ def test_gallery_config_is_valid_and_views_point_at_layers() -> None:
         for lid in filter(None, (v.layer, v.compare)):
             assert lid in cfg.layers or lid.split(":")[0] in prefixes, (v.title, lid)
     # public data only: every file is a URL anyone can read
-    paths = [p for d in cfg.datasets.values() for p in (d.mosaic or [d.path])]
+    paths = [
+        p
+        for d in cfg.datasets.values()
+        for p in (d.mosaic or [d.path or (d.stac and (d.stac.url or d.stac.item))])
+    ]
     paths += [
         p
         for pc in cfg.points.values()

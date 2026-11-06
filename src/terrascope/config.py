@@ -88,6 +88,31 @@ class Style(_Model):
     classes: dict[int, ClassInfo] | None = None
 
 
+class StacConfig(_Model):
+    """Find the files of a dataset in a STAC catalogue: a search, or one item.
+
+    Every asset key (e.g. ``red``, ``nir``, ``visual``) becomes a variable: a mosaic over the items
+    found, the best item first (least cloudy by default). Scale and offset come from the STAC
+    ``raster:bands`` metadata unless ``decode`` says otherwise.
+    """
+
+    url: str | None = None  # STAC API root; searched at <url>/search
+    item: str | None = None  # or the URL of one item
+    collections: list[str] = Field(default_factory=list)
+    bbox: tuple[float, float, float, float] | None = None  # west, south, east, north
+    datetime: str | None = None  # "2023-08-01/2023-08-31" or one date
+    query: dict[str, Any] = Field(default_factory=dict)  # e.g. {"eo:cloud_cover": {"lt": 10}}
+    limit: int = Field(default=12, ge=1, le=500)  # at most this many items
+    assets: list[str] | None = None  # asset keys (default: every COG asset with role "data")
+    sortby: Literal["cloud", "newest", "oldest"] = "cloud"  # which item wins where they overlap
+
+    @model_validator(mode="after")
+    def _one_source(self) -> StacConfig:
+        if (self.url is None) == (self.item is None):
+            raise ValueError("stac: give exactly one of 'url' (a search) and 'item'")
+        return self
+
+
 class DatasetConfig(_Model):
     """One gridded dataset: a file, a set of files, or a store, opened with xarray."""
 
@@ -102,6 +127,8 @@ class DatasetConfig(_Model):
     # Alternative to `path`: many files that tile an area (e.g. 1° × 1° DEM tiles, satellite
     # scenes), shown as one layer; the first file with data at a pixel wins.
     mosaic: list[str] | None = None
+    # Alternative to `path`: the files of a STAC search or item (one mosaic per asset key).
+    stac: StacConfig | None = None
     # Name of the variable of single-variable files (GeoTIFF names come from the file name).
     variable_name: str | None = None
     # External overview pyramid(s) written by `terrascope overviews build`: one store, a list,
@@ -132,8 +159,8 @@ class DatasetConfig(_Model):
 
     @model_validator(mode="after")
     def _one_location(self) -> DatasetConfig:
-        if sum(x is not None for x in (self.path, self.levels, self.mosaic)) != 1:
-            raise ValueError("give exactly one of 'path', 'levels' and 'mosaic'")
+        if sum(x is not None for x in (self.path, self.levels, self.mosaic, self.stac)) != 1:
+            raise ValueError("give exactly one of 'path', 'levels', 'mosaic' and 'stac'")
         return self
 
 

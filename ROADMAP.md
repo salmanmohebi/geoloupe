@@ -64,7 +64,11 @@ passes the browser smoke test.
       between the data and the stations; hover shows label and attributes; overlays in links and
       views. Gallery: Natural Earth provinces, rivers and lakes. Later: colour by attribute, vector
       tiles for very large files.
-- [ ] **8. STAC.** Open a STAC item or search (collection, bbox, time) as a mosaic of its assets.
+- [x] **8. STAC.** A STAC search (collections, bbox, datetime, query, limit, sortby) or one item
+      becomes one mosaic per asset, best item first; scale/offset from `raster:bands`; RGB layers
+      whose channels are mosaics (per-channel compositing in the engine). Gallery: Sentinel-2 over
+      the Western Alps from Earth Search. Later: time series of items (one time step per date),
+      cloud masks (SCL), signed URLs (Planetary Computer).
 
 Later in this series: unstructured meshes (UGRID, ICON, HEALPix), vector fields (wind arrows),
 Icechunk. General analysis features (model error layers, station validation statistics, time-chunked

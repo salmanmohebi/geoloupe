@@ -27,7 +27,7 @@ the internet.
 |---|---|---|
 | ERA5 hourly reanalysis, 0.25°, 1940 → last week (temperature, rain, water vapour, wind gusts, sea temperature) | [ARCO-ERA5](https://github.com/google-research/arco-era5) Zarr on Google Cloud, 761 160 hourly steps | step hour by hour, play, compare two dates, time series of any point |
 | Copernicus DEM GLO-30 (30 m), six 1° tiles in the Western Alps, over ERA5's 31 km orography | [Copernicus DEM](https://registry.opendata.aws/copernicus-dem/) COGs on AWS | zoom from 31 km to 30 m in one layer |
-| Sentinel-2 L2A scene, 10 m, 7 August 2023 (Monte Rosa, Lake Maggiore) | [Sentinel-2 COGs](https://registry.opendata.aws/sentinel-2-l2a-cogs/) on AWS (Element84) | true colour, false colour (near infrared), single bands, side by side |
+| Sentinel-2 L2A, 10 m: the 10 least cloudy scenes of August 2023 over the Western Alps | a STAC search of [Earth Search](https://element84.com/earth-search/) (Element84), COGs on AWS | one seamless mosaic in true colour, false colour (near infrared) or single bands, side by side |
 | ESA WorldCover 2021, 10 m, 45–48° N, 6–9° E | [ESA WorldCover](https://registry.opendata.aws/esa-worldcover-vito/) COG on AWS | 11 land-cover classes with names, colours and shares of the view |
 | States and provinces, rivers, lakes (overlays) | [Natural Earth](https://www.naturalearthdata.com/) 1:10m GeoJSON | switch on in the layer panel; hover a region for its name next to the data value |
 | GHCN-Daily stations, 21 long records (Milan since 1763) | [NOAA NCEI](https://www.ncei.noaa.gov/products/land-based-station/global-historical-climatology-network-daily) CSV files | daily max/min temperature and precipitation; click a station for its whole record |
@@ -87,8 +87,10 @@ terrascope.show({"data": ds})           # interactive map in the cell output
 * **Honest about what you see.** A badge names the datasets, resolutions and native/overview levels on
   screen; hover shows the displayed value and its source; a click gives the *stored* value of the native
   cell of every source, plus their time series.
-* **Satellite images.** RGB composites from any three bands, with stretch and gamma in the browser;
-  automatic for 3-band images such as Sentinel-2 TCI. Scale and offset from the file or the config.
+* **Satellite images and STAC.** RGB composites from any three bands, with stretch and gamma in the
+  browser; automatic for 3-band images such as Sentinel-2 TCI. A STAC search (collection, area, dates,
+  cloud cover) becomes one mosaic per band, best scene first, with scale and offset from the STAC
+  metadata.
 * **Categorical data.** Land cover and masks keep their class codes (never averaged): class colours
   and names from CF flags, a GeoTIFF palette or the config; the legend shows each class's share.
 * **Fast, interactive styling.** Data tiles are floats; the browser colours them. Changing the

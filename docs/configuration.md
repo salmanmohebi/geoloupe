@@ -16,6 +16,15 @@ datasets:                               # gridded data, opened with xarray
     path: data/era5.zarr                # file, directory, glob ("data/*.nc"), list, or URL
     # levels: [a_30s.zarr, a_0p025.zarr, a_0p25.zarr]   # instead of `path`: the same data at several resolutions
     # mosaic: [N45E006.tif, N45E007.tif]                # instead of `path`: files that tile an area
+    # stac:                             # instead of `path`: the files of a STAC search or item
+    #   url: https://earth-search.aws.element84.com/v1   # a STAC API (or `item: <item URL>`)
+    #   collections: [sentinel-2-l2a]
+    #   bbox: [6.8, 45.6, 8.8, 46.6]
+    #   datetime: 2023-08-01/2023-08-31
+    #   query: {"eo:cloud_cover": {"lt": 5}}
+    #   limit: 10                       # at most this many items
+    #   assets: [visual, red, nir]      # default: every COG asset with role data/visual
+    #   sortby: cloud                   # cloud (least cloudy wins) | newest | oldest
     # variable_name: elevation          # name of the single variable of a GeoTIFF or mosaic
     overviews: data/era5.overviews.zarr # optional, written by `terrascope overviews build`
     engine: auto                        # auto | zarr | netcdf | grib | geotiff | kerchunk
@@ -170,6 +179,15 @@ settings:
   thousand features: above `max_vector_mb` the server asks for `simplify`, `where` or fewer
   `properties`. `terrascope serve regions.geojson grid.zarr` shows a vector file as an overlay.
   Needs `terrascope[vector]` (pyogrio, shapely).
+* **STAC.** `stac:` runs one search (or reads one item) when the server starts. Every asset key becomes
+  a variable, shown as a mosaic over the items found: `<dataset>:red`, `<dataset>:nir`, … The best
+  item (by `sortby`) wins where items overlap. Scale and offset come from the STAC `raster:bands`
+  metadata (also STAC 1.1 `bands`); `decode` overrides them. Items with
+  `earthsearch:boa_offset_applied: true` (Element84) already have the offset in their pixels, so it
+  is not applied again. 3-band assets (e.g. `visual`) also get a true-colour layer
+  `<dataset>:visual:rgb`, and an RGB layer can use three STAC assets as channels. `s3://` asset
+  links are read through public HTTPS. APIs that require signed URLs (Planetary Computer) are not
+  supported yet.
 * **Featured views** (`views:`) are listed on a start screen (the gallery) with a preview image each.
   Opening a view is the same as opening a shared link with that state. A view whose layer is missing
   (for example, its dataset failed to open) is left out, with a warning in the server log.
