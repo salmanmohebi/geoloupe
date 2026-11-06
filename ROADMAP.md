@@ -23,6 +23,8 @@ so the gaps are visible.
   drawn in the layer's colour scale, station series in the inspector.
 * Python: `terrascope serve | gallery | info | demo-data | overviews build`; `terrascope.show()` for
   notebooks.
+* CI (GitHub Actions): pytest on Python 3.11–3.13, ruff, mypy, vitest, eslint, build, browser smoke
+  test on demo data, and the gallery test on live public data (reported, not blocking).
 
 ## Now: any kind of data, not only gridded reanalyses (started 2026-11-06)
 
@@ -76,7 +78,6 @@ copies for long series) follow in the next section.
 | **Area-weighted means** on lat/lon grids | Accuracy towards the poles | cos(lat) weights in overviews and in the integral image |
 | **Colour-scale presets per variable** and diverging ranges centred on 0 | Fewer manual steps | from config and CF metadata |
 | **Server-side difference endpoint** | Make A − B available to API clients and PNG export | Reuses the engine; same semantics as the browser |
-| **CI** | Keep main green | GitHub Actions: pytest, ruff, mypy, vitest, eslint, build, Playwright smoke test |
 
 ## Medium term (months)
 
