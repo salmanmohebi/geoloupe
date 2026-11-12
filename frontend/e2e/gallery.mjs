@@ -8,6 +8,7 @@
 
 import { chromium } from "@playwright/test";
 import fs from "node:fs";
+import { annotate, reportCrashes } from "./report.mjs";
 
 const [base = "http://127.0.0.1:8000", out = "gallery-shots"] = process.argv.slice(2);
 fs.mkdirSync(out, { recursive: true });
@@ -30,10 +31,12 @@ async function settle() {
   }
 }
 
+reportCrashes("gallery");
 let failed = 0;
 const fail = (msg) => {
   failed++;
   console.log(`  FAIL ${msg}`);
+  annotate("gallery", msg);
 };
 
 // 1. the start screen
@@ -114,6 +117,9 @@ await page.waitForSelector(".gallery", { timeout: 5_000 }).catch(() => fail("Gal
 const cat = await page.evaluate(() => window.fetch("api/catalog").then((r) => r.json()));
 if (cat.allow_open) {
   t0 = Date.now();
+  // a new hash on the same page makes the app reload itself, maybe after the next clicks: start from
+  // a blank page, so this is a plain page load
+  await page.goto("about:blank");
   await page.goto(`${base}/#layer=landcover:landcover&c=6.6,46.42&z=9`, { waitUntil: "load" });
   await settle();
   await page.click("button.btn.tool:has-text('Add data')");

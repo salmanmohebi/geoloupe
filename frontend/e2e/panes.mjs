@@ -9,6 +9,7 @@
 
 import { chromium } from "@playwright/test";
 import fs from "node:fs";
+import { annotate, reportCrashes } from "./report.mjs";
 
 const [base = "http://127.0.0.1:8000", out = "screenshots"] = process.argv.slice(2);
 fs.mkdirSync(out, { recursive: true });
@@ -26,10 +27,12 @@ page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
 page.on("pageerror", (e) => errors.push(String(e)));
 
 let failed = 0;
+reportCrashes("panes");
 const check = (ok, what) => {
   if (ok) console.log(`✓ ${what}`);
   else {
     console.error(`✗ ${what}`);
+    annotate("panes", what);
     failed++;
   }
 };

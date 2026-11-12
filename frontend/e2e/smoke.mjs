@@ -9,8 +9,10 @@
 
 import { chromium } from "@playwright/test";
 import fs from "node:fs";
+import { annotate, reportCrashes } from "./report.mjs";
 
 const [base = "http://127.0.0.1:8000", out = "screenshots", scenarioFile] = process.argv.slice(2);
+reportCrashes("smoke");
 
 const DEFAULT = [
   { name: "01-global", hash: "#layer=tas&t=2021-07-15&c=10,30&z=1.4", expect: ["Global reanalysis"] },
@@ -111,6 +113,7 @@ for (const step of scenario) {
   for (const e of step.expect ?? []) {
     if (!text.toLowerCase().includes(e.toLowerCase())) {
       console.error(`✗ ${step.name}: page does not contain ${JSON.stringify(e)}`);
+      annotate("smoke", `${step.name}: page does not contain ${JSON.stringify(e)}`);
       failed++;
     }
   }
