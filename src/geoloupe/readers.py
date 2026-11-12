@@ -20,6 +20,8 @@ from typing import Any, TypeVar
 
 import xarray as xr
 
+from geoloupe.certs import explain
+
 log = logging.getLogger(__name__)
 
 T = TypeVar("T")
@@ -165,7 +167,12 @@ def detect_engine(location: str | list[str]) -> str:
 
 
 def _remote_zarr(url: str) -> bool:
-    """Whether an HTTP(S) URL is a Zarr store: look for its metadata files (one small request each)."""
+    """Whether an HTTP(S) URL is a Zarr store: look for its metadata files (one small request each).
+
+    An HTTP error (404, 403, ...) only means "not this file". A failed connection (certificate,
+    DNS, timeout) raises OpenError: the format cannot be told, and the user must see why.
+    """
+    import urllib.error
     import urllib.request
 
     for meta in ("zarr.json", ".zmetadata", ".zgroup"):
@@ -174,8 +181,11 @@ def _remote_zarr(url: str) -> bool:
             with urllib.request.urlopen(req, timeout=15) as r:
                 if r.status == 200:
                     return True
-        except OSError:
+        except urllib.error.HTTPError:
             continue
+        except OSError as e:
+            reason = e.reason if isinstance(e, urllib.error.URLError) else e
+            raise OpenError(explain(f"cannot reach {url}: {reason}")) from e
     return False
 
 
@@ -260,7 +270,7 @@ def _open(
         raise OpenError(f"not found: {location}") from e
     except Exception as e:  # any backend failure becomes one readable message
         raise OpenError(
-            f"cannot open {location} with engine {engine!r}: {type(e).__name__}: {e}"
+            explain(f"cannot open {location} with engine {engine!r}: {type(e).__name__}: {e}")
         ) from e
     raise OpenError(f"unknown engine {engine!r}")
 

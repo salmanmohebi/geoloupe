@@ -6,6 +6,15 @@ the configuration format; such changes are listed here).
 
 ## [Unreleased]
 
+### Fixed
+
+- HTTPS on macOS and Windows: the `geoloupe` command now trusts the system's certificate store
+  (through `truststore`, a new dependency). With Python from python.org on macOS, ERA5, Sentinel-2
+  and the CMIP6 ocean model failed with `CERTIFICATE_VERIFY_FAILED`; on Linux without a system list,
+  `certifi`'s list is used. `SSL_CERT_FILE` and `SSL_CERT_DIR` still take precedence.
+- A remote dataset that cannot be reached (certificate, DNS, timeout) now reports the connection
+  error instead of "cannot tell the format"; certificate errors also say how to fix them.
+
 ## [0.1.0] - 2026-11-06
 
 First public version.

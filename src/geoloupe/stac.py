@@ -18,6 +18,7 @@ import urllib.request
 from dataclasses import dataclass
 from typing import Any
 
+from geoloupe.certs import explain
 from geoloupe.config import StacConfig
 from geoloupe.readers import is_s3, s3_https
 
@@ -133,7 +134,7 @@ def resolve(cfg: StacConfig) -> list[StacAsset]:
     try:
         items = [_fetch_json(cfg.item)] if cfg.item else _search(cfg)
     except (urllib.error.URLError, json.JSONDecodeError) as e:
-        raise StacError(f"cannot read STAC {cfg.item or cfg.url}: {e}") from e
+        raise StacError(explain(f"cannot read STAC {cfg.item or cfg.url}: {e}")) from e
     if not items:
         raise StacError(
             f"the STAC search of {cfg.url} found no items; widen bbox, datetime or query"

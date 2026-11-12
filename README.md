@@ -26,6 +26,11 @@ pip install "geoloupe[all]"      # Python ≥ 3.11; or: uv tool install "geoloup
 HTTPS), `geotiff` (COG), `grib`, `stations` (Parquet), `vector` (GeoJSON, Shapefile, …), `dask`
 (many NetCDF files as one). `all` installs them all.
 
+The `geoloupe` command uses the system's HTTPS certificates. In your own Python code (a notebook),
+an error `CERTIFICATE_VERIFY_FAILED` means that Python has no certificate list: call
+`geoloupe.certs.use_system_certificates()` before opening remote data, or set
+`SSL_CERT_FILE="$(python3 -m certifi)"`.
+
 ## Try it: the gallery of open data
 
 ```bash

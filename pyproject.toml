@@ -39,6 +39,7 @@ dependencies = [
     "pydantic>=2.6",
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",
+    "truststore>=0.10",
 ]
 
 [project.optional-dependencies]

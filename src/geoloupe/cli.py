@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 from geoloupe import __version__
+from geoloupe.certs import use_system_certificates
 
 log = logging.getLogger("geoloupe")
 
@@ -295,6 +296,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     if not a.verbose:  # rasterio logs every remote file open at INFO
         logging.getLogger("rasterio").setLevel(logging.WARNING)
+    # Before any HTTPS connection (and before aiohttp is imported): see geoloupe.certs.
+    log.debug("HTTPS certificates: %s", use_system_certificates())
     try:
         return int(a.func(a))
     except (FileExistsError, ValueError, OSError) as e:
