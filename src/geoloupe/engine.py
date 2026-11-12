@@ -429,8 +429,13 @@ class TileEngine:
         return whole[p.r0 : p.r1, p.c0 : p.c1]
 
     # -- one source -------------------------------------------------------
-    def plan(self, source: Source, tile: Tile, time: str | None) -> tuple[_Plan | None, str | None]:
-        """Pick the level and read window for one source; (None, reason) if skipped."""
+    def plan(
+        self, source: Source, tile: Tile, time: str | None, max_cells: int | None = None
+    ) -> tuple[_Plan | None, str | None]:
+        """Pick the level and read window for one source; (None, reason) if skipped.
+
+        ``max_cells``: the read budget (default: settings.max_read_cells)."""
+        budget = max_cells or self.settings.max_read_cells
         zoom = tile.z
         if source.min_zoom is not None and zoom < source.min_zoom:
             return None, "zoom"
@@ -448,7 +453,7 @@ class TileEngine:
             p = plan_separable(lv, tile) if lv.grid.geographic else plan_projected(lv, tile)
             if p is None:
                 return None, "outside"
-            if p.cells > self.settings.max_read_cells:
+            if p.cells > budget:
                 tried_cost = True
                 continue
             p.level_index = i
@@ -458,10 +463,10 @@ class TileEngine:
         return None, "cost" if tried_cost else "outside"
 
     def sample(
-        self, source: Source, tile: Tile, sel: Selection
+        self, source: Source, tile: Tile, sel: Selection, max_cells: int | None = None
     ) -> tuple[np.ndarray | None, int, str | None]:
         """(values, level index, skip reason) of one source on one tile."""
-        p, reason = self.plan(source, tile, sel.time)
+        p, reason = self.plan(source, tile, sel.time, max_cells)
         if p is None:
             return None, -1, reason
         lv = source.levels[p.level_index]
@@ -477,10 +482,13 @@ class TileEngine:
         return vals, p.level_index, None
 
     # -- a layer ----------------------------------------------------------
-    def render(self, layer: Layer, tile: Tile, sel: Selection) -> TileResult:
+    def render(
+        self, layer: Layer, tile: Tile, sel: Selection, max_cells: int | None = None
+    ) -> TileResult:
         """Composite all sources of a layer on one tile (finest first, coarser fill gaps).
 
-        RGB layers are not composited: each source is one channel.
+        RGB layers are not composited: each source is one channel. ``max_cells``: the read
+        budget per source (default: settings.max_read_cells).
         """
         if layer.kind == "rgb":
             return self._render_rgb(layer, tile, sel)
@@ -489,7 +497,7 @@ class TileEngine:
         result = TileResult(out, smap)
         missing = np.ones(out.shape, dtype=bool)
         for k, src in enumerate(layer.sources):
-            vals, lvl, reason = self.sample(src, tile, sel)
+            vals, lvl, reason = self.sample(src, tile, sel, max_cells)
             if vals is None:
                 if reason != "outside":
                     result.skipped.append((k, reason or "unknown"))

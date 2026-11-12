@@ -294,6 +294,11 @@ class Settings(_Model):
     # (memory: field_cache_mb). 0 turns it off.
     field_cache_cells: int = 4_000_000
     field_cache_mb: int = 512
+    # Error maps are computed from the native cells: each screen pixel of an error tile is split
+    # into sub-pixels (at most error_max_subpixels per tile side) no larger than the finest
+    # native cell, and P and T are read with this budget per source (memory: 4 bytes per cell).
+    error_read_cells: int = 16_000_000
+    error_max_subpixels: int = 2048
     # Upper bound on time steps in one time-series request.
     max_timeseries_steps: int = 20_000
     # Upper bound on the uncompressed size of a NetCDF export.

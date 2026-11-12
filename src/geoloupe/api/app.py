@@ -43,6 +43,9 @@ from geoloupe.catalog import Catalog, Layer
 from geoloupe.colormaps import apply_classes, apply_colormap, colormap_table
 from geoloupe.config import DatasetConfig, PointsConfig, VectorConfig
 from geoloupe.engine import Selection, SelectionError, TileEngine
+from geoloupe.errors import conversion as unit_conversion
+from geoloupe.errors import resolve as resolve_error
+from geoloupe.errortiles import ErrorQuery, ErrorQueryError, error_stats, error_tile_bytes
 from geoloupe.points import PointRegistry, PointsError
 from geoloupe.query import QueryError, export_subset, point, stats, timeseries, to_netcdf_bytes
 from geoloupe.tiling import Tile, TileError
@@ -274,7 +277,15 @@ def create_app(catalog: Catalog, warm: bool = True) -> FastAPI:
     async def _not_found(_: Request, exc: KeyError) -> JSONResponse:
         return JSONResponse({"detail": str(exc.args[0] if exc.args else exc)}, status_code=404)
 
-    for exc_type in (SelectionError, TimeError, QueryError, TileError, PointsError, VectorError):
+    for exc_type in (
+        SelectionError,
+        TimeError,
+        QueryError,
+        TileError,
+        PointsError,
+        VectorError,
+        ErrorQueryError,
+    ):
 
         @app.exception_handler(exc_type)
         async def _bad_request(_: Request, exc: Exception) -> JSONResponse:
@@ -688,6 +699,95 @@ def create_app(catalog: Catalog, warm: bool = True) -> FastAPI:
                 - {""}
             ),
         }
+
+    # ------------------------------------------------------------ error maps
+    def error_query(
+        p: str,
+        t: str,
+        pt: str | None,
+        tt: str | None,
+        pd: str | None,
+        td: str | None,
+        metric: str,
+        formula: str | None,
+        params: str | None,
+        units: str | None,
+    ) -> ErrorQuery:
+        """The error of layer p (time pt, dims pd) against layer t (time tt, dims td)."""
+        P, T = get_layer(p), get_layer(t)
+        values: dict[str, float] = {}
+        for k, v in parse_dims(params).items():
+            try:
+                values[k] = float(v)
+            except ValueError:
+                raise ErrorQueryError(f"parameter {k!r} must be a number") from None
+        try:
+            spec = resolve_error(metric, formula, values, units)
+        except ValueError as e:  # includes FormulaError
+            raise ErrorQueryError(str(e)) from None
+        return ErrorQuery(
+            P,
+            T,
+            selection(P, pt, pd),
+            selection(T, tt, td),
+            spec,
+            unit_conversion(P.units, T.units),
+        )
+
+    @app.get("/api/error/tiles/{z}/{x}/{y}.bin")
+    def error_tile(
+        request: Request,
+        z: int,
+        x: int,
+        y: int,
+        p: str,
+        t: str,
+        pt: str | None = None,
+        tt: str | None = None,
+        pd: str | None = None,
+        td: str | None = None,
+        metric: str = "bias",
+        formula: str | None = None,
+        params: str | None = None,
+        units: str | None = None,
+    ) -> Response:
+        """Error tile of P against T, computed from native cells (see geoloupe/errortiles.py)."""
+        q = error_query(p, t, pt, tt, pd, td, metric, formula, params, units)
+        t0 = _time.perf_counter()
+        body, headers = error_tile_bytes(engine, q, Tile(z, x, y, settings.tile_size))
+        headers = {**headers, "X-GeoLoupe-Time-Ms": f"{(_time.perf_counter() - t0) * 1000:.1f}"}
+        headers["Cache-Control"] = "public, max-age=3600"
+        if body is None:
+            return Response(status_code=204, headers=headers)
+        if "gzip" in request.headers.get("accept-encoding", ""):
+            headers["Content-Encoding"] = "gzip"
+        else:
+            import gzip
+
+            body = gzip.decompress(body)
+        return Response(body, media_type="application/octet-stream", headers=headers)
+
+    @app.get("/api/error/stats")
+    def get_error_stats(
+        p: str,
+        t: str,
+        bbox: str,
+        z: int,
+        pt: str | None = None,
+        tt: str | None = None,
+        pd: str | None = None,
+        td: str | None = None,
+        metric: str = "bias",
+        formula: str | None = None,
+        params: str | None = None,
+        units: str | None = None,
+    ) -> dict[str, Any]:
+        """Error statistics over the native cells in bbox (mean, mean |e|, RMS, min, max; class
+        counts and event scores for class maps)."""
+        q = error_query(p, t, pt, tt, pd, td, metric, formula, params, units)
+        box = parse_bbox(bbox)
+        assert box is not None
+        return error_stats(engine, q, box, z)
 
     # --------------------------------------------------------------- queries
     @app.get("/api/layers/{layer_id}/point")
