@@ -189,6 +189,7 @@ def test_viewer_links_and_web_pages() -> None:
     with pytest.raises(OpenError, match="is a web page, not data"):
         detect_engine("https://x.org/preview.html?var=sst")
     assert detect_engine("s3://b/files/*.nc") == "netcdf"  # globs of files still work
+    assert detect_engine("s3://b/years.zarr/1980") == "zarr"  # a group inside a store
 
 
 def test_api_opens_the_data_of_a_viewer_link(
@@ -235,3 +236,24 @@ def test_api_pasted_addresses(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
     assert r.status_code == 400 and "start it with https://" in r.json()["detail"]
     r = c.post("/api/datasets", json={"path": "a.zarr"})
     assert r.status_code == 403 and "is not a URL" in r.json()["detail"]
+
+
+def test_datasets_without_a_map_say_what_they_hold(tmp_path: Path) -> None:
+    import numpy as np
+    import pandas as pd
+    import xarray as xr
+
+    from geoloupe.catalog import no_map_reason
+    from geoloupe.config import DatasetConfig
+
+    t = pd.date_range("1980-01-01", periods=4, freq="h")
+    series = xr.Dataset({"t2m": ("time", np.ones(4, np.float32))}, {"time": t})
+    msg = no_map_reason(series, DatasetConfig(path="x.zarr"))
+    assert "a time series of one place, not a map" in msg and "t2m(time)" in msg
+    # an empty top level with one group per year (like a store of yearly series)
+    store = tmp_path / "years.zarr"
+    xr.Dataset().to_zarr(store)
+    for y in ("1980", "1981"):
+        series.to_zarr(store, group=y)
+    msg = no_map_reason(xr.open_zarr(store), DatasetConfig(path=str(store)))
+    assert "only groups: 1980, 1981" in msg and "…/1980" in msg

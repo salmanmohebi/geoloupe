@@ -137,8 +137,11 @@ def _is_remote(loc: str) -> bool:
 
 
 def _looks_like_zarr(loc: str) -> bool:
-    last = loc.rstrip("/").split("/")[-1].lower()
+    parts = [p.lower() for p in loc.rstrip("/").split("/")]
+    last = parts[-1]
     if last.endswith(".zarr") or ".zarr-" in last or last.endswith(".zarr.zip"):
+        return True
+    if any(p.endswith(".zarr") for p in parts[:-1]):  # a group inside a store: data.zarr/1980
         return True
     if not _is_remote(loc) and os.path.isdir(loc):
         return any(
@@ -253,7 +256,11 @@ def _open(
             url = public_https(location, storage_options)
             if url:  # public S3 through HTTPS: much faster than s3fs, needs no AWS setup
                 try:
-                    return _open_zarr(url, {}, dict(kw), group)
+                    ds = _open_zarr(url, {}, dict(kw), group)
+                    if ds.data_vars:
+                        return ds
+                    # no consolidated metadata here, and HTTP cannot list the arrays: ask S3
+                    log.info("%s over HTTPS shows no variables; trying s3fs", location)
                 except Exception as e:  # e.g. Zarr v2 without consolidated metadata: needs listing
                     log.info("%s over HTTPS failed (%s); trying s3fs", location, e)
             return _open_zarr(location, storage_options, kw, group)

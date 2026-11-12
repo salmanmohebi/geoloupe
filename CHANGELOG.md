@@ -33,6 +33,10 @@ the configuration format; such changes are listed here).
 - A `?` in a web address (query string) is no longer read as a file pattern, so signed or
   parameterised URLs open with the right reader; a web page (`.html`) gets a clear message.
 - An `s3://` bucket that is not found on AWS suggests giving the endpoint of its S3 service.
+- A dataset without a map says what it holds instead: its variables with their dimensions (e.g.
+  "a time series of one place, not a map: t2m(time)"), or the groups below an empty top level.
+- A path to a group inside a Zarr store (`data.zarr/1980`) opens as Zarr; a public store that shows
+  no variables over HTTPS (no consolidated metadata, so nothing to list) is read again with s3fs.
 - *Add data* takes a pasted address with quotes, angle brackets or an upper-case scheme; an address
   without `https://` (e.g. `host.org/bucket/data.zarr`) gets a clear message instead of "opening
   local files is off".

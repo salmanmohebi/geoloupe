@@ -43,6 +43,7 @@ from geoloupe.readers import (
     geotiff_overviews,
     multiscale_groups,
     open_dataset,
+    s3_options,
     with_retries,
 )
 from geoloupe.styles import classes_from_attrs, default_style
@@ -220,6 +221,40 @@ class DatasetEntry:
         return self.config.title or str(self.attrs.get("title") or self.id)
 
 
+def no_map_reason(ds: xr.Dataset, dcfg: DatasetConfig) -> str:
+    """Why a dataset gives no map, with what it holds instead (variables and their dimensions, or
+    the groups below an empty top level)."""
+    need = "a map needs variables on a grid with 1-D x/y or lon/lat coordinates"
+    if ds.data_vars:
+        shown = [f"{n}({', '.join(map(str, v.dims))})" for n, v in list(ds.data_vars.items())[:6]]
+        more = f" and {len(ds.data_vars) - 6} more" if len(ds.data_vars) > 6 else ""
+        timeseries = all(set(map(str, v.dims)) <= {"time", "t"} for v in ds.data_vars.values())
+        what = " (a time series of one place, not a map)" if timeseries else ""
+        return f"no map in this dataset{what}: its variables are {'; '.join(shown)}{more}; {need}"
+    groups = _zarr_groups(dcfg)
+    if groups:
+        listed = ", ".join(groups[:5]) + (f", … ({len(groups)} groups)" if len(groups) > 5 else "")
+        return (
+            f"no variables at the top level of this store, only groups: {listed}. Open one group "
+            f"by its path (…/{groups[0]}); {need}"
+        )
+    return f"no variables in this dataset; {need}"
+
+
+def _zarr_groups(dcfg: DatasetConfig) -> list[str]:
+    """The child groups of a Zarr store (best effort, for messages)."""
+    if not isinstance(dcfg.path, str) or dcfg.engine not in ("auto", "zarr"):
+        return []
+    try:
+        import zarr
+
+        so = s3_options(dcfg.path, dcfg.storage_options) if "://" in dcfg.path else None
+        g = zarr.open_group(dcfg.path, mode="r", storage_options=so or None)
+        return sorted(name for name, _ in g.groups())
+    except Exception:  # not a Zarr store, or not readable: no groups to name
+        return []
+
+
 class Catalog:
     """All datasets and layers of one GeoLoupe configuration."""
 
@@ -378,7 +413,7 @@ class Catalog:
             entry.attrs = dict(levels_ds[0][1].attrs)
             entry.sources = self._make_sources(did, dcfg, levels_ds, entry.title)
             if not entry.sources:
-                raise GridError("no gridded variables found (need 1-D x/y or lon/lat coordinates)")
+                raise GridError(no_map_reason(levels_ds[0][1], dcfg))
         except (OpenError, GridError, TimeError, OSError, ValueError, KeyError) as e:
             entry.status, entry.error = "error", str(e)
             log.error("dataset %r: %s", did, e)
