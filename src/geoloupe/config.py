@@ -307,6 +307,42 @@ class Settings(_Model):
     open_roots: list[str] = Field(default_factory=list)
 
 
+_LAYOUT_PRESETS = {"2h": 2, "2v": 2, "3": 3, "4": 4}
+_MAX_PANES = 6
+
+
+class ViewPane(_Model):
+    """One more pane of a featured view (the view's own layer is the first pane)."""
+
+    layer: str
+    time: str | None = None
+    dims: dict[str, str | int | float] = Field(default_factory=dict)
+    colormap: str | None = None
+    vmin: float | None = None
+    vmax: float | None = None
+    log: bool = False
+    # the difference A − B in this pane: B's layer, and its own time (default: the pane's time)
+    compare: str | None = None
+    compare_time: str | None = None
+    # follow the other panes' camera and time (as in the browser's link buttons)
+    link_view: bool = True
+    link_time: bool = True
+
+
+def layout_panes(layout: str) -> int:
+    """Number of panes of a layout: a preset ("2h", "2v", "3", "4") or a layout string as in links,
+    e.g. "r50(0,c50(1,2))" (r = side by side, c = one above the other, the number is the first
+    part's share in %, leaves are pane numbers)."""
+    if layout in _LAYOUT_PRESETS:
+        return _LAYOUT_PRESETS[layout]
+    if not re.fullmatch(r"[rc0-9.(),]+", layout):
+        raise ValueError(f"layout {layout!r}: a preset (2h, 2v, 3, 4) or e.g. r50(0,c50(1,2))")
+    leaves = re.findall(r"(?:^|[(,])(\d+)(?=[),]|$)", layout)
+    if sorted(int(x) for x in leaves) != list(range(len(leaves))):
+        raise ValueError(f"layout {layout!r}: the panes must be numbered 0, 1, 2, … once each")
+    return len(leaves)
+
+
 class ViewConfig(_Model):
     """A featured view: a ready-made map (layer, time, place, colour scale) listed in the gallery.
 
@@ -326,14 +362,40 @@ class ViewConfig(_Model):
     log: bool = False
     basemap: Literal["minimal", "light", "dark"] | None = None
     globe: bool = False
-    # A second layer to compare with: side by side ("split") or the difference ("diff").
+    # A second layer to compare with: the difference ("diff"), or side by side ("split", the same
+    # as one more pane: see `panes`).
     compare: str | None = None
     compare_mode: Literal["split", "diff"] = "split"
     compare_time: str | None = None
+    # More panes next to the first one (the view's own layer), arranged by `layout`: a preset
+    # ("2h" side by side, "2v" one above the other, "3", "4") or a layout string; default by count.
+    panes: list[ViewPane] = Field(default_factory=list)
+    layout: str | None = None
     # Station overlay: a points id, or "none" to hide stations.
     overlay: str | None = None
     # Vector overlays shown in this view (default: those with visible: true).
     vectors: list[str] | None = None
+
+    @model_validator(mode="after")
+    def _check_panes(self) -> ViewConfig:
+        n = 1 + len(self.panes)
+        if n > _MAX_PANES:
+            raise ValueError(f"view {self.title!r}: at most {_MAX_PANES} panes")
+        if self.panes and self.compare and self.compare_mode == "split":
+            raise ValueError(f"view {self.title!r}: give the second layer as a pane, not compare")
+        if self.layout is not None:
+            if layout_panes(self.layout) != n:
+                raise ValueError(f"view {self.title!r}: layout {self.layout!r} is not for {n} panes")
+        elif n > 4:
+            raise ValueError(f"view {self.title!r}: give a layout for {n} panes")
+        return self
+
+    def layer_ids(self) -> list[str]:
+        """Every layer the view needs."""
+        ids = [self.layer, self.compare]
+        for p in self.panes:
+            ids += [p.layer, p.compare]
+        return [i for i in ids if i]
 
 
 class Config(_Model):

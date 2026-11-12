@@ -84,3 +84,39 @@ describe("split-pane layout", () => {
     expect(decodeLayout("0")).toEqual({ pane: "p0" });
   });
 });
+
+describe("featured views with panes", async () => {
+  const { viewState, viewLayout } = await import("./gallery");
+  it("become a link with the layout and one entry per pane", () => {
+    const v = {
+      id: 0,
+      title: "four",
+      layer: "elevation",
+      layout: "4",
+      panes: [
+        { layer: "s2:rgb" },
+        { layer: "fc", link_time: false, time: "2020" },
+        { layer: "lc", compare: "x" },
+      ],
+    };
+    const s = viewState(v);
+    expect(s.lay).toBe("c50(r50(0,1),r50(2,3))");
+    expect(s.pa).toBe(0);
+    expect(s.panes?.[2]).toMatchObject({ layer: "fc", t: "2020", lt: false });
+    expect(s.panes?.[3]).toMatchObject({ layer: "lc", cmp: "diff", cmpLayer: "x" });
+    expect(viewLayout({ id: 1, title: "one", layer: "a" })).toBeNull();
+    expect(viewState({ id: 2, title: "two", layer: "a", panes: [{ layer: "b" }] }).lay).toBe("r50(0,1)");
+  });
+});
+
+describe("layer names", async () => {
+  const { namesDataset } = await import("./layers");
+  it("add the dataset only when the title does not name it", () => {
+    expect(namesDataset("Land cover (ESA WorldCover 2021)", "ESA WorldCover 2021")).toBe(true);
+    expect(
+      namesDataset("Sea surface temperature (GFDL-ESM4 model)", "GFDL-ESM4 climate model ocean (CMIP6)"),
+    ).toBe(true);
+    expect(namesDataset("2 metre temperature", "ERA5 hourly reanalysis (ARCO-ERA5)")).toBe(false);
+    expect(namesDataset("Near-surface air temperature", "Alps downscaled (synthetic)")).toBe(false);
+  });
+});

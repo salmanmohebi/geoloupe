@@ -268,6 +268,16 @@ views:
     zoom: 4.4
     vmin: 0
     vmax: 3
+  - title: Storm Ciarán in three panes
+    description: Wind gusts, rain and water vapour at the same hour, in linked panes. Move or step through time in one, and the others follow; hover for all three values.
+    layer: wind-gust
+    time: "2023-11-02T00:00"
+    center: [-5, 48.5]
+    zoom: 4.2
+    layout: "3"
+    panes:
+      - {layer: precipitation, vmin: 0, vmax: 3}
+      - {layer: water-vapour}
   - title: A climate model's ocean, on its own grid
     description: Sea surface temperature in the GFDL-ESM4 model, August 2014, drawn on the model's curvilinear (tripolar) grid. Click for the 165-year monthly series.
     layer: ocean-model:tos
@@ -283,6 +293,17 @@ views:
     compare_mode: diff
     center: [-20, 30]
     zoom: 1.6
+  - title: A climate model next to the reanalysis
+    description: Sea surface temperature in August 2014, the GFDL-ESM4 model on its own grid (left) and ERA5 (right), with the same colour scale.
+    layer: ocean-model:tos
+    time: "2014-08-16T12:00"
+    center: [-40, 45]
+    zoom: 2.3
+    colormap: thermal
+    vmin: -2
+    vmax: 32
+    panes:
+      - {layer: sea-temperature, time: "2014-08-16T12:00", colormap: thermal, vmin: -2, vmax: 32}
   - title: From 31 km to 30 m
     description: The Matterhorn in the Copernicus DEM. Zoom out to see ERA5's coarse orography take over outside the Alps.
     layer: elevation
@@ -298,9 +319,20 @@ views:
   - title: True vs false colour
     description: The same scene with near infrared as red (healthy vegetation is bright red). Drag the divider.
     layer: s2:visual:rgb
-    compare: false-colour
     center: [8.46, 45.86]
     zoom: 10.6
+    panes:
+      - {layer: false-colour}
+  - title: The Western Alps in four panes
+    description: Elevation, Sentinel-2 in true and false colour, and land cover of the same valleys, linked. Split, resize or zoom a pane yourself (keys % " z).
+    layer: elevation
+    center: [7.45, 45.95]
+    zoom: 10
+    layout: "4"
+    panes:
+      - {layer: "s2:visual:rgb"}
+      - {layer: false-colour}
+      - {layer: "landcover:landcover"}
   - title: Land cover around Lake Geneva
     description: ESA WorldCover classes at 10 m; hover for the class name, the legend shows each class's share.
     layer: landcover:landcover

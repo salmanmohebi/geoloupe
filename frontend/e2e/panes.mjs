@@ -16,7 +16,11 @@ fs.mkdirSync(out, { recursive: true });
 const browser = await chromium.launch({
   args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"],
 });
-const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
+const page = await browser.newPage({
+  viewport: { width: 1440, height: 900 },
+  deviceScaleFactor: 1,
+  acceptDownloads: true,
+});
 const errors = [];
 page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
 page.on("pageerror", (e) => errors.push(String(e)));
@@ -103,15 +107,16 @@ check(
 );
 await page.screenshot({ path: `${out}/panes-01-hover.png` });
 
-// 4. Linked time: a new time in pane 2 reaches pane 1
+// 4. Linked time: a new time in pane 2 reaches pane 1 (CI's demo data has 200 days from 2021-01-01)
 const timeInput = page.locator(".time-bar .time-input");
-await timeInput.fill("2021-08-01");
+await timeInput.fill("2021-06-01");
 await timeInput.press("Enter");
 await settle();
+const shownTime = (await timeInput.inputValue()).slice(0, 10);
 ps = await panes();
 check(
-  ps.every((p) => p.title.includes("2021-08-01")),
-  "linked time: both panes show 2021-08-01",
+  shownTime === "2021-06-01" && ps.every((p) => p.title.includes(shownTime)),
+  `linked time: both panes show ${shownTime}`,
 );
 
 // 5. Drag the divider to 30 %
@@ -171,7 +176,29 @@ check(
 );
 await page.screenshot({ path: `${out}/panes-03-reload.png` });
 
-// 9. A 0.1 link (cmp=split) opens as two panes
+// 9. The point details list every pane, with a chart, and the layout exports as one image
+ps = await panes();
+const spot = centerOf(ps[1], 0.3, 0.45); // pane 2, left of where the details panel opens
+await page.mouse.click(spot.x, spot.y);
+await page.waitForSelector(".pane-values canvas", { timeout: 60_000 }).catch(() => null);
+const rows = await page.locator(".pane-values > .value-table tr").count();
+const charts = await page.locator(".pane-values canvas").count();
+check(rows === 2 && charts >= 1, `point details: ${rows} panes, ${charts} chart(s)`);
+await page.screenshot({ path: `${out}/panes-04-point.png` });
+await page.click("button.btn.tool:has-text('Export')");
+const [dl] = await Promise.all([
+  page.waitForEvent("download", { timeout: 60_000 }),
+  page.click(".menu-pop button:has-text('panes as one image')"),
+]);
+const png = `${out}/panes-05-layout-export.png`;
+await dl.saveAs(png);
+check(
+  fs.statSync(png).size > 20_000,
+  `the layout exports as one image (${Math.round(fs.statSync(png).size / 1000)} kB)`,
+);
+await page.keyboard.press("Escape");
+
+// 10. A 0.1 link (cmp=split) opens as two panes
 await page.goto("about:blank");
 await page.goto(`${base}/#layer=alps:tas&t=2021-07-15&c=10.2,46.4&z=6.5&cmp=split&cl=global:tas`, {
   waitUntil: "load",
@@ -182,7 +209,7 @@ check(
   ps.length === 2 && /alps/i.test(ps[0].title) && /global/i.test(ps[1].title),
   "a 0.1 link with cmp=split opens two panes",
 );
-await page.screenshot({ path: `${out}/panes-04-old-link.png` });
+await page.screenshot({ path: `${out}/panes-06-old-link.png` });
 
 check(errors.length === 0, `no console errors${errors.length ? ": " + errors.slice(0, 3).join(" | ") : ""}`);
 await browser.close();

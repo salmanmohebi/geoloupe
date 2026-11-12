@@ -241,7 +241,7 @@ def create_app(catalog: Catalog, warm: bool = True) -> FastAPI:
     known = set(catalog.layers) | set(registry.layer_ids())
     views: list[dict[str, Any]] = []
     for i, view in enumerate(catalog.config.views):
-        missing = [lid for lid in (view.layer, view.compare) if lid and lid not in known]
+        missing = [lid for lid in view.layer_ids() if lid not in known]
         if missing:
             log.warning("view %r skipped: unknown layer(s) %s", view.title, missing)
             continue

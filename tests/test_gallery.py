@@ -239,3 +239,23 @@ def test_remote_opens_retry_network_failures(monkeypatch: pytest.MonkeyPatch) ->
     with pytest.raises(urllib.error.URLError):
         readers.with_retries(flaky, False, "x")  # local data: no retries
     assert calls["n"] == 1
+
+
+def test_views_with_panes() -> None:
+    from geoloupe.config import ViewConfig, layout_panes
+
+    assert layout_panes("4") == 4 and layout_panes("r50(0,c50(1,2))") == 3 and layout_panes("0") == 1
+    v = ViewConfig(title="t", layer="a", layout="3", panes=[{"layer": "b"}, {"layer": "c", "compare": "d"}])
+    assert v.layer_ids() == ["a", "b", "c", "d"]
+    assert ViewConfig(title="t", layer="a", panes=[{"layer": "b"}]).layout is None  # default: side by side
+    bad = [
+        {"layout": "4", "panes": [{"layer": "b"}]},  # 2 panes, a layout for 4
+        {"layout": "r50(0,0)", "panes": [{"layer": "b"}]},  # pane 0 twice
+        {"layout": "x", "panes": [{"layer": "b"}]},
+        {"panes": [{"layer": "b"}] * 4},  # 5 panes need a layout
+        {"panes": [{"layer": "b"}] * 6, "layout": "r50(0,1)"},  # more than 6
+        {"panes": [{"layer": "b"}], "compare": "c"},  # side by side twice
+    ]
+    for extra in bad:
+        with pytest.raises(ValueError):
+            ViewConfig(title="t", layer="a", **extra)

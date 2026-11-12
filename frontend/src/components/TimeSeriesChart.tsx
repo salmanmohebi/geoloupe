@@ -27,6 +27,7 @@ interface Props {
   current: string | null;
   onPick?: (time: string) => void;
   height?: number;
+  colors?: string[]; // per series (default: the series colours in order)
 }
 
 export function mergeSeries(series: Series[]): { labels: string[]; data: (number | null)[][] } {
@@ -42,7 +43,7 @@ export function mergeSeries(series: Series[]): { labels: string[]; data: (number
   return { labels, data };
 }
 
-export function TimeSeriesChart({ series, names, units, current, onPick, height = 220 }: Props) {
+export function TimeSeriesChart({ series, names, units, current, onPick, height = 220, colors }: Props) {
   const el = useRef<HTMLDivElement>(null);
   const plot = useRef<uPlot | null>(null);
   const merged = useMemo(() => mergeSeries(series), [series]);
@@ -85,7 +86,7 @@ export function TimeSeriesChart({ series, names, units, current, onPick, height 
         { label: "time", value: (_u, v) => (v === null ? "–" : (labels[Math.round(v)] ?? "")) },
         ...names.map((n, i) => ({
           label: n,
-          stroke: seriesColor(i),
+          stroke: colors?.[i] ?? seriesColor(i),
           width: 2,
           spanGaps: false,
           points: { show: false },
@@ -131,7 +132,7 @@ export function TimeSeriesChart({ series, names, units, current, onPick, height 
       plot.current?.destroy();
       plot.current = null;
     };
-  }, [merged, names, units, height, currentRef, pickRef]);
+  }, [merged, names, units, height, currentRef, pickRef, colors]);
 
   useEffect(() => {
     plot.current?.redraw(false);

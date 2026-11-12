@@ -398,6 +398,9 @@ export const useStore = create<AppState>((set, get) => ({
           const u = id === `p${top}` ? initial : (others[Number(id.slice(1))] ?? {});
           await get().setupPane(u, first.id);
         }
+        // the linked panes follow the time of the link's own pane (set up last)
+        const { linkTime, main } = get();
+        if (linkTime && main.time) get().setTime(main.time);
       } else await get().setupPane(initial, first.id);
     } catch (e) {
       get().notify("error", (e as Error).message);

@@ -2,15 +2,62 @@
 // as opening that link. Thumbnails are preview images from the server, centred on the view.
 
 import { apiUrl } from "../api/client";
-import type { FeaturedView } from "../api/types";
+import type { FeaturedView, ViewPane } from "../api/types";
 import type { UrlState } from "../state/store";
+import { decodeLayout, encodeLayout, preset, type Layout, type Preset } from "./layout";
 import { buildHash } from "./urlState";
 
-export function viewState(v: FeaturedView): Partial<UrlState> {
+const PRESETS = ["1", "2h", "2v", "3", "4"];
+const DEFAULT_PRESET: Record<number, Preset> = { 1: "1", 2: "2h", 3: "3", 4: "4" };
+
+/** The layout of a view with `n` panes (pane ids "p0", "p1", …), or null when it has one pane. */
+export function viewLayout(v: FeaturedView): Layout | null {
+  const n = 1 + (v.panes?.length ?? 0);
+  if (n < 2) return null;
+  const ids = Array.from({ length: n }, (_, i) => `p${i}`);
+  const want = v.layout ?? DEFAULT_PRESET[n];
+  if (want && PRESETS.includes(want)) return preset(want as Preset, ids);
+  return want ? decodeLayout(want) : null;
+}
+
+const dimsOf = (d?: Record<string, string | number>) =>
+  d ? Object.fromEntries(Object.entries(d).map(([k, x]) => [k, String(x)])) : undefined;
+
+function paneState(p: ViewPane): Partial<UrlState> {
   return {
+    layer: p.layer,
+    t: p.time,
+    dims: dimsOf(p.dims),
+    cmap: p.colormap,
+    range: p.vmin !== undefined && p.vmax !== undefined ? [p.vmin, p.vmax] : undefined,
+    log: p.log,
+    cmp: p.compare ? "diff" : undefined,
+    cmpLayer: p.compare,
+    cmpT: p.compare_time,
+    lv: p.link_view === false ? false : undefined,
+    lt: p.link_time === false ? false : undefined,
+  };
+}
+
+export function viewState(v: FeaturedView): Partial<UrlState> {
+  const lay = viewLayout(v);
+  const panes = lay
+    ? {
+        lay: encodeLayout(
+          lay,
+          Array.from({ length: 1 + v.panes!.length }, (_, i) => `p${i}`),
+        ),
+        pa: 0,
+        panes: Object.fromEntries(
+          v.panes!.map((p, i) => [i + 1, paneState({ ...p, time: p.time ?? v.time })]),
+        ),
+      }
+    : {};
+  return {
+    ...panes,
     layer: v.layer,
     t: v.time,
-    dims: v.dims ? Object.fromEntries(Object.entries(v.dims).map(([k, x]) => [k, String(x)])) : undefined,
+    dims: dimsOf(v.dims),
     cmap: v.colormap,
     range: v.vmin !== undefined && v.vmax !== undefined ? [v.vmin, v.vmax] : undefined,
     log: v.log,
@@ -33,9 +80,20 @@ export function viewHash(v: FeaturedView): string {
 /**
  * Preview image of the view, centred on its centre. Rendered about 1.6 zoom levels out, so the
  * 480 px image covers roughly what the view shows on a laptop screen (~1500 px).
- * `layer` overrides the view's layer (the B side of a comparison).
+ * `layer` overrides the view's layer (the B side of a comparison); `pane` draws one more pane.
  */
-export function thumbnailUrl(v: FeaturedView, layer = v.layer, time = v.time): string {
+export function thumbnailUrl(v: FeaturedView, layer = v.layer, time = v.time, pane?: ViewPane): string {
+  if (pane)
+    return thumbnailUrl({
+      ...v,
+      layer: pane.layer,
+      time: pane.time ?? v.time,
+      dims: pane.dims ?? v.dims,
+      colormap: pane.colormap,
+      vmin: pane.vmin,
+      vmax: pane.vmax,
+      log: pane.log,
+    });
   const [lng, lat] = v.center ?? [0, 20];
   const own = layer === v.layer;
   return apiUrl(`layers/${encodeURIComponent(layer)}/preview.png`, {

@@ -16,6 +16,15 @@ the configuration format; such changes are listed here).
   split right, `"` split down, `x` close, `z` zoom a pane, `Alt`+arrows move between panes.
   Presets (1, 2, 3, 4 panes) in the Compare menu. Links keep the whole layout.
 
+- With several panes, the point details show every pane at the clicked point: its value now and its
+  time series around the current time, one chart per unit and time step (hourly and monthly data
+  are not mixed on one axis), each pane in its own colour.
+- Export → *All panes as one image*: every pane as on screen, each with its label (layer, time) and
+  colour bar, a title, and the credits of all datasets shown.
+- Featured views with several panes: `panes:` (layer, time, colours, difference, link flags per
+  pane) and `layout:` (`2h`, `2v`, `3`, `4` or a layout string). The gallery has three: Storm Ciarán
+  in three panes, the Western Alps in four, and a climate model next to the reanalysis; "True vs
+  false colour" now uses `panes:`. Gallery cards show one picture per pane.
 - Browse S3 buckets in *Add data* (with `--allow-open`): list a bucket or prefix on AWS or an
   S3-compatible store (custom endpoint), filter names, see which entries GeoLoupe opens (Zarr,
   NetCDF, GeoTIFF/COG, tables, vector files; a folder that is a Zarr store), and open one in the
@@ -29,6 +38,9 @@ the configuration format; such changes are listed here).
   title does not.
 
 ### Fixed
+
+- Open menus (Export, Compare, …) are drawn above the point details panel.
+- Panes of a link or view that share the time start at the link's time, not at the latest one.
 
 - A `?` in a web address (query string) is no longer read as a file pattern, so signed or
   parameterised URLs open with the right reader; a web page (`.html`) gets a clear message.

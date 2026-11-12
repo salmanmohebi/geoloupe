@@ -4,11 +4,13 @@ import { useState } from "react";
 import { api } from "../api/client";
 import { BASEMAPS } from "../lib/basemaps";
 import { getLut } from "../lib/colormap";
-import { exportPng } from "../lib/exportImage";
+import { exportLayoutPng, exportPng, type PaneFigure } from "../lib/exportImage";
+import { layerName } from "../lib/layers";
+import { getPaneMaps } from "../lib/mapRegistry";
 import { MAX_PANES, paneIds, PRESET_PANES, preset, rects, type Preset } from "../lib/layout";
 import { unitLabel } from "../lib/format";
 import { timelineOf } from "../lib/timeline";
-import { useStore, validTime, type Basemap, type CompareMode } from "../state/store";
+import { paneOf, useStore, validTime, type Basemap, type CompareMode } from "../state/store";
 import { niceTicks } from "./Colorbar";
 import { AddDataButton } from "./AddData";
 import { Icon } from "./Icon";
@@ -197,6 +199,7 @@ export function Toolbar() {
   const view = useStore((s) => s.view);
   const catalog = useStore((s) => s.catalog);
   const panes = useStore((s) => paneIds(s.layout).length);
+  const zoomed = useStore((s) => s.zoomed);
   const { setBasemap, setGlobe, notify } = useStore.getState();
 
   const share = async () => {
@@ -205,6 +208,59 @@ export function Toolbar() {
       notify("info", "Link copied: it reopens this exact view (layer, time, colours, position).");
     } catch {
       notify("info", `Copy this link: ${window.location.href}`);
+    }
+  };
+
+  const layoutPng = async () => {
+    const s = useStore.getState();
+    const boxes = rects(s.layout);
+    const maps = getPaneMaps();
+    const area = document.querySelector(".map-view");
+    if (!area) return;
+    const figures: PaneFigure[] = [];
+    const times = new Set<string>();
+    const used = new Set<string>();
+    paneIds(s.layout).forEach((id, i) => {
+      const p = paneOf(s, id);
+      const map = maps[id];
+      const l = p?.main.layer;
+      if (!p || !l || !map) return;
+      const diff = p.compare.mode === "diff";
+      const st = diff ? p.diffStyle : p.style;
+      const bar = l.kind !== "rgb" && !l.bands && !l.classes && l.kind !== "points";
+      const name = diff ? `${layerName(l)} − ${layerName(p.compare.layer)}` : layerName(l);
+      figures.push({
+        map,
+        rect: boxes[id],
+        label: `${i + 1} · ${name}${p.main.time ? ` · ${p.main.time}` : ""}`,
+        scale: bar
+          ? { lut: getLut(colormaps, st.colormap), vmin: st.vmin, vmax: st.vmax, log: st.log }
+          : null,
+        units: diff ? "" : unitLabel(l.units),
+        ticks: niceTicks(st.vmin, st.vmax, st.log),
+      });
+      if (p.main.time) times.add(p.main.time);
+      for (const src of l.sources) used.add(src.dataset);
+    });
+    if (!figures.length) return;
+    const attrib = catalog?.datasets
+      .filter((d) => used.has(d.id) && d.attribution)
+      .map((d) => d.attribution)
+      .join("; ");
+    try {
+      await exportLayoutPng(
+        figures,
+        { width: area.clientWidth, height: area.clientHeight },
+        {
+          title: figures.map((f) => f.label.split(" · ")[1]).join(" | "),
+          subtitle: [times.size === 1 ? [...times][0] : "", `${figures.length} panes`]
+            .filter(Boolean)
+            .join(" · "),
+          credit: `GeoLoupe${attrib ? ` · ${attrib}` : ""}`,
+        },
+      );
+    } catch (e) {
+      notify("error", `Image export failed: ${(e as Error).message}`);
     }
   };
 
@@ -284,8 +340,20 @@ export function Toolbar() {
       </Menu>
       <Menu label="Export">
         <button className="menu-item" onClick={png}>
-          Map image (PNG with legend)
+          {panes > 1 ? "Active pane as an image (PNG)" : "Map image (PNG with legend)"}
         </button>
+        {panes > 1 && (
+          <button
+            className="menu-item"
+            onClick={layoutPng}
+            disabled={!!zoomed}
+            title={
+              zoomed ? "Show all panes first (z)" : "Every pane as on screen, with its label and colour bar"
+            }
+          >
+            All {panes} panes as one image (PNG)
+          </button>
+        )}
         <button
           className="menu-item"
           onClick={exportNc}

@@ -6,9 +6,11 @@ import { api } from "../api/client";
 import type { PointResult, Series, TimeSeriesResult } from "../api/types";
 import { fetchStationSeries, type StationSeries } from "../lib/points";
 import { fmt, fmtLonLat, unitLabel } from "../lib/format";
+import { paneIds } from "../lib/layout";
 import { useStore } from "../state/store";
 import { timelineOf, type Timeline } from "../lib/timeline";
 import { useFetch } from "../lib/useFetch";
+import { PaneValues } from "./PaneValues";
 import { mergeSeries, seriesColor, TimeSeriesChart } from "./TimeSeriesChart";
 
 const WINDOW = 730; // time steps loaded around the current time
@@ -27,6 +29,8 @@ export function Inspector() {
   const compare = useStore((s) => s.compare);
   const { setInspect, setTime } = useStore.getState();
   const [full, setFull] = useState(false);
+  const paneNo = useStore((s) => paneIds(s.layout).indexOf(s.active) + 1);
+  const multi = useStore((s) => paneIds(s.layout).length > 1);
   const layer = main.layer;
   const gridded = layer?.kind !== "points"; // a point layer has no grid to query
 
@@ -220,10 +224,11 @@ export function Inspector() {
           </p>
         )}
       </section>
+      <PaneValues inspect={inspect} />
       {timelineOf(layer).count > 1 && (
         <section>
           <div className="section-head">
-            <span>Time series</span>
+            <span>{multi ? `Pane ${paneNo}: all sources` : "Time series"}</span>
             <span className="muted small">{range ? `${range[0]} … ${range[1]}` : ""}</span>
           </div>
           {loadingTs && <div className="skeleton chart-skeleton">Reading the time series…</div>}

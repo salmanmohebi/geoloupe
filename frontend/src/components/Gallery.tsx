@@ -3,7 +3,8 @@
 
 import { useEffect, useState } from "react";
 import type { FeaturedView, LayerSummary } from "../api/types";
-import { thumbnailUrl, viewHash } from "../lib/gallery";
+import { thumbnailUrl, viewHash, viewLayout } from "../lib/gallery";
+import { rects } from "../lib/layout";
 import { useStore } from "../state/store";
 import { Icon } from "./Icon";
 
@@ -18,6 +19,8 @@ function Card({ view, layers }: { view: FeaturedView; layers: Map<string, LayerS
   const other = view.compare ? layers.get(view.compare) : undefined;
   const isPoints = layer?.kind === "points";
   const split = !!other && (view.compare_mode ?? "split") === "split";
+  const lay = viewLayout(view);
+  const boxes = lay ? rects(lay) : null;
   const open = () => {
     const hash = viewHash(view);
     if (hash === window.location.hash) useStore.getState().setGalleryOpen(false);
@@ -28,6 +31,27 @@ function Card({ view, layers }: { view: FeaturedView; layers: Map<string, LayerS
       <div className={`thumb ${isPoints ? "points" : ""}`}>
         {isPoints ? (
           <span className="thumb-dots" aria-hidden />
+        ) : boxes ? (
+          // one picture per pane, placed as in the layout
+          Object.entries(boxes).map(([id, r]) => {
+            const k = Number(id.slice(1));
+            const src =
+              k === 0 ? thumbnailUrl(view) : thumbnailUrl(view, view.layer, view.time, view.panes![k - 1]);
+            return (
+              <div
+                key={id}
+                className="thumb-pane"
+                style={{
+                  left: `${r.x * 100}%`,
+                  top: `${r.y * 100}%`,
+                  width: `${r.w * 100}%`,
+                  height: `${r.h * 100}%`,
+                }}
+              >
+                <Thumb src={src} alt="" />
+              </div>
+            );
+          })
         ) : (
           <>
             <Thumb src={thumbnailUrl(view)} alt="" />
@@ -39,7 +63,15 @@ function Card({ view, layers }: { view: FeaturedView; layers: Map<string, LayerS
           </>
         )}
         <span className="thumb-kind">
-          {isPoints ? "stations" : split ? "side by side" : other ? "difference" : (layer?.kind ?? "")}
+          {isPoints
+            ? "stations"
+            : boxes
+              ? `${Object.keys(boxes).length} panes`
+              : split
+                ? "side by side"
+                : other
+                  ? "difference"
+                  : (layer?.kind ?? "")}
         </span>
       </div>
       <div className="card-text">

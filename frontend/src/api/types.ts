@@ -113,6 +113,23 @@ export interface FeaturedView {
   compare_time?: string;
   overlay?: string;
   vectors?: string[];
+  panes?: ViewPane[]; // more panes next to the first (the view's own layer)
+  layout?: string; // "2h", "2v", "3", "4" or a layout string (lib/layout encodeLayout)
+}
+
+/** One more pane of a featured view. */
+export interface ViewPane {
+  layer: string;
+  time?: string;
+  dims?: Record<string, string | number>;
+  colormap?: string;
+  vmin?: number;
+  vmax?: number;
+  log?: boolean;
+  compare?: string; // the difference A − B in this pane
+  compare_time?: string;
+  link_view?: boolean;
+  link_time?: boolean;
 }
 
 export interface LevelInfo {

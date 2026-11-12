@@ -9,7 +9,11 @@ export const setMainMap = (m: MlMap | null) => {
   (window as unknown as { __geoloupeMap?: MlMap | null }).__geoloupeMap = m;
 };
 export const getMainMap = () => mainMap;
+let paneMaps: Record<string, MlMap> = {};
+/** Every pane's map by pane id (layout export). */
+export const getPaneMaps = () => paneMaps;
 export const setPaneMaps = (maps: Record<string, MlMap>, order: string[]) => {
+  paneMaps = maps;
   (window as unknown as { __geoloupeMaps?: (MlMap | undefined)[] }).__geoloupeMaps = order.map(
     (id) => maps[id],
   );

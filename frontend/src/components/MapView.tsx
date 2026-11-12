@@ -10,6 +10,7 @@ import type { LayerMeta, VectorInfo } from "../api/types";
 import { classTable } from "../lib/classes";
 import { cssGradient, getLut } from "../lib/colormap";
 import { dividers, paneIds, rects, type Divider, type Rect } from "../lib/layout";
+import { layerName } from "../lib/layers";
 import { setMainMap, setPaneMaps } from "../lib/mapRegistry";
 import { useLatest } from "../lib/useLatest";
 import { fmt, fmtLonLat, unitLabel } from "../lib/format";
@@ -453,14 +454,6 @@ function PaneMap({
   );
 }
 
-/** Whether a layer title already names its dataset (or the other way round). */
-function overlaps(title: string, dataset: string): boolean {
-  const a = title.toLowerCase();
-  const b = dataset.split(" (")[0].toLowerCase();
-  const inner = /\(([^)]+)\)/.exec(title)?.[1]?.toLowerCase();
-  return a.includes(b) || b.includes(a) || (!!inner && b.includes(inner));
-}
-
 /** A pane's corner box: number, layer, time, colour legend, links, split / zoom / close. */
 function PaneBox({
   id,
@@ -487,13 +480,7 @@ function PaneBox({
   const layer = p.main.layer;
   const diff = p.compare.mode === "diff";
   const st = diff ? p.diffStyle : p.style;
-  const name = (l: LayerMeta | null) =>
-    !l
-      ? ""
-      : l.kind === "dataset" && l.sources[0] && !overlaps(l.title, l.sources[0].dataset_title)
-        ? `${l.title} · ${l.sources[0].dataset_title.split(" (")[0]}` // which dataset's variable
-        : l.title;
-  const title = diff ? `${name(layer)} − ${name(p.compare.layer)}` : name(layer);
+  const title = diff ? `${layerName(layer)} − ${layerName(p.compare.layer)}` : layerName(layer);
   const legend =
     layer &&
     p.styleReady &&

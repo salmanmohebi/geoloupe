@@ -685,6 +685,10 @@ button:focus-visible {
 .menu {
   position: relative;
 }
+/* an open menu goes above the point details (the overlay's z-index caps its children) */
+.overlay:has(.menu-pop) {
+  z-index: 12;
+}
 .menu-backdrop {
   position: fixed;
   inset: 0;
@@ -1120,6 +1124,12 @@ button:focus-visible {
   clip-path: inset(0 0 0 50%);
   border-left: 2px solid #fff;
 }
+.gallery-card .thumb-pane {
+  position: absolute;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid #fff; /* the dividers between panes */
+}
 .gallery-card .thumb-dots {
   position: absolute;
   inset: 0;
@@ -1498,4 +1508,22 @@ button.s3-entry:hover {
   flex-wrap: wrap;
   align-items: center;
   gap: 2px 12px;
+}
+
+/* point details with several panes */
+.pane-values .value-table td:first-child {
+  padding-left: 0;
+}
+.pane-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-right: 6px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  vertical-align: 1px;
 }
