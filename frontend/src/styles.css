@@ -1615,3 +1615,28 @@ button.s3-entry:hover {
 .btn.primary:disabled {
   opacity: 0.5;
 }
+.pane-stats {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.pane-stats.exact::after {
+  content: " ✓";
+  color: var(--accent);
+}
+.cb-stats {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+.stat-chip {
+  display: inline-block;
+  margin: 0 6px 4px 0;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}

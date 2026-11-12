@@ -36,6 +36,12 @@ export async function fetchTile(url: string, size: number, signal?: AbortSignal)
           contributions: parseContributions(r.headers.get("X-GeoLoupe-Sources")),
           skipped: parseSkipped(r.headers.get("X-GeoLoupe-Skipped")),
           ms: Number(r.headers.get("X-GeoLoupe-Time-Ms") ?? 0),
+          ...(r.headers.has("X-GeoLoupe-Exact")
+            ? {
+                exact: r.headers.get("X-GeoLoupe-Exact") === "1",
+                cellM: Number(r.headers.get("X-GeoLoupe-Cell-M") ?? NaN),
+              }
+            : {}),
         };
         if (r.status === 204) return { values: null, sourceMap: null, ...meta };
         if (!r.ok) {

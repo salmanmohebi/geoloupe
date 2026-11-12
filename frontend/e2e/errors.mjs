@@ -22,6 +22,8 @@ const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, dev
 const errors = [];
 page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
 page.on("pageerror", (e) => errors.push(String(e)));
+let exactRequests = 0;
+page.on("request", (r) => r.url().includes("/api/error/tiles/") && exactRequests++);
 
 let failed = 0;
 reportCrashes("errors");
@@ -111,6 +113,37 @@ const tip = await page.evaluate(() => document.querySelector(".hover-tip")?.text
 check(/-?\d/.test(tip) && /K/.test(tip), `hover reads the error (${tip.slice(0, 80)})`);
 await page.mouse.move(5, 450);
 
+// 3b. After the preview, the exact tiles of the server, and statistics of the view
+await page.waitForSelector(".cb-stats", { timeout: 60_000 }).catch(() => null);
+const cbStats = await page.evaluate(() => document.querySelector(".cb-stats")?.textContent ?? "");
+check(exactRequests > 0, `exact error tiles are fetched from the server (${exactRequests})`);
+check(/bias/.test(cbStats) && /MAE/.test(cbStats) && /RMSE/.test(cbStats), `view statistics (${cbStats})`);
+check(/exact|grid/.test(cbStats), "with how they were computed");
+const paneStats = await page.evaluate(
+  () => document.querySelector(".map-pane.active .pane-stats")?.textContent ?? "",
+);
+check(/MAE/.test(paneStats), `the pane box shows them too (${paneStats})`);
+
+// 3c. Point details: the error at the point, over time, and in the list of all panes
+await page.keyboard.press("i");
+await page.mouse.click(c.x, c.y);
+await page.waitForSelector(".error-series", { timeout: 30_000 }).catch(() => null);
+const chips = await page.evaluate(() =>
+  [...document.querySelectorAll(".error-series .stat-chip")].map((e) => e.textContent),
+);
+check(chips.length === 3 && /RMS/.test(chips.join()), `error over time at the point (${chips.join(" | ")})`);
+check((await page.locator(".error-series canvas").count()) > 0, "with a chart");
+const rows = await page.evaluate(() =>
+  [...document.querySelectorAll(".pane-values tr")].map((r) => r.textContent),
+);
+check(
+  rows.some((r) => r.startsWith("2") && r.includes("P − T") && /K/.test(r)),
+  `the error pane's value in "all panes" (${rows.join(" | ").slice(0, 160)})`,
+);
+await page.screenshot({ path: `${out}/errors-1b-inspect.png` });
+await page.keyboard.press("Escape");
+await page.locator(".inspector .icon-btn").click();
+
 // 4. The side panel sets it up: absolute error, then relative error with a parameter
 const def = page.locator("select[aria-label='Error definition']");
 check(await def.isVisible(), "the side panel shows the error section");
@@ -133,9 +166,16 @@ await settle();
 check((await legendTitle()).includes("(P − T) / T"), "relative error");
 check(/%/.test((await activePane())?.legend ?? ""), "relative error is in %");
 
-// 5. Events: a class legend with names
+// 4b. Events: scores of the view
 await def.selectOption("events");
+await page.locator(".error-panel .param input").fill("290");
+await page.locator(".error-panel .param input").press("Enter");
 await settle();
+await page.waitForSelector(".cb-stats", { timeout: 60_000 }).catch(() => null);
+const scores = await page.evaluate(() => document.querySelector(".cb-stats")?.textContent ?? "");
+check(/POD/.test(scores) && /CSI/.test(scores), `event scores of the view (${scores})`);
+
+// 5. Events: a class legend with names
 const classes = await page.evaluate(() =>
   [...document.querySelectorAll(".class-legend .class-name")].map((e) => e.textContent),
 );

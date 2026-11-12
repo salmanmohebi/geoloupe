@@ -159,6 +159,7 @@ describe("error tiles", () => {
       scale: pe.conv.scale,
       offset: pe.conv.offset,
       key: pe.key,
+      server: null,
     });
     expect(out![0]).toBeCloseTo(3.15, 4); // 20 °C = 293.15 K
     expect(out![1]).toBeNaN();

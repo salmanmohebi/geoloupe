@@ -1,7 +1,44 @@
 // What the user is looking at (sources and resolution levels in view),
 // loading state, and notices.
 
+import type { LayerMeta } from "../api/types";
+import { exactness } from "../lib/paneDraw";
 import { useStore } from "../state/store";
+
+/** "Alps downscaled 0.01° · Global reanalysis 1°": the native data of a layer. */
+const nativeOf = (l: LayerMeta | null) =>
+  (l?.sources ?? [])
+    .map((s) => `${s.dataset_title.split(" (")[0]} ${s.resolution.split(" (")[0]}`)
+    .join(" · ");
+
+/** Error maps: what the error is computed from, and whether from native cells. */
+function ErrorProvenance() {
+  const main = useStore((s) => s.main);
+  const compare = useStore((s) => s.compare);
+  const loading = useStore((s) => s.loading);
+  const stats = useStore((s) => s.errorStats[s.active] ?? null);
+  return (
+    <div className="provenance panel" role="status" aria-live="polite">
+      {loading > 0 && <span className="spinner" aria-label="loading" />}
+      <span className="eyebrow">Error of</span>
+      <span className="prov-part" title={main.layer?.title}>
+        <b>P</b> {nativeOf(main.layer)}
+      </span>
+      <span className="prov-part" title={compare.layer?.title}>
+        <b>T</b> {nativeOf(compare.layer)}
+      </span>
+      {stats?.count ? (
+        <span className={`tag ${stats.exact ? "nat" : "ov"}`} title={exactness(stats)}>
+          {stats.exact ? "native cells" : "coarser grid"}
+        </span>
+      ) : (
+        <span className="tag ov" title="Computed from the map's pixels until the exact tiles arrive">
+          preview
+        </span>
+      )}
+    </div>
+  );
+}
 
 export function ProvenanceBadge() {
   const summary = useStore((s) => s.summary);
@@ -11,6 +48,7 @@ export function ProvenanceBadge() {
   const layer = main.layer;
   const points = useStore((s) => s.points);
   if (!layer) return null;
+  if (compare.mode === "error") return <ErrorProvenance />;
   if (layer.kind === "points")
     return (
       <div className="provenance panel" role="status" aria-live="polite">
@@ -61,7 +99,7 @@ export function ProvenanceBadge() {
   return (
     <div className="provenance panel" role="status" aria-live="polite">
       {loading > 0 && <span className="spinner" aria-label="loading" />}
-      <span className="eyebrow">{compare.mode === "error" ? "P shows" : "Showing"}</span>
+      <span className="eyebrow">Showing</span>
       {parts.length === 0 && <span className="muted">{loading ? "loading…" : "no data in view"}</span>}
       {groups.map((g) => (
         <span key={g.key} className="prov-part" title={g.title}>

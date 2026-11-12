@@ -31,6 +31,7 @@ export interface ErrorRender {
   scale: number;
   offset: number;
   key: string; // identity of fn + conversion (for render keys)
+  server: Record<string, string> | null; // exact tiles from the server (paneDraw.errorQuery)
 }
 
 export interface RenderSpec {
@@ -61,6 +62,10 @@ export function getSpec(id: string): RenderSpec | undefined {
 export const dataUrl = (ref: DataRef, z: number, x: number, y: number) =>
   api.tileUrl(ref.layerId, z, x, y, ref.time, ref.dims);
 
+/** The exact error tile of a spec drawn from the server, or null (preview from P and T). */
+const serverUrl = (spec: RenderSpec, z: number, x: number, y: number) =>
+  spec.error?.server ? api.errorTileUrl(spec.error.server, z, x, y) : null;
+
 /** Values shown on one tile: the data, or the error of the data (P) against the reference (T). */
 export function combine(
   a: DataTile,
@@ -84,6 +89,11 @@ export function cachedValues(
   x: number,
   y: number,
 ): { tile: DataTile; values: Float32Array | null } | null {
+  const exact = serverUrl(spec, z, x, y);
+  if (exact) {
+    const e = cachedTile(exact);
+    return e ? { tile: e, values: e.values } : null;
+  }
   const a = cachedTile(dataUrl(spec.data, z, x, y));
   if (!a) return null;
   if (!spec.ref) return { tile: a, values: a.values };
@@ -108,6 +118,15 @@ export function registerProtocol(): void {
     if (!m || !spec) return { data: await blankBitmap() };
     const [z, x, y] = [Number(m[2]), Number(m[3]), Number(m[4])];
     const size = spec.tileSize;
+    const exact = serverUrl(spec, z, x, y);
+    if (exact) {
+      const e = await fetchTile(exact, size, abort.signal);
+      if (!e.values) return { data: await blankBitmap() };
+      const rgba = spec.classes ? colorizeClasses(e.values, spec.classes) : colorize(e.values, spec.scale);
+      return {
+        data: await createImageBitmap(new ImageData(rgba as Uint8ClampedArray<ArrayBuffer>, size, size)),
+      };
+    }
     const [a, b] = await Promise.all([
       fetchTile(dataUrl(spec.data, z, x, y), size, abort.signal),
       spec.ref ? fetchTile(dataUrl(spec.ref, z, x, y), size, abort.signal) : Promise.resolve(null),

@@ -24,6 +24,110 @@ function windowAround(tl: Timeline, current: string | null, n: number): [string,
   return [tl.at(lo), tl.at(hi)];
 }
 
+/** Per time step, the value the map shows: the first source (in priority order) with a value. */
+function shownValues(r: TimeSeriesResult): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const s of r.series)
+    s.times.forEach((t, i) => {
+      const v = s.values[i];
+      if (v !== null && Number.isFinite(v) && !out.has(t)) out.set(t, v);
+    });
+  return out;
+}
+
+/** P's and T's shown values paired by time label, and the error of each pair. */
+function errorSeries(
+  pe: ReturnType<typeof paneError>,
+  ts: TimeSeriesResult | null | undefined,
+  tsT: TimeSeriesResult | null | undefined,
+): { times: string[]; values: (number | null)[] } | null {
+  if (!pe?.e || !ts || !tsT) return null;
+  const P = shownValues(ts);
+  const T = shownValues(tsT);
+  const times = [...P.keys()].filter((t) => T.has(t)).sort();
+  const values = times.map((t) => {
+    const v = pe.e!.fn(P.get(t)! * pe.conv.scale + pe.conv.offset, T.get(t)!);
+    return Number.isFinite(v) ? v : null;
+  });
+  return { times, values };
+}
+
+/** The error of P against T at the inspected point over time, with its summary. */
+function ErrorSeries({
+  series,
+  name,
+  units,
+  classes,
+  current,
+  onPick,
+}: {
+  series: { times: string[]; values: (number | null)[] };
+  name: string;
+  units: string;
+  classes: { value: number; name: string }[];
+  current: string | null;
+  onPick: (t: string) => void;
+}) {
+  const v = series.values.filter((x): x is number => x !== null);
+  if (!series.times.length)
+    return (
+      <section>
+        <div className="section-head">
+          <span>Error over time</span>
+        </div>
+        <p className="muted small">P and T have no common time steps in this window.</p>
+      </section>
+    );
+  const n = v.length;
+  const mean = v.reduce((a, b) => a + b, 0) / Math.max(n, 1);
+  const mae = v.reduce((a, b) => a + Math.abs(b), 0) / Math.max(n, 1);
+  const rmse = Math.sqrt(v.reduce((a, b) => a + b * b, 0) / Math.max(n, 1));
+  const u = units ? ` ${units}` : "";
+  const counts = classes.map((c) => ({ ...c, n: v.filter((x) => x === c.value).length }));
+  const s: Series = {
+    source: 0,
+    id: "error",
+    resolution: "native cells",
+    cell: { lon: 0, lat: 0, row: -1, col: -1 },
+    times: series.times,
+    values: series.values,
+  };
+  return (
+    <section className="error-series">
+      <div className="section-head">
+        <span>Error over time: {name}</span>
+        <span className="muted small">{n} steps</span>
+      </div>
+      <div className="small">
+        {classes.length ? (
+          counts.map((c) => (
+            <span key={c.value} className="stat-chip">
+              {c.name} {c.n}
+            </span>
+          ))
+        ) : (
+          <>
+            <span className="stat-chip">
+              mean {fmt(mean)}
+              {u}
+            </span>
+            <span className="stat-chip">
+              mean |·| {fmt(mae)}
+              {u}
+            </span>
+            <span className="stat-chip">
+              RMS {fmt(rmse)}
+              {u}
+            </span>
+          </>
+        )}
+      </div>
+      <TimeSeriesChart series={[s]} names={[name]} units={units} current={current} onPick={onPick} />
+      <p className="muted small">From the native values of P and T at this point, step by step.</p>
+    </section>
+  );
+}
+
 export function Inspector() {
   const inspect = useStore((s) => s.inspect);
   const main = useStore((s) => s.main);
@@ -79,6 +183,16 @@ export function Inspector() {
   } = useFetch<TimeSeriesResult>(tsKey, (signal) =>
     api.timeseries(main.layerId!, inspect!.lng, inspect!.lat, range![0], range![1], main.dims, signal),
   );
+
+  // error panes: T's series over the same window, and the error at the point over time
+  const tsTKey =
+    tsKey && pe?.e && compare.layerId && compare.layer && timelineOf(compare.layer).count > 1
+      ? JSON.stringify([compare.layerId, inspect, range, compare.dims])
+      : null;
+  const { data: tsT } = useFetch<TimeSeriesResult>(tsTKey, (signal) =>
+    api.timeseries(compare.layerId!, inspect!.lng, inspect!.lat, range![0], range![1], compare.dims, signal),
+  );
+  const errSeries = errorSeries(tsTKey ? pe : null, ts, tsT);
 
   // a clicked station: its observations over the same window
   const station = inspect?.station;
@@ -237,6 +351,16 @@ export function Inspector() {
         )}
       </section>
       <PaneValues inspect={inspect} />
+      {errSeries && (
+        <ErrorSeries
+          series={errSeries}
+          name={errorName(compare.error)}
+          units={unitLabel(drawUnits({ main, compare }))}
+          classes={pe?.e?.classes ?? []}
+          current={main.time}
+          onPick={setTime}
+        />
+      )}
       {timelineOf(layer).count > 1 && (
         <section>
           <div className="section-head">

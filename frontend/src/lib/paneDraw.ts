@@ -2,6 +2,7 @@
 // reference). One place for the colour scale, title, units and range fit of either kind, used by
 // the map, the colour bar, the hover read-out, the side panel and the image export.
 
+import type { ErrorStats } from "../api/types";
 import type { PaneState, Style } from "../state/store";
 import {
   conversion,
@@ -144,4 +145,62 @@ export function fitErrorRange(
   }
   const m = round(Math.max(Math.abs(lo), Math.abs(hi)) || 1);
   return { vmin: -m, vmax: m, log: false };
+}
+
+const dimsParam = (d: Record<string, string>) =>
+  Object.entries(d)
+    .map(([k, v]) => `${k}:${v}`)
+    .join(",");
+
+/** Query parameters of the server's exact error tiles and statistics, or null. */
+export function errorQuery(p: Pick<PaneState, "main" | "compare">): Record<string, string> | null {
+  if (!isErrorPane(p) || !p.main.layerId || !p.compare.layerId) return null;
+  const e = p.compare.error;
+  const q: Record<string, string> = { p: p.main.layerId, t: p.compare.layerId, metric: e.metric };
+  if (p.main.time) q.pt = p.main.time;
+  if (p.compare.time) q.tt = p.compare.time;
+  if (Object.keys(p.main.dims).length) q.pd = dimsParam(p.main.dims);
+  if (Object.keys(p.compare.dims).length) q.td = dimsParam(p.compare.dims);
+  if (e.formula && e.metric === CUSTOM) q.formula = e.formula;
+  if (e.units && e.metric === CUSTOM) q.units = e.units;
+  if (e.params && Object.keys(e.params).length)
+    q.params = Object.entries(e.params)
+      .map(([k, v]) => `${k}:${v}`)
+      .join(",");
+  return q;
+}
+
+const num = (v: number | null | undefined, digits = 3) =>
+  v === null || v === undefined || !Number.isFinite(v) ? "–" : String(Number(v.toPrecision(digits)));
+const pct = (v: number | null | undefined) =>
+  v === null || v === undefined ? "–" : `${Math.round(v * 100)} %`;
+
+/** One line of view statistics for an error pane, e.g. "bias +0.3 · MAE 1.2 · RMSE 1.6 K". */
+export function statsLine(s: ErrorStats | null, choice: ErrorChoice, units: string): string {
+  if (!s || !s.count) return "";
+  const u = units ? ` ${units}` : "";
+  switch (choice.metric) {
+    case "events":
+      return `POD ${num(s.pod, 2)} · FAR ${num(s.far, 2)} · CSI ${num(s.csi, 2)} · bias ${num(s.freq_bias, 2)}`;
+    case "sign":
+      return `same side: ${pct((s.classes?.["1"] ?? 0) / s.count)} of the cells`;
+    case "bias":
+      return `bias ${(s.mean ?? 0) >= 0 ? "+" : ""}${num(s.mean)} · MAE ${num(s.mean_abs)} · RMSE ${num(s.rms)}${u}`;
+    case "abs":
+      return `MAE ${num(s.mean)} · RMSE ${num(s.rms)}${u}`;
+    case "sq":
+      return `MSE ${num(s.mean)}${u} · RMSE ${num(Math.sqrt(s.mean ?? NaN))}`;
+    default:
+      return `mean ${num(s.mean)}${u} · mean |·| ${num(s.mean_abs)}${u}`;
+  }
+}
+
+/** How the statistics were computed: from native cells, or on a coarser grid. */
+export function exactness(s: ErrorStats | null): string {
+  if (!s || !s.count) return "";
+  if (s.exact) return "exact: native cells in view";
+  const m = s.cell_m ?? NaN;
+  return Number.isFinite(m)
+    ? `on a ${m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m)} m`} grid (zoom in for exact)`
+    : "";
 }

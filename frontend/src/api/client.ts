@@ -8,6 +8,7 @@ import type {
   S3Access,
   Catalog,
   Colormap,
+  ErrorStats,
   LayerMeta,
   PointResult,
   Stats,
@@ -101,6 +102,14 @@ export const api = {
   ) =>
     getJson<TimeSeriesResult>(
       apiUrl(`layers/${enc(id)}/timeseries`, { lon, lat, start, end, dims: dimsParam(dims) }),
+      signal,
+    ),
+  /** Exact error tile (server, from native cells) of an error pane; `q` from paneDraw.errorQuery. */
+  errorTileUrl: (q: Record<string, string>, z: number, x: number, y: number) =>
+    apiUrl(`error/tiles/${z}/${x}/${y}.bin`, q),
+  errorStats: (q: Record<string, string>, bbox: number[], z: number, signal?: AbortSignal) =>
+    getJson<ErrorStats>(
+      apiUrl("error/stats", { ...q, bbox: bbox.map((v) => v.toFixed(4)).join(","), z: String(z) }),
       signal,
     ),
   tileUrl: (id: string, z: number, x: number, y: number, time: string | null, dims: Record<string, string>) =>

@@ -6,11 +6,21 @@
 import type { Map as MlMap } from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useShallow } from "zustand/react/shallow";
-import type { LayerMeta, VectorInfo } from "../api/types";
+import { api } from "../api/client";
+import type { ErrorStats, LayerMeta, VectorInfo } from "../api/types";
 import { classTable, type ClassDef } from "../lib/classes";
 import { cssGradient, getLut } from "../lib/colormap";
 import { dividers, paneIds, rects, type Divider, type Rect } from "../lib/layout";
-import { drawStyle, drawTitle, drawUnits, isErrorPane, paneError } from "../lib/paneDraw";
+import {
+  drawStyle,
+  drawTitle,
+  drawUnits,
+  errorQuery,
+  exactness,
+  isErrorPane,
+  paneError,
+  statsLine,
+} from "../lib/paneDraw";
 import { setMainMap, setPaneMaps } from "../lib/mapRegistry";
 import { useLatest } from "../lib/useLatest";
 import { fmt, fmtLonLat, unitLabel } from "../lib/format";
@@ -19,6 +29,7 @@ import { summarize, valueAt, type HoverValue } from "../lib/view";
 import { paneOf, pointsLayerOf, useStore, type PaneState, type Target } from "../state/store";
 import { colorExpression, fetchPoints, toGeoJSON, type PointsResult } from "../lib/points";
 import { useFetch } from "../lib/useFetch";
+import { tileZoom } from "../lib/mercator";
 import { featureDetails, featureLabel, visibleVectors } from "../lib/vectors";
 import { Icon } from "./Icon";
 import { MapCanvas, type FeatureHit, type MapEventInfo, type StationHit } from "./MapCanvas";
@@ -62,8 +73,9 @@ type Drawable = Pick<PaneState, "main" | "style" | "styleReady" | "compare" | "d
 
 const ref = (t: Target) => ({ layerId: t.layerId!, time: t.time, dims: t.dims });
 
-/** A pane's render spec: its layer, or the error map of its layer (P) against T. */
-export function paneSpec(p: Drawable, colormaps: Colormaps): RenderSpec | null {
+/** A pane's render spec: its layer, or the error map of its layer (P) against T: a preview
+ * from the two display tiles, or (`exact`) the server's tiles computed from native cells. */
+export function paneSpec(p: Drawable, colormaps: Colormaps, exact = false): RenderSpec | null {
   const t = p.main;
   if (!p.styleReady || !t.layer || !t.layerId || t.layer.kind === "points") return null; // points are not tiles
   const style = drawStyle(p);
@@ -88,7 +100,13 @@ export function paneSpec(p: Drawable, colormaps: Colormaps): RenderSpec | null {
   return {
     ...base,
     ref: ref(c),
-    error: { fn: pe.e.fn, scale: pe.conv.scale, offset: pe.conv.offset, key: pe.key },
+    error: {
+      fn: pe.e.fn,
+      scale: pe.conv.scale,
+      offset: pe.conv.offset,
+      key: pe.key,
+      server: exact ? errorQuery(p) : null,
+    },
     rgb: null,
     classes: pe.e.classes.length ? classTable(pe.e.classes, getLut(colormaps, style.colormap)) : null,
   };
@@ -107,6 +125,7 @@ const keyOf = (s: RenderSpec | null, cmap: string) =>
         s.data,
         s.ref,
         s.error?.key,
+        s.error?.server,
         cmap,
         s.scale.vmin,
         s.scale.vmax,
@@ -177,7 +196,8 @@ export function MapView() {
   const activeRef = useLatest(active);
   const refreshSummary = useCallback(() => {
     const m = maps.current[activeRef.current];
-    const spec = specRef.current;
+    // the spec the active pane shows (error panes: preview or exact tiles)
+    const spec = draws.current[activeRef.current]?.spec ?? specRef.current;
     const layer = layerRef.current;
     if (!m || !spec || !layer) return setSummary(null);
     setSummary(summarize(m, spec, layer));
@@ -212,13 +232,19 @@ export function MapView() {
       if (!m) return () => {};
       const onEnd = () => {
         const c = m.getCenter();
-        if (id !== activeRef.current) return setPaneView(id, { center: [c.lng, c.lat], zoom: m.getZoom() });
         const b = m.getBounds();
-        setView({
-          center: [c.lng, c.lat],
+        const v = {
+          center: [c.lng, c.lat] as [number, number],
           zoom: m.getZoom(),
-          bounds: [b.getWest(), Math.max(b.getSouth(), -90), b.getEast(), Math.min(b.getNorth(), 90)],
-        });
+          bounds: [b.getWest(), Math.max(b.getSouth(), -90), b.getEast(), Math.min(b.getNorth(), 90)] as [
+            number,
+            number,
+            number,
+            number,
+          ],
+        };
+        if (id !== activeRef.current) return setPaneView(id, v);
+        setView(v);
         refreshSummary();
       };
       m.on("moveend", onEnd);
@@ -388,9 +414,37 @@ function PaneMap({
   const p = pane ?? null;
   const diff = !!p && isErrorPane(p);
   const st = p ? drawStyle(p) : null;
-  const spec = useMemo(() => (p ? paneSpec(p, colormaps) : null), [p, colormaps]);
+  // Error maps: the preview (from P's and T's display tiles) first, then the exact tiles of the
+  // server once the preview is on screen. `refined` names the data the exact tiles are for, so
+  // colour changes keep them; a new time, layer or definition starts with a preview again.
+  const preview = useMemo(() => (p ? paneSpec(p, colormaps) : null), [p, colormaps]);
+  const exactSpec = useMemo(() => (p && diff ? paneSpec(p, colormaps, true) : null), [p, diff, colormaps]);
+  const dataKey = exactSpec ? JSON.stringify([exactSpec.error?.server, exactSpec.error?.key]) : "";
+  const [refined, setRefined] = useState("");
+  const spec = exactSpec && refined === dataKey ? exactSpec : preview;
   const key = keyOf(spec, st?.colormap ?? "");
+  // MapCanvas calls the latest version of this (through a ref) when a spec is on screen
+  const specShown = () => {
+    if (dataKey && spec !== exactSpec) setRefined(dataKey);
+    if (isActive) onSpecShown();
+  };
   const layer = p?.main.layer ?? null;
+
+  // view statistics of an error pane (native cells in view), once its exact tiles are asked for
+  const q = useMemo(() => (p && diff ? errorQuery(p) : null), [p, diff]);
+  const vb = p?.view?.bounds;
+  const viewBox = vb ? [Math.max(vb[0], -180), vb[1], Math.min(vb[2], 180), vb[3]] : null;
+  const tz = layer && p?.view ? tileZoom(p.view.zoom, layer.tile_size, layer.maxzoom) : null;
+  const statsKey =
+    q && viewBox && viewBox[0] < viewBox[2] && tz !== null && refined === dataKey
+      ? JSON.stringify([q, viewBox.map((v) => Number(v.toFixed(3))), tz])
+      : null;
+  const { data: errStats } = useFetch<ErrorStats>(statsKey, (signal) =>
+    api.errorStats(q!, viewBox!, tz!, signal),
+  );
+  const shownStats = statsKey ? (errStats ?? null) : null;
+  useEffect(() => useStore.getState().setErrorStats(id, shownStats), [id, shownStats]);
+
   const units = p ? unitLabel(drawUnits(p)) : "";
   const classes = useMemo(() => (p ? drawClasses(p) : null), [p]);
   useEffect(
@@ -486,7 +540,7 @@ function PaneMap({
         onClick={onClick}
         points={geojson}
         pointColor={pointColor}
-        onSpecShown={isActive ? onSpecShown : undefined}
+        onSpecShown={specShown}
         onTileError={onTileError}
         vectors={vectors}
       />
@@ -511,6 +565,7 @@ function PaneBox({
 }) {
   const colormaps = useStore((s) => s.colormaps);
   const zoomed = useStore((s) => s.zoomed === id);
+  const errStats = useStore((s) => s.errorStats[id] ?? null);
   const [folded, setFolded] = useState(false); // only the pane number, to keep the map free
   const { splitPane, closePane, toggleZoom, setLinks, activatePane } = useStore.getState();
   // the buttons act on the active pane: make this one active first
@@ -569,6 +624,11 @@ function PaneBox({
               {fmt(st.vmin)} – {fmt(st.vmax)} {unitLabel(drawUnits(p))}
             </span>
           )}
+          {diff && errStats?.count ? (
+            <span className={`pane-stats${errStats.exact ? " exact" : ""}`} title={exactness(errStats)}>
+              {statsLine(errStats, p.compare.error, unitLabel(drawUnits(p)))}
+            </span>
+          ) : null}
           <button
             className={p.linkView ? "on" : ""}
             title={

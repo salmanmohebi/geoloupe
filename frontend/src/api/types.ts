@@ -253,3 +253,22 @@ export interface Stats {
   p98?: number;
   histogram?: { counts: number[]; edges: number[] };
 }
+
+/** Error statistics over the native cells of a view (/api/error/stats). */
+export interface ErrorStats {
+  count: number;
+  zoom: number;
+  tiles: number;
+  exact: boolean; // computed from native cells everywhere
+  mean?: number;
+  mean_abs?: number;
+  rms?: number;
+  min?: number;
+  max?: number;
+  cell_m?: number; // size of the finest sub-pixels used
+  classes?: Record<string, number>; // class maps: cells per class
+  pod?: number | null; // event maps: probability of detection
+  far?: number | null; // false alarm ratio
+  csi?: number | null; // critical success index
+  freq_bias?: number | null;
+}

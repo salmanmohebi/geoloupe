@@ -8,10 +8,11 @@ import { api } from "../api/client";
 import type { LayerMeta, PointResult, Series, TimeSeriesResult } from "../api/types";
 import { fmt, unitLabel } from "../lib/format";
 import { layerName } from "../lib/layers";
+import { drawTitle, drawUnits, paneError } from "../lib/paneDraw";
 import { paneIds } from "../lib/layout";
 import { timelineOf, type Timeline } from "../lib/timeline";
 import { useFetch } from "../lib/useFetch";
-import { useStore, type Inspect } from "../state/store";
+import { useStore, type AppState, type Inspect } from "../state/store";
 import { seriesColor, TimeSeriesChart } from "./TimeSeriesChart";
 
 const WINDOW = 730; // time steps around the current time, as in the active pane's chart
@@ -21,6 +22,7 @@ interface PaneAt {
   layer: LayerMeta;
   time: string | null;
   dims: Record<string, string>;
+  error: AppState["compare"] | null; // error panes: T and the definition (the layer is P)
 }
 
 function windowAround(tl: Timeline, current: string | null): [string, string] {
@@ -40,32 +42,50 @@ export function PaneValues({ inspect }: { inspect: Inspect }) {
     useShallow((s) =>
       paneIds(s.layout).flatMap((id) => {
         const p = id === s.active ? s.main : s.panes[id]?.main;
-        return [p?.layer ?? null, p?.time ?? null, p?.dims ?? null];
+        const c = id === s.active ? s.compare : s.panes[id]?.compare;
+        return [p?.layer ?? null, p?.time ?? null, p?.dims ?? null, c?.mode === "error" ? c : null];
       }),
     ),
   );
   const { setTime } = useStore.getState();
   const panes: PaneAt[] = useMemo(() => {
     const out: PaneAt[] = [];
-    for (let i = 0; i < flat.length; i += 3) {
+    for (let i = 0; i < flat.length; i += 4) {
       const layer = flat[i] as LayerMeta | null;
       if (layer && layer.kind !== "points")
         out.push({
-          n: i / 3 + 1,
+          n: i / 4 + 1,
           layer,
           time: flat[i + 1] as string | null,
           dims: (flat[i + 2] ?? {}) as Record<string, string>,
+          error: flat[i + 3] as AppState["compare"] | null,
         });
     }
     return out;
   }, [flat]);
 
   // values now
-  const pointKey = JSON.stringify([inspect.lng, inspect.lat, panes.map((p) => [p.layer.id, p.time, p.dims])]);
+  const pointKey = JSON.stringify([
+    inspect.lng,
+    inspect.lat,
+    panes.map((p) => [p.layer.id, p.time, p.dims, p.error?.layerId, p.error?.time, p.error?.dims]),
+  ]);
   const { data: points } = useFetch<(PointResult | null)[]>(pointKey, (signal) =>
     Promise.all(
       panes.map((p) =>
         api.point(p.layer.id, inspect.lng, inspect.lat, p.time, p.dims, signal).catch(() => null),
+      ),
+    ),
+  );
+  // error panes also need T's value
+  const { data: refPoints } = useFetch<(PointResult | null)[]>(pointKey, (signal) =>
+    Promise.all(
+      panes.map((p) =>
+        p.error?.layerId
+          ? api
+              .point(p.error.layerId, inspect.lng, inspect.lat, p.error.time, p.error.dims, signal)
+              .catch(() => null)
+          : Promise.resolve(null),
       ),
     ),
   );
@@ -87,7 +107,7 @@ export function PaneValues({ inspect }: { inspect: Inspect }) {
   const { data: series, loading } = useFetch<(TimeSeriesResult | null)[]>(tsKey, (signal) =>
     Promise.all(
       panes.map((p, i) =>
-        windows[i]
+        windows[i] && !p.error
           ? api
               .timeseries(
                 p.layer.id,
@@ -131,18 +151,39 @@ export function PaneValues({ inspect }: { inspect: Inspect }) {
       <table className="value-table">
         <tbody>
           {panes.map((p, i) => {
-            const pt = points?.[i];
+            let pt = points?.[i];
+            let classes = p.layer.classes;
+            let name = layerName(p.layer);
+            let units = unitLabel(p.layer.units);
+            if (p.error) {
+              // the error of P against T at this point, from their native values
+              const draw = {
+                main: { layerId: p.layer.id, layer: p.layer, time: p.time, dims: p.dims },
+                compare: p.error,
+              };
+              const pe = paneError(draw);
+              const t = refPoints?.[i];
+              const v =
+                pe?.e && pt?.value != null && t?.value != null
+                  ? pe.e.fn(pt.value * pe.conv.scale + pe.conv.offset, t.value)
+                  : null;
+              pt =
+                pt === undefined || t === undefined
+                  ? undefined
+                  : pt && { ...pt, value: v !== null && Number.isFinite(v) ? v : null };
+              classes = pe?.e?.classes.length ? pe.e.classes.map((c) => ({ ...c, color: c.color })) : null;
+              name = drawTitle(draw);
+              units = unitLabel(drawUnits(draw));
+            }
             const cls =
-              p.layer.classes && pt?.value != null
-                ? p.layer.classes.find((c) => c.value === Math.round(pt.value!))
-                : null;
+              classes && pt?.value != null ? classes.find((c) => c.value === Math.round(pt!.value!)) : null;
             return (
               <tr key={p.n}>
                 <td>
                   <span className="pane-tag" style={{ background: seriesColor(p.n - 1) }}>
                     {p.n}
                   </span>
-                  {layerName(p.layer)}
+                  {name}
                   {p.time && <div className="muted small">{p.time}</div>}
                 </td>
                 <td className="num">
@@ -153,9 +194,7 @@ export function PaneValues({ inspect }: { inspect: Inspect }) {
                   ) : (
                     <b>{cls ? cls.name : fmt(pt.value)}</b>
                   )}{" "}
-                  {pt?.value != null && !cls && (
-                    <span className="muted small">{unitLabel(p.layer.units)}</span>
-                  )}
+                  {pt?.value != null && !cls && <span className="muted small">{units}</span>}
                 </td>
               </tr>
             );

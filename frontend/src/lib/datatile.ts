@@ -18,6 +18,8 @@ export interface DataTile {
   contributions: Contribution[];
   skipped: { source: number; reason: string }[];
   ms: number; // server time
+  exact?: boolean; // error tiles: computed from native cells
+  cellM?: number; // error tiles: size of the sub-pixels used, metres
 }
 
 export const EMPTY_SOURCE = 255;

@@ -6,7 +6,7 @@ import { cssGradient, getLut, scalePosition } from "../lib/colormap";
 import { fmtTick, unitLabel } from "../lib/format";
 import { classShares, classTable } from "../lib/classes";
 import { pointsSample } from "../lib/points";
-import { drawTitle, drawUnits, paneError } from "../lib/paneDraw";
+import { drawTitle, drawUnits, exactness, paneError, statsLine } from "../lib/paneDraw";
 import { histogram } from "../lib/view";
 import { useStore } from "../state/store";
 
@@ -44,6 +44,13 @@ export function Colorbar() {
   const diff = compare.mode === "error";
   const st = diff ? diffStyle : styleMain; // = drawStyle(pane)
   const errClasses = paneError(pane)?.e?.classes ?? [];
+  const errStats = useStore((s) => (diff ? (s.errorStats[s.active] ?? null) : null));
+  const statsBlock = errStats?.count ? (
+    <div className="cb-stats small">
+      <b>{statsLine(errStats, compare.error, unitLabel(drawUnits(pane)))}</b>
+      <div className="muted">{exactness(errStats)}</div>
+    </div>
+  ) : null;
 
   const { vmin, vmax, log } = st;
   const hist = useMemo(() => {
@@ -90,6 +97,7 @@ export function Colorbar() {
           })}
         </ul>
         {shares && <div className="muted small">share of the view</div>}
+        {statsBlock}
       </div>
     );
   }
@@ -155,6 +163,7 @@ export function Colorbar() {
           {hist.above > 0.005 && <span>{Math.round(hist.above * 100)}% above max</span>}
         </div>
       )}
+      {statsBlock}
     </div>
   );
 }

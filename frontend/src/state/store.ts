@@ -3,7 +3,7 @@
 
 import { create } from "zustand";
 import { api } from "../api/client";
-import type { Catalog, Colormap, LayerMeta } from "../api/types";
+import type { Catalog, Colormap, ErrorStats, LayerMeta } from "../api/types";
 import {
   MAX_PANES,
   PRESET_PANES,
@@ -120,6 +120,7 @@ export interface AppState {
   showPoints: boolean;
   overlay: string | null; // point layer drawn over gridded layers; null = the configured one
   points: PointsResult | null;
+  errorStats: Record<string, ErrorStats | null>; // per error pane: statistics of its view
 
   init: (initial?: Partial<UrlState>) => Promise<void>;
   setupPane: (u: Partial<UrlState>, fallbackLayer: string) => Promise<void>;
@@ -159,6 +160,7 @@ export interface AppState {
   refreshCatalog: () => Promise<void>;
   setSummary: (s: ViewSummary | null) => void;
   setLoading: (n: number) => void;
+  setErrorStats: (pane: string, s: ErrorStats | null) => void;
 }
 
 /** Everything that goes into a shareable link. */
@@ -400,6 +402,7 @@ export const useStore = create<AppState>((set, get) => ({
   showPoints: true,
   overlay: null,
   points: null,
+  errorStats: {},
 
   init: async (initial = {}) => {
     try {
@@ -795,6 +798,9 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
   setLoading: (n) => set({ loading: n }),
+  setErrorStats: (pane, s) => {
+    if (get().errorStats[pane] !== s) set({ errorStats: { ...get().errorStats, [pane]: s } });
+  },
 }));
 
 const sameDims = (a: Record<string, string>, b: Record<string, string>) => {

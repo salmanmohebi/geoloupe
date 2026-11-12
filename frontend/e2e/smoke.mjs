@@ -34,9 +34,10 @@ const DEFAULT = [
     expect: ["· Alps downscaled", "· Global reanalysis"],
   },
   {
-    name: "05-difference",
+    name: "05-error-map",
+    // a difference link from 0.2 (cmp=diff) opens as an error map, P − T
     hash: "#layer=alps:tas&t=2021-07-15&c=10.2,46.4&z=6.5&cmp=diff&cl=global:tas",
-    expect: ["Difference A − B"],
+    expect: ["P − T", "Error map", "Error of"],
   },
   { name: "06-laea-projected", hash: "#layer=laea:elevation&c=10,50&z=3.2", expect: ["EPSG:3035"] },
   {
