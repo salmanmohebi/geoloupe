@@ -6,6 +6,8 @@ authors:
   - family-names: Mohebi
     given-names: Salman
 license: Apache-2.0
+# The concept DOI: it always resolves to the latest version on Zenodo.
+doi: 10.5281/zenodo.24156973
 repository-code: "https://github.com/salmanmohebi/geoloupe"
 keywords:
   - xarray

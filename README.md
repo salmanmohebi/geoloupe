@@ -4,6 +4,7 @@
 [![PyPI](https://img.shields.io/pypi/v/geoloupe)](https://pypi.org/project/geoloupe/)
 [![Python](https://img.shields.io/pypi/pyversions/geoloupe)](https://pypi.org/project/geoloupe/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24156973.svg)](https://doi.org/10.5281/zenodo.24156973)
 
 **Explore large scientific and geospatial datasets on an interactive map: from the whole planet down
 to 10 m, through time, with the values one click away.**
@@ -205,7 +206,9 @@ the [code of conduct](CODE_OF_CONDUCT.md). Changes are listed in [CHANGELOG.md](
 ## Citing
 
 If GeoLoupe helps your research, please cite it ([CITATION.cff](CITATION.cff); GitHub's "Cite this
-repository" button gives BibTeX and APA).
+repository" button gives BibTeX and APA). Each release is archived on Zenodo:
+[10.5281/zenodo.24156973](https://doi.org/10.5281/zenodo.24156973) cites the latest version; the
+Zenodo page lists the DOI of each version.
 
 ## License and data credits
 
