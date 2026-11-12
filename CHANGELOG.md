@@ -6,6 +6,8 @@ the configuration format; such changes are listed here).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-12
+
 ### Fixed
 
 - HTTPS on macOS and Windows: the `geoloupe` command now trusts the system's certificate store
@@ -42,5 +44,6 @@ First public version.
 - The gallery: ERA5, Copernicus DEM, Sentinel-2 (STAC), ESA WorldCover, a CMIP6 climate model ocean,
   NOAA stations and Natural Earth overlays, all read live from public archives.
 
-[Unreleased]: https://github.com/salmanmohebi/geoloupe/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/salmanmohebi/geoloupe/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/salmanmohebi/geoloupe/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/salmanmohebi/geoloupe/releases/tag/v0.1.0
