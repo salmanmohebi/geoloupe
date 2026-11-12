@@ -52,7 +52,7 @@ the internet.
 | ESA WorldCover 2021, 10 m, 45–48° N, 6–9° E | [ESA WorldCover](https://registry.opendata.aws/esa-worldcover-vito/) COG on AWS | 11 land-cover classes with names, colours and shares of the view |
 | GFDL-ESM4 climate model ocean (CMIP6 historical), monthly 1850–2014, on its native tripolar grid | [Pangeo CMIP6](https://pangeo-data.github.io/pangeo-cmip6-cloud/) Zarr on Google Cloud | a curvilinear model grid drawn as it is; difference of two months 165 years apart |
 | States and provinces, rivers, lakes (overlays) | [Natural Earth](https://www.naturalearthdata.com/) 1:10m GeoJSON | switch on in the layer panel; hover a region for its name next to the data value |
-| GHCN-Daily stations, 21 long records (Milan since 1763) | [NOAA NCEI](https://www.ncei.noaa.gov/products/land-based-station/global-historical-climatology-network-daily) CSV files | daily max/min temperature and precipitation; click a station for its whole record |
+| GHCN-Daily stations, 21 long records (Milan since 1763) | [NOAA NCEI](https://www.ncei.noaa.gov/products/land-based-station/global-historical-climatology-network-daily) CSV files | daily max/min temperature and precipitation; with *Point*, click a station for its whole record |
 
 The gallery is a normal configuration file: `geoloupe gallery --show-config` prints it, so you can
 copy it and change it.
@@ -119,7 +119,7 @@ geoloupe.show({"data": ds})           # interactive map in the cell output
   as fine as a screen pixel and never reads more than a fixed number of cells. COG overviews are used
   automatically; `geoloupe overviews build` makes overview pyramids for other formats.
 * **Honest about what you see.** A badge names the datasets, resolutions and native/overview levels on
-  screen; hover shows the displayed value and its source; a click gives the *stored* value of the native
+  screen; hover shows the displayed value and its source; with *Point* (key `i`), a click gives the *stored* value of the native
   cell of every source, plus their time series.
 * **Satellite images and STAC.** RGB composites from any three bands, with stretch and gamma in the
   browser; automatic for 3-band images such as Sentinel-2 TCI. A STAC search (collection, area, dates,
@@ -141,7 +141,7 @@ geoloupe.show({"data": ds})           # interactive map in the cell output
   attributes next to the value under the cursor.
 * **Split panes, like tmux.** Split the map right or down (up to 6 panes), drag the dividers, and
   show a different layer, time and colour scale in each pane. Panes share the camera and the time
-  (each can be unlinked); the hover lists every pane's value, a click gives every pane's time
+  (each can be unlinked); the hover lists every pane's value, a picked point gives every pane's time
   series, and the whole layout exports as one figure. Keys: `%` split right, `"` split down, `x`
   close, `z` zoom a pane, `Alt`+arrows move. A difference map A − B works in any pane.
 * **Open data from S3 buckets.** *Add data → Browse S3* lists a bucket on AWS or any S3-compatible
@@ -164,11 +164,11 @@ All from `geoloupe gallery`:
 
 | | |
 |---|---|
-| ![Four panes](docs/images/four-panes.jpg) **Four linked panes over the Western Alps.** Elevation, Sentinel-2 in true and false colour, and land cover; the hover lists all four values, and the other panes mark the point. | ![Three panes and the point details](docs/images/storm-panes.jpg) **Storm Ciarán in three panes.** Wind gusts, rain and water vapour at the same hour; a click shows every pane's value and its time series. |
+| ![Four panes](docs/images/four-panes.jpg) **Four linked panes over the Western Alps.** Elevation, Sentinel-2 in true and false colour, and land cover; the hover lists all four values, and the other panes mark the point. | ![Three panes and the point details](docs/images/storm-panes.jpg) **Storm Ciarán in three panes.** Wind gusts, rain and water vapour at the same hour; a picked point (*Point*) shows every pane's value and its time series. |
 | ![The layout as one figure](docs/images/layout-export.jpg) **The whole layout as one figure** (Export). The GFDL-ESM4 climate model next to ERA5, August 2014, each pane with its label and colour bar. | ![Browse S3](docs/images/s3-browse.jpg) **Add data → Browse S3.** A public AWS bucket, filtered by name; each entry says what it is, and opens in the active pane or a new one. |
 | ![Heatwave](docs/images/heatwave.jpg) **Europe's heatwave, 18 July 2023, 14 UTC.** ERA5 2 m temperature, one of 761 160 hourly steps read straight from Google Cloud, with provinces as an overlay: the hover shows the region and the value. | ![Atmospheric river](docs/images/atmospheric-river.jpg) **An atmospheric river reaches California, 9 January 2023.** Total column water vapour. |
 | ![True and false colour](docs/images/true-false-colour.jpg) **Sentinel-2, true vs false colour.** Two linked panes of a STAC mosaic; the false-colour pane (near infrared as red) has its own colour scale. | ![Land cover](docs/images/landcover.jpg) **ESA WorldCover around Lake Geneva.** Class colours from the file's palette, names from the config, shares of the view in the legend. |
-| ![Elevation](docs/images/elevation.jpg) **The Matterhorn in the Copernicus DEM (30 m).** Six 1° tiles form one layer, with ERA5's orography outside them. | ![Stations](docs/images/stations.jpg) **GHCN-Daily stations, 18 July 2023.** Click one for its whole daily record. |
+| ![Elevation](docs/images/elevation.jpg) **The Matterhorn in the Copernicus DEM (30 m).** Six 1° tiles form one layer, with ERA5's orography outside them. | ![Stations](docs/images/stations.jpg) **GHCN-Daily stations, 18 July 2023.** With *Point*, click one for its whole daily record. |
 | ![Ocean warming](docs/images/ocean-warming.jpg) **165 years of ocean warming in a climate model.** GFDL-ESM4 (CMIP6) sea surface temperature on its own curvilinear (tripolar) grid, August 2014 minus August 1850. | ![Western Alps](docs/images/alps-stac.jpg) **The Western Alps from space.** The 10 least cloudy Sentinel-2 scenes of August 2023, found with a STAC search and shown as one seamless mosaic. |
 
 The synthetic demo (`geoloupe demo-data demo && geoloupe serve demo/demo.yaml`) works offline

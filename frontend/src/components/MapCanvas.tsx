@@ -49,6 +49,7 @@ export interface MapCanvasProps {
   globe: boolean;
   marker: { lng: number; lat: number } | null;
   cursor?: { lng: number; lat: number } | null; // the hover position in another pane
+  pickable?: boolean; // a click picks a point ("Point" mode): stations show a hand cursor
   initialView: { center: [number, number]; zoom: number } | null;
   onMap?: (map: MlMap | null) => void;
   onHover?: (e: MapEventInfo | null) => void;
@@ -166,7 +167,7 @@ export function MapCanvas(p: MapCanvasProps) {
     });
     m.on("mousemove", (e) => {
       const station = stationAt(m, e.point.x, e.point.y);
-      m.getCanvas().style.cursor = station ? "pointer" : "";
+      m.getCanvas().style.cursor = station && propsRef.current.pickable ? "pointer" : "";
       propsRef.current.onHover?.({
         lng: e.lngLat.lng,
         lat: e.lngLat.lat,

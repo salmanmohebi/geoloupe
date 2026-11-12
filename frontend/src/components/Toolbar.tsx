@@ -200,6 +200,7 @@ export function Toolbar() {
   const catalog = useStore((s) => s.catalog);
   const panes = useStore((s) => paneIds(s.layout).length);
   const zoomed = useStore((s) => s.zoomed);
+  const picking = useStore((s) => s.picking);
   const { setBasemap, setGlobe, notify } = useStore.getState();
 
   const share = async () => {
@@ -306,6 +307,18 @@ export function Toolbar() {
 
   return (
     <div className="toolbar">
+      <button
+        className={`btn tool${picking ? " on" : ""}`}
+        aria-pressed={picking}
+        onClick={() => useStore.getState().setPicking(!picking)}
+        title={
+          picking
+            ? "Click the map to pick a point (its values and time series); click here or press Esc to stop"
+            : "Pick a point: then a click on the map shows its values and time series (key i)"
+        }
+      >
+        <Icon name="target" /> Point
+      </button>
       <AddDataButton />
       {!!catalog?.views?.length && (
         <button className="btn tool" onClick={() => useStore.getState().setGalleryOpen(true)}>

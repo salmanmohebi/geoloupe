@@ -58,6 +58,12 @@ the configuration format; such changes are listed here).
 
 ### Changed
 
+- A click on the map no longer opens the point details: switch on *Point* (toolbar, key `i`) to pick
+  points with a click; `Esc` or the button stops it. Hovering still shows the values, and links with a
+  point still open it. Panning and zooming no longer open the panel by accident.
+- Each pane's corner box folds to its number (› at its end) and unfolds with a click on the number,
+  to keep the map free.
+
 - "Side by side" comparison is replaced by the panes; links from 0.1 (`cmp=split`) open as two panes.
 
 ## [0.1.1] - 2026-11-12

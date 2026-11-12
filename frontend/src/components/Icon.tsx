@@ -14,6 +14,7 @@ const PATHS = {
   expand: "M3 6V3h3M10 3h3v3M13 10v3h-3M6 13H3v-3",
   link: "M6.5 9.5l3-3M5.5 8L4 9.5a2.1 2.1 0 003 3L8.5 11M10.5 8L12 6.5a2.1 2.1 0 00-3-3L7.5 5",
   clock: "M8 2.5a5.5 5.5 0 110 11 5.5 5.5 0 010-11zM8 5v3.2l2.2 1.6",
+  target: "M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3M8 4.5a3.5 3.5 0 110 7 3.5 3.5 0 010-7z",
 } as const;
 
 export type IconName = keyof typeof PATHS;

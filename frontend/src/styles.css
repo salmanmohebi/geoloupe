@@ -1527,3 +1527,30 @@ button.s3-entry:hover {
   font-weight: 700;
   vertical-align: 1px;
 }
+
+/* "Point" mode: a click on the map picks a point */
+.map-view.picking .maplibregl-canvas-container.maplibregl-interactive,
+.map-view.picking .maplibregl-canvas {
+  cursor: crosshair;
+}
+.btn.tool svg {
+  vertical-align: -2px;
+}
+/* a folded pane box: only the pane number */
+.pane-box.folded {
+  padding: 3px;
+}
+.pane-box button.pane-num {
+  padding: 0;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.map-pane.active .pane-box button.pane-num {
+  color: #fff;
+}
+.pane-box button.pane-num:hover {
+  outline: 2px solid var(--accent);
+}
+.pane-box .pane-fold {
+  margin-left: -2px;
+}

@@ -182,12 +182,21 @@ await page.screenshot({ path: `${out}/panes-03-reload.png` });
 // 9. The point details list every pane, with a chart, and the layout exports as one image
 ps = await panes();
 const spot = centerOf(ps[1], 0.3, 0.45); // pane 2, left of where the details panel opens
+await page.mouse.click(spot.x, spot.y); // without "Point", a click only pans
+check((await page.locator(".inspector").count()) === 0, "a click without Point mode opens no details");
+await page.keyboard.press("i"); // "Point" mode
 await page.mouse.click(spot.x, spot.y);
 await page.waitForSelector(".pane-values canvas", { timeout: 60_000 }).catch(() => null);
 const rows = await page.locator(".pane-values > .value-table tr").count();
 const charts = await page.locator(".pane-values canvas").count();
 check(rows === 2 && charts >= 1, `point details: ${rows} panes, ${charts} chart(s)`);
 await page.screenshot({ path: `${out}/panes-04-point.png` });
+// a pane box folds to its number, and unfolds again
+await page.locator('.map-pane[data-pane="1"] .pane-fold').click();
+const folded = await page.locator('.map-pane[data-pane="1"] .pane-box.folded').count();
+await page.locator('.map-pane[data-pane="1"] .pane-box.folded .pane-num').click();
+const unfolded = await page.locator('.map-pane[data-pane="1"] .pane-box .pane-title').count();
+check(folded === 1 && unfolded === 1, "a pane box folds to its number and unfolds");
 await page.click("button.btn.tool:has-text('Export')");
 const [dl] = await Promise.all([
   page.waitForEvent("download", { timeout: 60_000 }),

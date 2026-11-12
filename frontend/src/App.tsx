@@ -50,6 +50,9 @@ function usePaneKeys() {
       else if (e.key === '"') s.splitPane("col");
       else if (e.key === "x" && !e.altKey) s.closePane();
       else if (e.key === "z" && !e.altKey) s.toggleZoom();
+      else if (e.key === "i" && !e.altKey)
+        s.setPicking(!s.picking); // "Point": pick points
+      else if (e.key === "Escape" && s.picking) s.setPicking(false);
       else return;
       e.preventDefault();
       e.stopPropagation(); // capture phase: the map's own keys do not see it

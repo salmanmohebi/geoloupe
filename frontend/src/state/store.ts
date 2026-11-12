@@ -82,6 +82,7 @@ export interface AppState {
   basemap: Basemap;
   globe: boolean;
   inspect: Inspect | null;
+  picking: boolean; // "Point" mode: a click on the map picks a point (else clicks only pan)
   view: View | null; // the active pane's camera
   // Split panes (like tmux). The active pane's state is in the fields above (main, style, compare,
   // view, …: see PANE_KEYS), so the side panel, time bar and colour bar act on it; the other panes'
@@ -116,6 +117,7 @@ export interface AppState {
   setBasemap: (b: Basemap) => void;
   setGlobe: (g: boolean) => void;
   setInspect: (p: Inspect | null) => void;
+  setPicking: (on: boolean) => void;
   setShowPoints: (s: boolean) => void;
   setOverlay: (id: string | null) => void;
   setPoints: (p: PointsResult | null) => void;
@@ -346,6 +348,7 @@ export const useStore = create<AppState>((set, get) => ({
   basemap: "minimal",
   globe: false,
   inspect: null,
+  picking: false,
   notices: [],
   panelOpen: true,
   galleryOpen: false,
@@ -547,6 +550,7 @@ export const useStore = create<AppState>((set, get) => ({
   setBasemap: (b) => set({ basemap: b }),
   setGlobe: (g) => set({ globe: g }),
   setInspect: (p) => set({ inspect: p }),
+  setPicking: (on) => set({ picking: on }),
   setShowPoints: (s) => set({ showPoints: s }),
   setOverlay: (id) => set({ overlay: id }),
   setPoints: (p) => set({ points: p }),

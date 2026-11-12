@@ -99,6 +99,7 @@ for (const step of scenario) {
     await page.mouse.move(pos.x, pos.y, { steps: 5 });
     await page.waitForSelector(".hover-tip:has-text('observed')", { timeout: 10_000 });
     await page.screenshot({ path: `${out}/${step.name}-hover.png` });
+    await page.click("button.btn.tool:has-text('Point')"); // a click picks only in "Point" mode
     await page.mouse.click(pos.x, pos.y);
     await page.waitForSelector(".inspector .eyebrow:has-text('Station')", { timeout: 20_000 });
     await page.waitForSelector(".ts-chart canvas", { timeout: 60_000 });

@@ -55,10 +55,11 @@ await page.screenshot({ path: `${out}/four-panes.png` });
 // 2. three panes of a storm, with the point details of all panes
 await openView("Storm Ciarán in three panes");
 b = await area();
+await page.click("button.btn.tool:has-text('Point')");
 await page.mouse.click(b.x + b.width * 0.3, b.y + b.height * 0.42);
 await page.waitForSelector(".pane-values canvas", { timeout: 90_000 });
 await page.waitForTimeout(1500);
-await page.mouse.move(b.x + 5, b.y + b.height - 5);
+await page.mouse.move(120, 40); // over the side panel: no hover read-out
 await page.screenshot({ path: `${out}/storm-panes.png` });
 
 // 3. the layout as one image (Export)

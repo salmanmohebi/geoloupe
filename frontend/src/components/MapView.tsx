@@ -110,6 +110,7 @@ export function MapView() {
   const layout = useStore((s) => s.layout);
   const active = useStore((s) => s.active);
   const zoomed = useStore((s) => s.zoomed);
+  const picking = useStore((s) => s.picking);
   const main = useStore((s) => s.main);
   const style = useStore((s) => s.style);
   const styleReady = useStore((s) => s.styleReady);
@@ -290,7 +291,7 @@ export function MapView() {
   }, []);
 
   return (
-    <div className={`map-view${multi ? " multi" : ""}`} ref={area}>
+    <div className={`map-view${multi ? " multi" : ""}${picking ? " picking" : ""}`} ref={area}>
       {ids.map((id, i) => (
         <PaneMap
           key={id}
@@ -307,7 +308,7 @@ export function MapView() {
       ))}
       {!zoomed && dividers(layout).map((d) => <DividerHandle key={d.path || "root"} d={d} area={area} />)}
       {hover && boxes[hover.pane] && (
-        <HoverTip hover={hover} vectors={vectors} box={boxes[hover.pane]} area={area} />
+        <HoverTip hover={hover} vectors={vectors} box={boxes[hover.pane]} area={area} picking={picking} />
       )}
     </div>
   );
@@ -345,6 +346,7 @@ function PaneMap({
   const showPoints = useStore((s) => s.showPoints);
   const overlay = useStore((s) => s.overlay);
   const panelOpen = useStore((s) => s.panelOpen);
+  const picking = useStore((s) => s.picking);
   const vectors = useMemo(() => visibleVectors(catalog, vectorsOn), [catalog, vectorsOn]);
   const { setInspect, notify, activatePane } = useStore.getState();
 
@@ -388,6 +390,7 @@ function PaneMap({
   );
 
   const onClick = (e: MapEventInfo) => {
+    if (!useStore.getState().picking) return; // a click only pans, unless "Point" is on
     if (e.station && shownPoints)
       setInspect({
         lng: e.station.lon,
@@ -439,6 +442,7 @@ function PaneMap({
         globe={globe}
         marker={inspect}
         cursor={hover && hover.pane !== id ? hover : null}
+        pickable={picking}
         initialView={p.view}
         onMap={onMap(id)}
         onHover={onHover(id)}
@@ -470,6 +474,7 @@ function PaneBox({
 }) {
   const colormaps = useStore((s) => s.colormaps);
   const zoomed = useStore((s) => s.zoomed === id);
+  const [folded, setFolded] = useState(false); // only the pane number, to keep the map free
   const { splitPane, closePane, toggleZoom, setLinks, activatePane } = useStore.getState();
   // the buttons act on the active pane: make this one active first
   const act = (f: () => void) => (e: React.MouseEvent) => {
@@ -488,6 +493,21 @@ function PaneBox({
     !layer.bands &&
     !layer.classes &&
     layer.kind !== "points";
+  if (multi && folded)
+    return (
+      <div className="pane-box multi folded" onPointerDown={(e) => e.stopPropagation()}>
+        <button
+          className="pane-num"
+          title="Unfold: layer, colours and buttons of this pane"
+          onClick={(e) => {
+            e.stopPropagation();
+            setFolded(false);
+          }}
+        >
+          {index + 1}
+        </button>
+      </div>
+    );
   return (
     <div className={`pane-box${multi ? " multi" : ""}`} onPointerDown={(e) => e.stopPropagation()}>
       {multi && (
@@ -556,6 +576,18 @@ function PaneBox({
           <Icon name="close" />
         </button>
       )}
+      {multi && (
+        <button
+          className="pane-fold"
+          title="Fold this box to its number (click the number to unfold)"
+          onClick={(e) => {
+            e.stopPropagation();
+            setFolded(true);
+          }}
+        >
+          <Icon name="right" />
+        </button>
+      )}
     </div>
   );
 }
@@ -610,7 +642,9 @@ function HoverTip({
   vectors,
   box,
   area,
+  picking,
 }: {
+  picking: boolean;
   hover: Hover;
   vectors: VectorInfo[];
   box: Rect;
@@ -700,7 +734,9 @@ function HoverTip({
       ) : (
         rows
       )}
-      <div className="tip-coord">{fmtLonLat(h.lng, h.lat)} · click for details</div>
+      <div className="tip-coord">
+        {fmtLonLat(h.lng, h.lat)} · {picking ? "click for details" : "Point (i) to pick it"}
+      </div>
     </div>
   );
 }

@@ -11,7 +11,7 @@ description: >-
   Sentinel-2 satellite images, a 30 m elevation model, ESA WorldCover land cover, NOAA
   weather stations, a CMIP6 climate model's ocean on its own grid, and regions, rivers and lakes as
   overlays. Nothing is copied in advance. Pick a view to start, or explore freely:
-  every map shows the values under the cursor, and a click gives the time series.
+  every map shows the values under the cursor, and with Point a click gives the time series.
 
 datasets:
   era5:
@@ -279,7 +279,7 @@ views:
       - {layer: precipitation, vmin: 0, vmax: 3}
       - {layer: water-vapour}
   - title: A climate model's ocean, on its own grid
-    description: Sea surface temperature in the GFDL-ESM4 model, August 2014, drawn on the model's curvilinear (tripolar) grid. Click for the 165-year monthly series.
+    description: Sea surface temperature in the GFDL-ESM4 model, August 2014, drawn on the model's curvilinear (tripolar) grid. With Point (key i), click for the 165-year monthly series.
     layer: ocean-model:tos
     time: "2014-08-16T12:00"
     center: [-40, 45]
@@ -339,7 +339,7 @@ views:
     center: [6.6, 46.42]
     zoom: 10
   - title: Weather stations since 1763
-    description: Daily maximum temperature on 18 July 2023 at long-running NOAA GHCN stations. Click one for its whole record; Milan's starts in 1763.
+    description: Daily maximum temperature on 18 July 2023 at long-running NOAA GHCN stations. With Point (key i), click one for its whole record; Milan's starts in 1763.
     layer: ghcn:TMAX
     time: "2023-07-18"
     center: [6, 49]
