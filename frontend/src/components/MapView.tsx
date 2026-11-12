@@ -24,7 +24,7 @@ import {
 import { setMainMap, setPaneMaps } from "../lib/mapRegistry";
 import { useLatest } from "../lib/useLatest";
 import { fmt, fmtLonLat, unitLabel } from "../lib/format";
-import type { RenderSpec } from "../lib/protocol";
+import { getSpec, type RenderSpec } from "../lib/protocol";
 import { summarize, valueAt, type HoverValue } from "../lib/view";
 import { fmtOffset, paneOf, pointsLayerOf, useStore, type PaneState, type Target } from "../state/store";
 import { colorExpression, fetchPoints, toGeoJSON, type PointsResult } from "../lib/points";
@@ -424,9 +424,13 @@ function PaneMap({
   const spec = exactSpec && refined === dataKey ? exactSpec : preview;
   const key = keyOf(spec, st?.colormap ?? "");
   // MapCanvas calls the latest version of this (through a ref) when a spec is on screen
-  const specShown = () => {
-    if (dataKey && spec !== exactSpec) setRefined(dataKey);
-    if (isActive) onSpecShown();
+  // The spec on screen: MapCanvas swaps a new spec in only once its tiles are loaded, so hover
+  // values and the summary must read the shown spec, not the newest one.
+  const [shownSpec, setShownSpec] = useState<RenderSpec | null>(null);
+  const specShown = (sid: string) => {
+    const now = getSpec(sid) ?? spec;
+    setShownSpec(now);
+    if (dataKey && !now?.error?.server) setRefined(dataKey);
   };
   const layer = p?.main.layer ?? null;
 
@@ -447,10 +451,14 @@ function PaneMap({
 
   const units = p ? unitLabel(drawUnits(p)) : "";
   const classes = useMemo(() => (p ? drawClasses(p) : null), [p]);
+  const drawn = spec ? shownSpec : null;
   useEffect(
-    () => report(id, { spec, layer, diff, units, classes }),
-    [report, id, spec, layer, diff, units, classes],
+    () => report(id, { spec: drawn, layer, diff, units, classes }),
+    [report, id, drawn, layer, diff, units, classes],
   );
+  useEffect(() => {
+    if (isActive && drawn) onSpecShown(); // after report(): the summary reads the shown spec
+  }, [isActive, drawn, onSpecShown]);
 
   // ---- point observations: the layer itself, or an overlay (not in difference mode)
   const pointsLayer = p ? pointsLayerOf({ main: p.main, compare: p.compare, showPoints, overlay }) : null;
