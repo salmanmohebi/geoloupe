@@ -57,7 +57,6 @@ const panes = () =>
         };
       }),
   );
-const hash = () => page.evaluate(() => decodeURIComponent(window.location.hash));
 const press = async (key) => {
   await page.locator(".map-pane.active .maplibregl-canvas, .map-pane .maplibregl-canvas").first().focus();
   await page.keyboard.press(key);
