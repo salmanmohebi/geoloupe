@@ -3,7 +3,9 @@
 //   node e2e/readme-shots.mjs http://127.0.0.1:8000 out-dir
 //
 // Writes four-panes.png (hover with all four values), storm-panes.png (point details of three
-// panes), layout-export.png (Export → all panes as one image) and s3-browse.png (Browse S3).
+// panes), layout-export.png (Export → all panes as one image), s3-browse.png (Browse S3),
+// error-panes.png (a model against the reanalysis, with error panes) and error-point.png (the
+// error at a point over time).
 // The other README pictures come from e2e/gallery.mjs; convert all to JPEG for docs/images.
 
 import { chromium } from "@playwright/test";
@@ -72,6 +74,24 @@ const [dl] = await Promise.all([
 await dl.saveAs(`${out}/layout-export.png`);
 await page.keyboard.press("Escape");
 
+// 3b. error panes: the model against the reanalysis, bias and absolute error with their statistics
+await openView("How far is the model from the reanalysis?");
+await page.waitForSelector(".map-pane .pane-stats", { timeout: 120_000 }).catch(() => null);
+await page.waitForTimeout(1500);
+await page.mouse.move(120, 40);
+await page.screenshot({ path: `${out}/error-panes.png` });
+// 3c. the error at a point, over time (point details of the bias pane)
+b = await area();
+await page.mouse.click(b.x + b.width * 0.25, b.y + b.height * 0.75); // pane 3 becomes active
+await page.waitForTimeout(500);
+await page.click("button.btn.tool:has-text('Point')");
+await page.mouse.click(b.x + b.width * 0.36, b.y + b.height * 0.66); // right of the side panel
+await page.waitForSelector(".error-series canvas", { timeout: 120_000 }).catch(() => null);
+await page.locator(".error-series").scrollIntoViewIfNeeded().catch(() => null);
+await page.waitForTimeout(1500);
+await page.mouse.move(120, 40);
+await page.screenshot({ path: `${out}/error-point.png` });
+await page.keyboard.press("Escape");
 // 4. Add data → Browse S3 (a public AWS bucket), filtered
 await page.goto(`${base}/#layer=landcover:landcover&c=6.6,46.42&z=9`, { waitUntil: "load" });
 await settle();

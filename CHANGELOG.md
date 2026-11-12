@@ -6,6 +6,52 @@ the configuration format; such changes are listed here).
 
 ## [Unreleased]
 
+### Added
+
+- **Error panes**: the error of one layer (P, e.g. a model) against another (T, e.g. observations)
+  at every point: bias, absolute, squared and relative errors, symmetric relative error, ratio, log
+  ratio, normalised error, event agreement (hit, miss, false alarm, correct no event) and sign
+  agreement, or a custom formula of P and T (a small, safe formula language, the same in the browser
+  and on the server). *Compare → Add error pane* makes one from two panes; it follows them (layer,
+  time, level), and closing one keeps its layer. The side panel sets the definition, parameters,
+  formula and sources, and swaps P and T. P is converted into T's units (K, °C, °F; mm, m;
+  precipitation rates; speeds; pressures; %).
+- Error maps are **exact from the native cells**: the browser shows a preview at once, then the
+  server's tiles, computed on sub-pixels no larger than the finest native cell (errors that cancel
+  inside a screen pixel still count). The pane box and the colour bar give the statistics of the view
+  (bias, MAE, RMSE; POD, FAR, CSI and frequency bias for events); the status badge names P's and T's
+  data and whether the map is exact. Point details show P, T and the error at the point, the error
+  over time with mean, mean |·| and RMS, and error panes in "All panes at this point".
+- `geoloupe errors build`: the error of P against T per native cell and time step, as Zarr with
+  overviews; error panes asking for it are drawn from it, exact at every zoom.
+- Error panes in featured views (`error:` with `metric`, `params`, `formula`, `reference`, `p_pane`,
+  `t_pane`) and links (`cmp=error`, `em`, `ep`, `ef`, `eu`, `fp`, `ft`), with error thumbnails in the
+  gallery. New gallery view: the GFDL-ESM4 model against ERA5, with bias and absolute error.
+- API: `/api/error/tiles/{z}/{x}/{y}.bin`, `/api/error/stats`, `/api/error/preview.png`
+  ([docs/errors.md](docs/errors.md)).
+- **Time offsets** between linked panes: a pane shows the linked time shifted by years, months,
+  days or hours ("the same day, 30 years earlier"); in the side panel, links (`to=-30y`) and views
+  (`time_offset`).
+- *Add data* lists the data opened before in this browser. `geoloupe serve` takes `--endpoint`,
+  `--profile` and `--anon` for `s3://` paths.
+- Playback loads the next frame's tiles in the background.
+
+### Changed
+
+- *Add data* opens remote URLs by default when the server listens on localhost only; a server on
+  other interfaces needs `--allow-open`, and `--no-open` turns it off. The button is always shown;
+  when opening is off, it explains how to start the server.
+- The difference A − B of 0.2 is now an error pane (P − T); links with `cmp=diff` still open.
+- Diverging colour scales are centred on 0 when the data crosses 0 (automatic range, Fit to view).
+
+### Fixed
+
+- The hover read-out and the view summary read the tiles on screen while a new time step or colour
+  scale loads (they read the new tiles before they were shown).
+- Overview levels no longer draw beyond the edge of the data when a grid size is not a multiple of
+  the overview factor.
+- The status badge of a difference (error) map names both layers.
+
 ## [0.2.0] - 2026-11-12
 
 ### Added

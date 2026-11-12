@@ -1674,3 +1674,11 @@ button.s3-entry:hover {
 .offset-n {
   width: 4.5em;
 }
+.prov-part.prov-err {
+  display: inline-block;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}

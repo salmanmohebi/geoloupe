@@ -197,11 +197,15 @@ Known approximations (documented, not hidden):
 * A screen pixel takes the cells whose **centres** fall inside it, not an area-weighted share of
   partly covered cells (that would be conservative remapping). At the edges of fine data this can
   shift a boundary by up to half a cell.
-* **Difference maps** (A − B) subtract two layers sampled on the same screen pixels, each at its own
-  best level. They show where A and B differ at the displayed resolution; they are not a regridding.
+* **Error maps** (P against T, [docs/errors.md](docs/errors.md)): the browser's preview combines the
+  two layers' display tiles (screen pixels, each at its own best level); the server's exact tiles
+  render P and T on sub-pixels no larger than the finest native cell, compute the error per
+  sub-pixel and average it per pixel, so errors that cancel inside a pixel still count. Beyond the
+  read budget (`error_max_subpixels`, `error_read_cells`) a tile is computed on a coarser sub-pixel
+  grid and marked not exact; `geoloupe errors build` precomputes the native error with overviews.
 * **Overview edges.** When a grid size is not a multiple of the factor, the last overview row/column
-  is a block mean of the remaining cells but is placed as if the block were full, up to f/2 native
-  cells beyond the grid edge (e.g. 0.67° past 90° S at factor 4 of a 0.25° grid with 522 rows).
+  is a block mean of the remaining cells and spans a full block; pixels whose centre lies outside
+  the native grid are cut at render time, so nothing is drawn beyond the data.
 * **Compositing** assumes the sources describe the same quantity in the same units (unit conversion
   is configured per source). It does not blend at the boundary: the fine source simply wins where it
   has data.

@@ -125,8 +125,22 @@ views:                                  # featured views: the gallery start scre
     panes:                              # the other panes, in layout order
       - {layer: precipitation, vmin: 0, vmax: 3}   # time: the view's unless given
       - {layer: water-vapour}
-      # per pane also: dims, colormap, log, compare + compare_time (A − B in that pane),
-      # link_view: false / link_time: false (the pane keeps its own camera / time)
+      # per pane also: dims, colormap, log, compare + compare_time (P − T in that pane),
+      # link_view: false / link_time: false (the pane keeps its own camera / time),
+      # time_offset: "-30y" (the linked time shifted: y, m, d or h)
+  - title: A model against the reanalysis
+    layer: model:tos                    # pane 1 (P)
+    layout: "3"
+    panes:
+      - {layer: era5:sst}               # pane 2 (T)
+      - error:                          # pane 3: an error pane (docs/errors.md)
+          metric: abs                   # bias, abs, sq, rel, absrel, symrel, ratio, logratio,
+                                        #   norm, events, sign, or custom (+ formula, units)
+          params: {}                    # e.g. {eps: 0.1}, {h: 1}
+          p_pane: 1                     # P follows pane 1 (its layer is the pane's layer)
+          t_pane: 2                     # T follows pane 2 (or reference: <layer id>)
+        vmin: 0
+        vmax: 4                         # colours of the error map
 
 settings:
   max_read_cells: 6000000               # per tile and source; above → next coarser level or skip
@@ -138,8 +152,11 @@ settings:
   max_export_mb: 512
   max_vector_mb: 60                     # GeoJSON size limit of one overlay
   cors_origins: ["*"]
-  allow_open: false                     # "Add data" in the browser may open remote URLs
+  allow_open: false                     # "Add data" in the browser may open remote URLs (the
+                                        #   serve command turns it on for localhost, see below)
   open_roots: []                        #   … and local files below these folders
+  error_read_cells: 16000000            # error maps: native cells read per tile and source
+  error_max_subpixels: 2048             #   and sub-pixels per tile side (docs/errors.md)
 ```
 
 ## Notes
@@ -247,8 +264,10 @@ geoloupe overviews build SOURCE OUTPUT.zarr [--variables a,b] [--start 1978-01-0
 ## Environment variables
 
 None are required. `geoloupe serve` options: `--host` (default `127.0.0.1`), `--port` (default
-`8000`), `--log-level`, `--allow-open` (the browser's "Add data" may open `https://`, `s3://` and
-`gs://` URLs) and `--open-root DIR` (it may open local files below `DIR`; repeatable; relative
-paths start in the first root). Both are off by default: anyone who can reach the server can then
-make it read those, so keep such a server on localhost or behind a login. `geoloupe gallery` takes the same options and serves the configuration of
+`8000`), `--log-level`, `--open-root DIR` (the browser's "Add data" may open local files below
+`DIR`; repeatable; relative paths start in the first root), and for `https://`, `s3://` and `gs://`
+URLs: on by default when the server listens on localhost only; `--allow-open` turns it on for a
+server on other interfaces (`--host 0.0.0.0`), `--no-open` turns it off. Anyone who can reach the
+server can make it read those, so keep such a server on localhost or behind a login. For `s3://`
+paths on the command line: `--endpoint URL` (S3-compatible stores), `--profile NAME`, `--anon`. `geoloupe gallery` takes the same options and serves the configuration of
 open public data that ships with GeoLoupe (`--show-config` prints it).

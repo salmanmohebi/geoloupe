@@ -92,20 +92,33 @@ copies for long series) follow in the next section.
 * HTTPS with the system's certificates (macOS, Windows), clear messages for unreachable data and for
   data that is not a map.
 
+## Done in 0.3
+
+* Error panes: the error of P against T (bias, absolute, squared, relative, ratio, log ratio,
+  normalised, event and sign agreement, or a custom formula in a small safe language shared by
+  browser and server), following the panes they compare; exact from native cells (sub-pixel
+  rendering on the server) with view statistics (bias, MAE, RMSE; POD, FAR, CSI); error over time at
+  a point; `geoloupe errors build` for precomputed pyramids, exact at every zoom; error panes in
+  featured views and links. Unit conversion between P and T (shared unit table).
+* Time offsets between linked panes ("the same day, 30 years earlier").
+* *Add data*: remote data by default on localhost, always visible (explains how to turn it on),
+  data opened before; `serve --endpoint/--profile/--anon` for S3 paths.
+* Diverging colour scales centred on 0 when the data crosses 0.
+* Playback prefetches the next frame.
+* Fixed: hover read tiles not yet on screen; overview edges drawn beyond the data; the badge of
+  difference maps named only A.
+
 ## Next (short term: weeks)
 
 | Item | Why | Notes |
 |---|---|---|
-| **Time offset between panes** | Before/after, climate change: "the same day, 30 years earlier" | A pane linked with an offset; steps follow the active pane |
-| **Fjord and transect data on the map** | Data binned along a line (distance × time), e.g. along fjord centre lines | Needs the line geometry; draw segments coloured by value, or a distance × time chart |
+| **Data along lines (transects)** | Data binned along a line (distance × time), e.g. fjord centre lines, river profiles, ship tracks | Needs the line geometry (GeoJSON lines with an id, oriented from start to end); draw segments coloured by value, click for a distance × time chart |
 | **Browser-only mode for GeoZarr pyramids** | Public demos without a server (static hosting) | Read `multiscales` stores with zarrita in the client, as OpenLayers' GeoZarr source does |
-| **Station statistics** | Validation at a glance | Bias/RMSE of grid − stations in view, per day and over a period; optional alignment of local station days with UTC grid days |
+| **Error maps over a period** | MAE and RMSE maps over months or years, not one time step | Server-side accumulation over time steps per tile; precomputed with `geoloupe errors build --aggregate` |
+| **Station statistics** | Validation at a glance | Bias/RMSE of grid − stations in view, per day and over a period; error panes with stations as T |
 | **Time-optimised copies for series** | Point series over 38 years are slow with map-chunked data | `alternates:` in the dataset config, e.g. a rechunked (time-contiguous) copy used only by `/timeseries` |
 | **Overview builds on clusters** | Building overviews of multi-terabyte stores | Partition by time (template in `examples/hpc/`); resume; `--append` for new times |
-| **Prefetch next time step** during playback | Smoother animation | Fetch the next frame's visible tiles into the cache before switching |
 | **Area-weighted means** on lat/lon grids | Accuracy towards the poles | cos(lat) weights in overviews and in the integral image |
-| **Colour-scale presets per variable** and diverging ranges centred on 0 | Fewer manual steps | from config and CF metadata |
-| **Server-side difference endpoint** | Make A − B available to API clients and PNG export | Reuses the engine; same semantics as the browser |
 
 ## Medium term (months)
 
@@ -138,12 +151,10 @@ copies for long series) follow in the next section.
 * Publishing: static export of a layer's pyramid to object storage for serverless viewing with
   client-side Zarr readers (zarr-layer, OpenLayers GeoZarr).
 
-## Known issues (from the 2026-11-06 review; the others were fixed with regression tests)
+## Known issues
 
-* While a new time step or colour scale is being swapped in, hover reads the new (not yet shown) tiles
-  for up to a fraction of a second.
-* In difference mode the provenance badge lists only A's sources.
-* The last row/column of an overview level is placed as if its block were full (see ARCHITECTURE §5).
+* Error tiles of curvilinear grids sample the nearest cell per sub-pixel; precomputed error maps need
+  a reference on 1-D x/y coordinates.
 
 ## Open challenges and risks
 

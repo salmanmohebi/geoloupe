@@ -66,12 +66,17 @@ uv run geoloupe serve /path/to/data.zarr        # or .nc, .grib2, .tif, a URL
 uv run geoloupe serve grid.zarr stations.csv     # several files; tables become point layers
 uv run geoloupe serve grid.zarr regions.geojson  # vector files become overlays
 uv run geoloupe serve s3://copernicus-dem-30m/Copernicus_DSM_COG_10_N46_00_E007_00_DEM/Copernicus_DSM_COG_10_N46_00_E007_00_DEM.tif  # public S3: no setup
-uv run geoloupe serve config.yaml --allow-open --open-root ~/data   # "Add data" in the browser
+uv run geoloupe serve s3://bucket/data.zarr --endpoint https://os.example.org --anon   # S3-compatible store
+uv run geoloupe serve config.yaml --open-root ~/data   # "Add data" may also open local files below ~/data
 uv run geoloupe info  /path/to/data.zarr        # what GeoLoupe sees: variables, grid, CRS, times
 ```
 
-**Data in S3 buckets:** start the server with `--allow-open` (for example `geoloupe gallery
---allow-open`), then use *Add data → Browse S3*. List a bucket on AWS, or on any S3-compatible store
+**Add data in the browser.** On your own machine, *Add data* opens any URL or S3 store (local files
+only below folders given with `--open-root`). A server that listens on other interfaces
+(`--host 0.0.0.0`) opens nothing unless started with `--allow-open`; `--no-open` turns it off. The
+dialog remembers the data you opened before.
+
+**Data in S3 buckets:** use *Add data → Browse S3*. List a bucket on AWS, or on any S3-compatible store
 through its endpoint (MinIO, Ceph, SWITCH, Cloudflare R2, …), filter the names, and open a Zarr
 store, NetCDF, GeoTIFF/COG, station table or vector file, in the active pane or in a new pane. Public
 buckets need no setup. Private buckets use the credentials of the machine where GeoLoupe runs
@@ -143,7 +148,14 @@ geoloupe.show({"data": ds})           # interactive map in the cell output
   show a different layer, time and colour scale in each pane. Panes share the camera and the time
   (each can be unlinked); the hover lists every pane's value, a picked point gives every pane's time
   series, and the whole layout exports as one figure. Keys: `%` split right, `"` split down, `x`
-  close, `z` zoom a pane, `Alt`+arrows move. A difference map A − B works in any pane.
+  close, `z` zoom a pane, `Alt`+arrows move. A linked pane can show another time: *the same day,
+  30 years earlier* (time offset).
+* **Error maps.** An error pane shows the error of one layer (P, e.g. a model) against another (T,
+  e.g. observations): bias, absolute, squared and relative errors, ratios, event agreement (hits,
+  misses, false alarms) or your own formula of P and T. It follows the panes it compares. Computed
+  from the **native cells**, not the screen pixels (errors that cancel inside a pixel still count),
+  with bias, MAE and RMSE (or POD, FAR, CSI) of the view, the error over time at a point, and
+  `geoloupe errors build` for maps that are exact at every zoom. See [docs/errors.md](docs/errors.md).
 * **Open data from S3 buckets.** *Add data → Browse S3* lists a bucket on AWS or any S3-compatible
   store (MinIO, Ceph, SWITCH, Cloudflare R2, …), shows what GeoLoupe can open, and opens it in a pane;
   public buckets need no setup, private ones use the server's own credentials.
@@ -165,6 +177,7 @@ All from `geoloupe gallery`:
 | | |
 |---|---|
 | ![Four panes](docs/images/four-panes.jpg) **Four linked panes over the Western Alps.** Elevation, Sentinel-2 in true and false colour, and land cover; the hover lists all four values, and the other panes mark the point. | ![Three panes and the point details](docs/images/storm-panes.jpg) **Storm Ciarán in three panes.** Wind gusts, rain and water vapour at the same hour; a picked point (*Point*) shows every pane's value and its time series. |
+| ![Error panes](docs/images/error-panes.jpg) **How far is a climate model from the reanalysis?** The GFDL-ESM4 model (P) and ERA5 (T), with the bias P − T and the absolute error \|P − T\| from the native cells; the boxes give bias, MAE and RMSE of the view. | ![The error at a point](docs/images/error-point.jpg) **The error at a point, over time.** P, T and P − T from their native values, the other panes' values, and the error month by month with its mean and RMS. |
 | ![The layout as one figure](docs/images/layout-export.jpg) **The whole layout as one figure** (Export). The GFDL-ESM4 climate model next to ERA5, August 2014, each pane with its label and colour bar. | ![Browse S3](docs/images/s3-browse.jpg) **Add data → Browse S3.** A public AWS bucket, filtered by name; each entry says what it is, and opens in the active pane or a new one. |
 | ![Heatwave](docs/images/heatwave.jpg) **Europe's heatwave, 18 July 2023, 14 UTC.** ERA5 2 m temperature, one of 761 160 hourly steps read straight from Google Cloud, with provinces as an overlay: the hover shows the region and the value. | ![Atmospheric river](docs/images/atmospheric-river.jpg) **An atmospheric river reaches California, 9 January 2023.** Total column water vapour. |
 | ![True and false colour](docs/images/true-false-colour.jpg) **Sentinel-2, true vs false colour.** Two linked panes of a STAC mosaic; the false-colour pane (near infrared as red) has its own colour scale. | ![Land cover](docs/images/landcover.jpg) **ESA WorldCover around Lake Geneva.** Class colours from the file's palette, names from the config, shares of the view in the legend. |
@@ -191,7 +204,7 @@ the decision log.
 
 ## Status and limitations
 
-GeoLoupe 0.2 is young but complete enough for daily use (see [ROADMAP.md](ROADMAP.md)):
+GeoLoupe 0.3 is young but complete enough for daily use (see [ROADMAP.md](ROADMAP.md)):
 
 * Grids: rectilinear and curvilinear. Unstructured meshes (UGRID, HEALPix, ICON) are not supported
   yet. Curvilinear grids show the nearest cell (no averaging) and get coarser levels by subsampling;
@@ -204,12 +217,15 @@ GeoLoupe 0.2 is young but complete enough for daily use (see [ROADMAP.md](ROADMA
 * Remote data is as fast as the network: the first view of a remote COG or Zarr store takes a few
   seconds; later reads use GDAL's and the server's caches.
 * No authentication or multi-user features; bind to localhost or use an authenticating proxy. This
-  matters most with `--allow-open` / `--open-root`, which let any visitor make the server read URLs
-  (and list S3 buckets, with the server's credentials) or local files below the given folders.
+  matters most for *Add data* (remote URLs, on by default on localhost; `--open-root`), which lets
+  any visitor make the server read URLs (and list S3 buckets, with the server's credentials) or local
+  files below the given folders.
 * GeoLoupe always runs a server; there is no browser-only mode for static GeoZarr pyramids yet.
   Private GeoTIFFs on a non-AWS S3 store need `AWS_S3_ENDPOINT` (GDAL reads them).
-* Panes are linked in time to the same moment; a fixed offset between panes (e.g. 30 years earlier)
-  is planned.
+* Error maps are exact from the native cells only within a read budget (for 1 km data: from about
+  zoom 5); wider views need `geoloupe errors build`. Error maps of curvilinear or composite layers
+  cannot be precomputed yet.
+* Data binned along lines (transects, fjord or river profiles) cannot be shown on the map yet.
 
 ## Contributing
 

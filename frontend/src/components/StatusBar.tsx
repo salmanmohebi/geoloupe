@@ -21,10 +21,13 @@ function ErrorProvenance() {
     <div className="provenance panel" role="status" aria-live="polite">
       {loading > 0 && <span className="spinner" aria-label="loading" />}
       <span className="eyebrow">Error of</span>
-      <span className="prov-part" title={main.layer?.title}>
+      <span className="prov-part prov-err" title={`P: ${main.layer?.title ?? ""} · ${nativeOf(main.layer)}`}>
         <b>P</b> {nativeOf(main.layer)}
       </span>
-      <span className="prov-part" title={compare.layer?.title}>
+      <span
+        className="prov-part prov-err"
+        title={`T: ${compare.layer?.title ?? ""} · ${nativeOf(compare.layer)}`}
+      >
         <b>T</b> {nativeOf(compare.layer)}
       </span>
       {stats?.count ? (

@@ -16,6 +16,19 @@ import { mergeSeries, seriesColor, TimeSeriesChart } from "./TimeSeriesChart";
 
 const WINDOW = 730; // time steps loaded around the current time
 
+const MAX_STEPS = 15_000; // below the server's max_timeseries_steps (20 000 by default)
+
+/** `range` on another timeline, at most MAX_STEPS of its steps, around `current`. */
+function limitWindow(tl: Timeline, range: string[], current: string | null): [string, string] | null {
+  if (!tl.count) return null;
+  const i0 = tl.nearest(range[0]);
+  const i1 = tl.nearest(range[1]);
+  if (i1 - i0 < MAX_STEPS) return [range[0], range[1]];
+  const c = current ? tl.nearest(current) : i1;
+  const lo = Math.max(i0, Math.min(c - MAX_STEPS / 2, i1 - MAX_STEPS + 1));
+  return [tl.at(lo), tl.at(Math.min(i1, lo + MAX_STEPS - 1))];
+}
+
 function windowAround(tl: Timeline, current: string | null, n: number): [string, string] | null {
   if (!tl.count) return null;
   const i = current ? tl.nearest(current) : tl.count - 1;
@@ -60,7 +73,9 @@ function ErrorSeries({
   classes,
   current,
   onPick,
+  note = "",
 }: {
+  note?: string;
   series: { times: string[]; values: (number | null)[] };
   name: string;
   units: string;
@@ -123,7 +138,7 @@ function ErrorSeries({
         )}
       </div>
       <TimeSeriesChart series={[s]} names={[name]} units={units} current={current} onPick={onPick} />
-      <p className="muted small">From the native values of P and T at this point, step by step.</p>
+      <p className="muted small">From the native values of P and T at this point, step by step. {note}</p>
     </section>
   );
 }
@@ -184,14 +199,25 @@ export function Inspector() {
     api.timeseries(main.layerId!, inspect!.lng, inspect!.lat, range![0], range![1], main.dims, signal),
   );
 
-  // error panes: T's series over the same window, and the error at the point over time
+  // error panes: T's series over the same window (cut around the current time when T has much
+  // finer steps, e.g. hourly against monthly), and the error at the point over time
+  const rangeT = range && compare.layer ? limitWindow(timelineOf(compare.layer), range, compare.time) : null;
   const tsTKey =
     tsKey && pe?.e && compare.layerId && compare.layer && timelineOf(compare.layer).count > 1
-      ? JSON.stringify([compare.layerId, inspect, range, compare.dims])
+      ? JSON.stringify([compare.layerId, inspect, rangeT, compare.dims])
       : null;
-  const { data: tsT } = useFetch<TimeSeriesResult>(tsTKey, (signal) =>
-    api.timeseries(compare.layerId!, inspect!.lng, inspect!.lat, range![0], range![1], compare.dims, signal),
+  const { data: tsT, error: tsTError } = useFetch<TimeSeriesResult>(tsTKey, (signal) =>
+    api.timeseries(
+      compare.layerId!,
+      inspect!.lng,
+      inspect!.lat,
+      rangeT![0],
+      rangeT![1],
+      compare.dims,
+      signal,
+    ),
   );
+  const cutT = !!range && !!rangeT && (rangeT[0] !== range[0] || rangeT[1] !== range[1]);
   const errSeries = errorSeries(tsTKey ? pe : null, ts, tsT);
 
   // a clicked station: its observations over the same window
@@ -351,8 +377,10 @@ export function Inspector() {
         )}
       </section>
       <PaneValues inspect={inspect} />
+      {tsTError && <div className="error-text small">T's series could not be read: {tsTError}</div>}
       {errSeries && (
         <ErrorSeries
+          note={cutT ? `T has finer time steps: the window is cut to ${rangeT![0]} … ${rangeT![1]}.` : ""}
           series={errSeries}
           name={errorName(compare.error)}
           units={unitLabel(drawUnits({ main, compare }))}
