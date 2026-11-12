@@ -223,3 +223,38 @@ def test_overview_stores_per_period_via_glob(tmp_path) -> None:
     for t in ("2021-01-01", "2021-01-04"):  # one time from each store
         res = eng.render(cat.layer("d:tas"), Tile(3, 4, 2), Selection.make(t))
         assert not res.empty and res.contributions[0].level_index > 0
+
+
+def test_overview_edges_stop_at_the_data(tmp_path) -> None:
+    """An odd row count: the last overview row holds fewer native rows than its block spans, so it
+    reaches beyond the data (one native row, 0.01°, at factor 2). Pixels there must stay empty (a
+    known issue of 0.1 and 0.2)."""
+    import math
+
+    from geoloupe.engine import Selection, TileEngine
+    from geoloupe.tiling import Tile, lonlat_to_tile
+
+    z = 5  # pixels of ~0.044° × 0.034°: the factor-2 overview (0.02°) is drawn
+    x, y = lonlat_to_tile(6.0, 40.0, z)
+    tile = Tile(z, x, y)
+    c = float(tile.lat_centers()[128])  # put the south edge of the data just north of this pixel
+    south = math.ceil((c + 0.001) * 100) / 100  # c is 0.001–0.01° south of the edge
+    rows = 1031  # odd: the last factor-2 block holds one row
+    ds = latlon_ds((0.0, south, 12.0, round(south + rows * 0.01, 2)), 0.01, times=1)
+    assert ds.sizes["lat"] == rows
+    src = tmp_path / "e.zarr"
+    ds.to_zarr(src, zarr_format=3)
+    build(str(src), str(tmp_path / "e.ovr.zarr"))
+    cat = Catalog(
+        config_from_dict(
+            {"datasets": {"e": {"path": str(src), "overviews": str(tmp_path / "e.ovr.zarr")}}},
+            base_dir=tmp_path,
+        )
+    )
+    layer = cat.layer("e:tas")
+    vals, level, _ = TileEngine(cat).sample(layer.sources[0], tile, Selection.make("2021-01-01"))
+    assert vals is not None and layer.sources[0].levels[level].origin == "overview"
+    lat = tile.lat_centers()
+    assert south - 0.01 < c < south  # this pixel is inside the last overview row, beyond the data
+    assert np.isnan(vals[lat < south]).all()  # nothing beyond the edge of the data
+    assert np.isfinite(vals[lat > south + 0.02][:, :10]).all()  # the data itself is still drawn

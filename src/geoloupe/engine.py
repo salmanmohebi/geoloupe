@@ -34,7 +34,7 @@ from typing import Any
 import numpy as np
 
 from geoloupe.catalog import Catalog, Layer, Level, Source
-from geoloupe.grid import Axis
+from geoloupe.grid import Axis, Grid
 from geoloupe.tiling import Tile, zoom_for_resolution
 from geoloupe.timeaxis import TimeError, TimeFormatError
 
@@ -239,6 +239,28 @@ def preferred_level(levels: list[Level], usable: list[int], px: tuple[float, flo
         if rx <= px[0] * 1.001 and ry <= px[1] * 1.001:
             best = i  # levels are sorted fine → coarse
     return best
+
+
+def clip_to_grid(vals: np.ndarray, grid: Grid, tile: Tile) -> np.ndarray:
+    """No data on pixels whose centre lies outside `grid` (the native grid of an overview).
+
+    When a grid size is not a multiple of the overview factor, the last overview row/column is
+    the mean of the remaining cells but spans a full block, up to f/2 native cells beyond the
+    edge of the data; those pixels are cut here."""
+    if grid.curvi is not None:
+        return vals
+    if grid.geographic:
+        px = grid.x.position(tile.lon_centers())
+        py = grid.y.position(tile.lat_centers())
+        if grid.x.covers_full_period():
+            px = np.zeros_like(px)
+        inside = np.outer((py >= 0) & (py < grid.y.n), (px >= 0) & (px < grid.x.n))
+    else:
+        rows, _ = grid.locate(*tile.lonlat_grid())
+        inside = rows >= 0
+    if inside.all():
+        return vals
+    return np.where(inside, vals, np.nan).astype(vals.dtype, copy=False)
 
 
 # ------------------------------------------------------------------ reading
@@ -477,6 +499,8 @@ class TileEngine:
         # categorical data: nearest on the fly (overviews hold the majority class)
         method = "nearest" if p.nearest or source.resampling == "mode" else source.resampling
         vals = resample(win, p, method, tile.size)
+        if lv is not source.native and lv.origin == "overview":
+            vals = clip_to_grid(vals, source.native.grid, tile)
         if source.scale != 1.0 or source.offset != 0.0:
             vals = vals * np.float32(source.scale) + np.float32(source.offset)
         return vals, p.level_index, None
