@@ -223,6 +223,30 @@ check(
 );
 await page.screenshot({ path: `${out}/panes-06-old-link.png` });
 
+// 11. A time offset: pane 2 shows the linked time 10 days earlier, and follows the time bar
+await page.goto("about:blank");
+const p1 = encodeURIComponent("layer=global:tas&to=-10d");
+await page.goto(`${base}/#layer=alps:tas&t=2021-07-15&c=10.2,46.4&z=6.5&lay=r50(0,1)&pa=0&p1=${p1}`, {
+  waitUntil: "load",
+});
+await settle();
+ps = await panes();
+check(ps[1]?.title.includes("2021-07-05 (−10 d)"), `a pane with a time offset (${ps[1]?.title})`);
+await page.locator(".map-pane.active .maplibregl-canvas").first().focus();
+await page.keyboard.press("ArrowRight"); // the time bar steps one day
+await page.waitForTimeout(500);
+ps = await panes();
+check(
+  ps[0]?.title.includes("2021-07-16") && ps[1]?.title.includes("2021-07-06 (−10 d)"),
+  "it keeps the offset when the time moves",
+);
+await page.mouse.click(ps[1].x + ps[1].w * 0.5, ps[1].y + ps[1].h * 0.35);
+await page.waitForTimeout(300);
+check(
+  (await page.locator("select[aria-label='Time offset of this pane']").count()) === 1,
+  "the side panel sets the active pane's offset",
+);
+
 check(errors.length === 0, `no console errors${errors.length ? ": " + errors.slice(0, 3).join(" | ") : ""}`);
 await browser.close();
 process.exit(failed ? 1 : 0);

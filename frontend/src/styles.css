@@ -1667,3 +1667,10 @@ button.s3-entry:hover {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.time-offset select {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.offset-n {
+  width: 4.5em;
+}

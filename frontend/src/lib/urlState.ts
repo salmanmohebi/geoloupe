@@ -62,6 +62,7 @@ export function parseHash(hash: string): Partial<UrlState> {
   out.pa = num(q.get("pa"));
   if (q.get("lv") === "0") out.lv = false;
   if (q.get("lt") === "0") out.lt = false;
+  if (q.get("to")) out.to = q.get("to")!;
   const panes: Record<number, Partial<UrlState>> = {};
   for (const [k, v] of q.entries()) {
     const m = /^p(\d)$/.exec(k);
@@ -126,6 +127,7 @@ export function buildHash(s: Partial<UrlState>): string {
   }
   if (s.lv === false) add("lv", "0");
   if (s.lt === false) add("lt", "0");
+  add("to", s.to);
   for (const [i, p] of Object.entries(s.panes ?? {})) {
     const sub = buildHash(p).slice(1);
     if (sub) q.push(`p${i}=${encodeURIComponent(sub)}`);

@@ -139,6 +139,7 @@ export interface ViewPane {
   compare_time?: string;
   link_view?: boolean;
   link_time?: boolean;
+  time_offset?: string; // e.g. "-30y"
 }
 
 export interface LevelInfo {

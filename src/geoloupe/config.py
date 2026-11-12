@@ -357,6 +357,8 @@ class ViewPane(_Model):
     # follow the other panes' camera and time (as in the browser's link buttons)
     link_view: bool = True
     link_time: bool = True
+    # show the linked time shifted, e.g. "-30y" (years), "-6m" (months), "-1d", "12h"
+    time_offset: str | None = Field(default=None, pattern=r"^[+-]?\d+[ymdh]$")
 
 
 def layout_panes(layout: str) -> int:

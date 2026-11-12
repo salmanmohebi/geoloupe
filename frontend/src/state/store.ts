@@ -37,6 +37,61 @@ export interface Follow {
 }
 export type Basemap = "minimal" | "light" | "dark";
 
+/** A pane's time offset from its linked group, e.g. { n: -30, unit: "y" }: 30 years earlier. */
+export interface TimeOffset {
+  n: number;
+  unit: "y" | "m" | "d" | "h";
+}
+
+const pad = (v: number, w = 2) => String(Math.abs(v)).padStart(w, "0");
+const daysIn = (y: number, m: number) => new Date(Date.UTC(y, m, 0)).getUTCDate(); // m: 1–12
+
+/** A time label shifted by an offset (`sign` -1: back), in the same form as the label
+ * ("2021", "2021-07", "2021-07-15", "2021-07-15T12:00"). Month and year shifts keep the day
+ * within the month (Jan 31 + 1 month = Feb 28). */
+export function shiftTime(label: string, off: TimeOffset | null, sign = 1): string {
+  if (!off || !off.n) return label;
+  const m = /^(-?\d{4,})(?:-(\d{2})(?:-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?)?)?/.exec(label);
+  if (!m) return label;
+  const k = off.n * sign;
+  let y = Number(m[1]);
+  let mo = Number(m[2] ?? 1);
+  let d = Number(m[3] ?? 1);
+  let h = Number(m[4] ?? 0);
+  const mi = Number(m[5] ?? 0);
+  const sec = Number(m[6] ?? 0);
+  if (off.unit === "y" || off.unit === "m") {
+    const total = y * 12 + (mo - 1) + (off.unit === "y" ? 12 * k : k);
+    y = Math.floor(total / 12);
+    mo = total - y * 12 + 1;
+    d = Math.min(d, daysIn(y, mo));
+  } else {
+    const t = new Date(Date.UTC(2000, 0, 1, h, mi, sec));
+    t.setUTCFullYear(y, mo - 1, d);
+    if (off.unit === "d") t.setUTCDate(t.getUTCDate() + k);
+    else t.setUTCHours(t.getUTCHours() + k);
+    [y, mo, d, h] = [t.getUTCFullYear(), t.getUTCMonth() + 1, t.getUTCDate(), t.getUTCHours()];
+  }
+  let out = `${y < 0 ? "-" : ""}${pad(y, 4)}`;
+  if (m[2] !== undefined) out += `-${pad(mo)}`;
+  if (m[3] !== undefined) out += `-${pad(d)}`;
+  if (m[4] !== undefined) out += `T${pad(h)}:${pad(mi)}`;
+  if (m[6] !== undefined) out += `:${pad(sec)}`;
+  return out + label.slice(m[0].length); // e.g. a time zone suffix stays
+}
+
+/** "−30 y", "+6 m", … */
+export function fmtOffset(o: TimeOffset | null): string {
+  if (!o || !o.n) return "";
+  const name = { y: "y", m: "mo", d: "d", h: "h" }[o.unit];
+  return `${o.n > 0 ? "+" : "−"}${Math.abs(o.n)} ${name}`;
+}
+
+export function parseOffset(s: string | null | undefined): TimeOffset | null {
+  const m = /^([+-]?\d+)([ymdh])$/.exec((s ?? "").trim());
+  return m && Number(m[1]) ? { n: Number(m[1]), unit: m[2] as TimeOffset["unit"] } : null;
+}
+
 export interface Target {
   layerId: string | null;
   layer: LayerMeta | null;
@@ -106,6 +161,7 @@ export interface AppState {
   // states are in `panes`. Linked panes share the camera (linkView) and the time (linkTime).
   linkView: boolean;
   linkTime: boolean;
+  timeOffset: TimeOffset | null; // a linked pane shows the group's time shifted by this
   layout: Layout;
   active: string;
   panes: Record<string, PaneState>;
@@ -151,6 +207,7 @@ export interface AppState {
   applyPreset: (p: Preset) => void;
   toggleZoom: (id?: string) => void;
   setLinks: (l: { view?: boolean; time?: boolean }) => Promise<void>;
+  setTimeOffset: (o: TimeOffset | null) => void;
   setPaneView: (id: string, v: View) => void;
   notify: (kind: Notice["kind"], text: string) => void;
   dismiss: (id: number) => void;
@@ -192,6 +249,7 @@ export interface UrlState {
   pa: number;
   lv: boolean; // false: the pane's camera is not linked
   lt: boolean; // false: the pane's time is not linked
+  to: string; // the pane's time offset, e.g. "-30y"
   panes: Record<number, Partial<UrlState>>; // the other panes, by index
 }
 
@@ -205,6 +263,7 @@ export const PANE_KEYS = [
   "diffFitPending",
   "linkView",
   "linkTime",
+  "timeOffset",
   "view",
 ] as const;
 export type PaneState = Pick<AppState, (typeof PANE_KEYS)[number]>;
@@ -219,6 +278,7 @@ export function snapshot(s: PaneState): PaneState {
     diffFitPending: s.diffFitPending,
     linkView: s.linkView,
     linkTime: s.linkTime,
+    timeOffset: s.timeOffset,
     view: s.view,
   };
 }
@@ -256,6 +316,7 @@ export function paneUrl(p: PaneState, withView = !p.linkView, order: string[] = 
     ft: diff ? idx(p.compare.follow.t) : undefined,
     lv: p.linkView ? undefined : false,
     lt: p.linkTime ? undefined : false,
+    to: p.timeOffset?.n ? `${p.timeOffset.n}${p.timeOffset.unit}` : undefined,
   };
 }
 
@@ -285,9 +346,11 @@ function freePaneId(taken: string[]): string {
   return `p${i}`;
 }
 
-/** A pane's state with the time of the linked group (each pane snaps to its own nearest step). */
-function withTime(p: PaneState, t: string | null): PaneState {
+/** A pane's state with the time of the linked group, shifted by the pane's offset (each pane
+ * snaps to its own nearest step). */
+function withTime(p: PaneState, base: string | null): PaneState {
   if (!p.main.layer) return p;
+  const t = base ? shiftTime(base, p.timeOffset) : base;
   const time = t && timelineOf(p.main.layer).count ? validTime(p.main.layer, t) : p.main.time;
   const c = p.compare;
   const compare =
@@ -316,6 +379,7 @@ const freshPane = (view: View | null): PaneState => ({
   diffFitPending: false,
   linkView: true,
   linkTime: true,
+  timeOffset: null,
   view,
 });
 let noticeId = 0;
@@ -459,7 +523,7 @@ export const useStore = create<AppState>((set, get) => ({
   setupPane: async (u, fallback) => {
     const known = get().catalog?.layers.some((l) => l.id === u.layer);
     await get().setLayer(known ? u.layer! : fallback, u);
-    set({ linkView: u.lv ?? true, linkTime: u.lt ?? true });
+    set({ linkView: u.lv ?? true, linkTime: u.lt ?? true, timeOffset: parseOffset(u.to) });
     if (u.center && u.zoom !== undefined) set({ view: { center: u.center, zoom: u.zoom } });
     if (u.cmp === "diff" || u.cmp === "error") {
       const error: ErrorChoice = {
@@ -536,18 +600,20 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   setTime: (t) => {
-    const { main, compare, linkTime, panes } = get();
+    const { main, compare, linkTime, panes, timeOffset } = get();
     set({ main: { ...main, time: t } });
     // linked B gets the same time; the server matches it per source (month, day, …)
     if (compare.mode !== "off" && compare.linkTime && compare.layer)
       set({ compare: { ...get().compare, time: timelineOf(compare.layer).count ? t : null } });
-    // the other linked panes follow, each to its nearest time step
-    if (linkTime && t)
+    // the other linked panes follow, each with its own offset, to its nearest time step
+    if (linkTime && t) {
+      const base = shiftTime(t, timeOffset, -1);
       set({
         panes: Object.fromEntries(
-          Object.entries(panes).map(([id, p]) => [id, p.linkTime ? withTime(p, t) : p]),
+          Object.entries(panes).map(([id, p]) => [id, p.linkTime ? withTime(p, base) : p]),
         ),
       });
+    }
   },
 
   stepTime: (k) => {
@@ -778,12 +844,27 @@ export const useStore = create<AppState>((set, get) => ({
     if (l.view !== undefined) set({ linkView: l.view });
     if (l.time !== undefined) {
       set({ linkTime: l.time });
-      // a pane that joins the group takes the group's time
+      // a pane that joins the group takes the group's time (with its own offset)
       const group = Object.values(get().panes).find((p) => p.linkTime && p.main.time);
       const layer = get().main.layer;
-      if (l.time && group && layer && timelineOf(layer).count)
-        get().setTime(validTime(layer, group.main.time));
+      if (l.time && group && layer && timelineOf(layer).count) {
+        const base = shiftTime(group.main.time!, group.timeOffset, -1);
+        set({ main: { ...get().main, time: validTime(layer, shiftTime(base, get().timeOffset)) } });
+      }
     }
+  },
+
+  setTimeOffset: (o) => {
+    const off = o && o.n ? o : null;
+    const prev = get().timeOffset;
+    set({ timeOffset: off });
+    const { main, linkTime } = get();
+    if (!main.time || !main.layer || !timelineOf(main.layer).count) return;
+    // the group's time stays; this pane moves to it plus the new offset
+    const group = Object.values(get().panes).find((p) => p.linkTime && p.main.time);
+    const base =
+      linkTime && group ? shiftTime(group.main.time!, group.timeOffset, -1) : shiftTime(main.time, prev, -1);
+    set({ main: { ...main, time: validTime(main.layer, shiftTime(base, off)) } });
   },
 
   setPaneView: (id, v) => {

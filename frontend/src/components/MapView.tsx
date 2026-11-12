@@ -26,7 +26,7 @@ import { useLatest } from "../lib/useLatest";
 import { fmt, fmtLonLat, unitLabel } from "../lib/format";
 import type { RenderSpec } from "../lib/protocol";
 import { summarize, valueAt, type HoverValue } from "../lib/view";
-import { paneOf, pointsLayerOf, useStore, type PaneState, type Target } from "../state/store";
+import { fmtOffset, paneOf, pointsLayerOf, useStore, type PaneState, type Target } from "../state/store";
 import { colorExpression, fetchPoints, toGeoJSON, type PointsResult } from "../lib/points";
 import { useFetch } from "../lib/useFetch";
 import { tileZoom } from "../lib/mercator";
@@ -613,7 +613,13 @@ function PaneBox({
           </span>
           <span className="pane-title" title={title}>
             {title}
-            {p.main.time && <span className="pane-time"> · {p.main.time}</span>}
+            {p.main.time && (
+              <span className="pane-time">
+                {" "}
+                · {p.main.time}
+                {p.timeOffset && p.linkTime ? ` (${fmtOffset(p.timeOffset)})` : ""}
+              </span>
+            )}
           </span>
           {legend && (
             <span className="pane-legend" title={`${st.colormap}${st.log ? ", log scale" : ""}`}>

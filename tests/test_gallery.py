@@ -297,3 +297,12 @@ def test_views_with_error_panes() -> None:
     ]:
         with pytest.raises(ValueError, match=msg):
             ViewConfig(title="t", layer="a", panes=panes)
+
+
+def test_view_pane_time_offset() -> None:
+    from geoloupe.config import ViewConfig
+
+    v = ViewConfig(title="t", layer="a", panes=[{"layer": "a", "time_offset": "-30y"}])
+    assert v.panes[0].time_offset == "-30y"
+    with pytest.raises(ValueError):
+        ViewConfig(title="t", layer="a", panes=[{"layer": "a", "time_offset": "30 years"}])

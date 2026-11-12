@@ -12,7 +12,7 @@ import { visibleVectors } from "../lib/vectors";
 import { percentiles } from "../lib/view";
 import { paneIds } from "../lib/layout";
 import { drawStyle, errorScaleOf, fitErrorRange } from "../lib/paneDraw";
-import { useStore } from "../state/store";
+import { fmtOffset, useStore, type TimeOffset } from "../state/store";
 import { ErrorPanel } from "./ErrorPanel";
 import { Icon } from "./Icon";
 
@@ -379,6 +379,83 @@ export function StyleControls() {
   );
 }
 
+const OFFSETS: { label: string; o: TimeOffset | null }[] = [
+  { label: "none", o: null },
+  { label: "1 day earlier", o: { n: -1, unit: "d" } },
+  { label: "1 month earlier", o: { n: -1, unit: "m" } },
+  { label: "1 year earlier", o: { n: -1, unit: "y" } },
+  { label: "10 years earlier", o: { n: -10, unit: "y" } },
+  { label: "30 years earlier", o: { n: -30, unit: "y" } },
+  { label: "1 year later", o: { n: 1, unit: "y" } },
+];
+
+/** The active pane's time offset from its linked panes ("the same day, 30 years earlier"). */
+function TimeOffsetControl() {
+  const off = useStore((s) => s.timeOffset);
+  const linked = useStore((s) => s.linkTime);
+  const { setTimeOffset, setLinks } = useStore.getState();
+  const [n, setN] = useState<string | null>(null);
+  const key = (o: TimeOffset | null) => (o ? `${o.n}${o.unit}` : "");
+  const preset = OFFSETS.some((p) => key(p.o) === key(off));
+  return (
+    <section className="time-offset">
+      <div className="eyebrow">Time offset</div>
+      <div className="row gap">
+        <select
+          value={preset ? key(off) : "custom"}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (v === "custom") return setTimeOffset(off ?? { n: -5, unit: "y" });
+            setTimeOffset(OFFSETS.find((p) => key(p.o) === v)?.o ?? null);
+            if (v && !linked) void setLinks({ time: true });
+          }}
+          aria-label="Time offset of this pane"
+        >
+          {OFFSETS.map((p) => (
+            <option key={key(p.o)} value={key(p.o)}>
+              {p.label}
+            </option>
+          ))}
+          <option value="custom">other…</option>
+        </select>
+        {(!preset || (off && !OFFSETS.some((p) => key(p.o) === key(off)))) && (
+          <>
+            <input
+              type="text"
+              inputMode="numeric"
+              className="offset-n"
+              value={n ?? String(off?.n ?? 0)}
+              onChange={(e) => setN(e.target.value)}
+              onBlur={() => {
+                const v = Math.round(Number(n));
+                if (n !== null && Number.isFinite(v)) setTimeOffset({ n: v, unit: off?.unit ?? "y" });
+                setN(null);
+              }}
+              onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+              aria-label="Offset (negative: earlier)"
+            />
+            <select
+              value={off?.unit ?? "y"}
+              onChange={(e) => setTimeOffset({ n: off?.n || -1, unit: e.target.value as TimeOffset["unit"] })}
+              aria-label="Offset unit"
+            >
+              <option value="y">years</option>
+              <option value="m">months</option>
+              <option value="d">days</option>
+              <option value="h">hours</option>
+            </select>
+          </>
+        )}
+      </div>
+      <div className="muted small">
+        {off
+          ? `This pane shows the linked time ${fmtOffset(off)}${linked ? "" : " (link its time to use it)"}.`
+          : "Show this pane at another time than the linked panes, e.g. 30 years earlier."}
+      </div>
+    </section>
+  );
+}
+
 export function LayerPanel() {
   const catalog = useStore((s) => s.catalog);
   const main = useStore((s) => s.main);
@@ -492,6 +569,7 @@ export function LayerPanel() {
         )}
       </section>
 
+      {paneNo > 0 && layer && timelineOf(layer).count > 1 && <TimeOffsetControl />}
       {isError && <ErrorPanel />}
       {isError && followP && (
         <p className="muted small panel-note">

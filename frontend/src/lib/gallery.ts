@@ -44,6 +44,7 @@ function paneState(p: ViewPane): Partial<UrlState> {
       ft: e.t_pane !== undefined ? e.t_pane - 1 : undefined,
       lv: p.link_view === false ? false : undefined,
       lt: p.link_time === false ? false : undefined,
+      to: p.time_offset,
     };
   return {
     layer: p.layer,
@@ -57,6 +58,7 @@ function paneState(p: ViewPane): Partial<UrlState> {
     cmpT: p.compare_time,
     lv: p.link_view === false ? false : undefined,
     lt: p.link_time === false ? false : undefined,
+    to: p.time_offset,
   };
 }
 
