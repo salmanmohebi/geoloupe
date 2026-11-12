@@ -15,7 +15,7 @@ NetCDF, GRIB, GeoTIFF/COG, CSV, Parquet; local or in public cloud buckets) and r
 screen can show. Datasets of different resolution become one seamless layer: zoomed out, you see the
 coarse global field; zoom in, and the fine data takes over where it exists.
 
-![A tour of GeoLoupe: the gallery, ERA5 hour by hour with a region hover, a zoom from 31 km to 30 m, Sentinel-2 true vs false colour, and 165 years of ocean warming in a climate model](docs/images/geoloupe-tour.gif)
+![A tour of GeoLoupe: the gallery, ERA5 hour by hour with a region hover, a zoom from 31 km to 30 m, a storm split into three linked panes with the keys, Sentinel-2 true vs false colour, the Alps in four panes, and 165 years of ocean warming in a climate model](docs/images/geoloupe-tour.gif)
 
 ## Install
 
@@ -139,14 +139,22 @@ geoloupe.show({"data": ds})           # interactive map in the cell output
 * **Vector overlays.** Regions, borders, rivers, catchments, tracks or sites from GeoJSON, Shapefile,
   GeoPackage, FlatGeobuf or GeoParquet, drawn over the data; hover shows the feature's name and
   attributes next to the value under the cursor.
-* **Compare.** Side by side (two synchronised maps) or a difference map A − B, across layers or times.
+* **Split panes, like tmux.** Split the map right or down (up to 6 panes), drag the dividers, and
+  show a different layer, time and colour scale in each pane. Panes share the camera and the time
+  (each can be unlinked); the hover lists every pane's value, a click gives every pane's time
+  series, and the whole layout exports as one figure. Keys: `%` split right, `"` split down, `x`
+  close, `z` zoom a pane, `Alt`+arrows move. A difference map A − B works in any pane.
+* **Open data from S3 buckets.** *Add data → Browse S3* lists a bucket on AWS or any S3-compatible
+  store (MinIO, Ceph, SWITCH, Cloudflare R2, …), shows what GeoLoupe can open, and opens it in a pane;
+  public buckets need no setup, private ones use the server's own credentials.
 * **Many formats and grids.** Zarr v2/v3 (sharded, consolidated or not), NetCDF 3/4 and HDF5 (also
   multi-file), GRIB, GeoTIFF/COG (multi-band, palettes), kerchunk/VirtualiZarr references; local or
   remote (HTTPS, S3, GCS). Public S3 buckets work without credentials or setup. Lat/lon grids in either longitude convention, Gaussian grids, projected
   CRSs (UTM, LAEA, rotated pole, …), and curvilinear grids with 2-D longitude/latitude (ocean models,
   WRF, CMIP6 native grids, swaths).
-* **Gallery and sharing.** Featured views as a start screen; every view is a link; PNG export with
-  title, colour bar and attribution; the data in view as NetCDF; time series as CSV.
+* **Gallery and sharing.** Featured views as a start screen, also with several panes; every view is
+  a link (layout included); PNG export with title, colour bar and attribution (one pane or the whole
+  layout); the data in view as NetCDF; time series as CSV.
 * **Python and Jupyter.** `geoloupe.show(...)` puts any xarray Dataset on the map inside a
   notebook. The HTTP API (OpenAPI docs at `/api/docs`) works from any language.
 
@@ -156,8 +164,10 @@ All from `geoloupe gallery`:
 
 | | |
 |---|---|
+| ![Four panes](docs/images/four-panes.jpg) **Four linked panes over the Western Alps.** Elevation, Sentinel-2 in true and false colour, and land cover; the hover lists all four values, and the other panes mark the point. | ![Three panes and the point details](docs/images/storm-panes.jpg) **Storm Ciarán in three panes.** Wind gusts, rain and water vapour at the same hour; a click shows every pane's value and its time series. |
+| ![The layout as one figure](docs/images/layout-export.jpg) **The whole layout as one figure** (Export). The GFDL-ESM4 climate model next to ERA5, August 2014, each pane with its label and colour bar. | ![Browse S3](docs/images/s3-browse.jpg) **Add data → Browse S3.** A public AWS bucket, filtered by name; each entry says what it is, and opens in the active pane or a new one. |
 | ![Heatwave](docs/images/heatwave.jpg) **Europe's heatwave, 18 July 2023, 14 UTC.** ERA5 2 m temperature, one of 761 160 hourly steps read straight from Google Cloud, with provinces as an overlay: the hover shows the region and the value. | ![Atmospheric river](docs/images/atmospheric-river.jpg) **An atmospheric river reaches California, 9 January 2023.** Total column water vapour. |
-| ![True and false colour](docs/images/true-false-colour.jpg) **Sentinel-2, true vs false colour.** Two synchronised maps of a STAC mosaic; the false-colour side (near infrared as red) keeps its own colour scale. | ![Land cover](docs/images/landcover.jpg) **ESA WorldCover around Lake Geneva.** Class colours from the file's palette, names from the config, shares of the view in the legend. |
+| ![True and false colour](docs/images/true-false-colour.jpg) **Sentinel-2, true vs false colour.** Two linked panes of a STAC mosaic; the false-colour pane (near infrared as red) has its own colour scale. | ![Land cover](docs/images/landcover.jpg) **ESA WorldCover around Lake Geneva.** Class colours from the file's palette, names from the config, shares of the view in the legend. |
 | ![Elevation](docs/images/elevation.jpg) **The Matterhorn in the Copernicus DEM (30 m).** Six 1° tiles form one layer, with ERA5's orography outside them. | ![Stations](docs/images/stations.jpg) **GHCN-Daily stations, 18 July 2023.** Click one for its whole daily record. |
 | ![Ocean warming](docs/images/ocean-warming.jpg) **165 years of ocean warming in a climate model.** GFDL-ESM4 (CMIP6) sea surface temperature on its own curvilinear (tripolar) grid, August 2014 minus August 1850. | ![Western Alps](docs/images/alps-stac.jpg) **The Western Alps from space.** The 10 least cloudy Sentinel-2 scenes of August 2023, found with a STAC search and shown as one seamless mosaic. |
 
@@ -181,7 +191,7 @@ the decision log.
 
 ## Status and limitations
 
-GeoLoupe 0.1 is a working first version (see [ROADMAP.md](ROADMAP.md)):
+GeoLoupe 0.2 is young but complete enough for daily use (see [ROADMAP.md](ROADMAP.md)):
 
 * Grids: rectilinear and curvilinear. Unstructured meshes (UGRID, HEALPix, ICON) are not supported
   yet. Curvilinear grids show the nearest cell (no averaging) and get coarser levels by subsampling;
@@ -195,7 +205,11 @@ GeoLoupe 0.1 is a working first version (see [ROADMAP.md](ROADMAP.md)):
   seconds; later reads use GDAL's and the server's caches.
 * No authentication or multi-user features; bind to localhost or use an authenticating proxy. This
   matters most with `--allow-open` / `--open-root`, which let any visitor make the server read URLs
-  or local files below the given folders.
+  (and list S3 buckets, with the server's credentials) or local files below the given folders.
+* GeoLoupe always runs a server; there is no browser-only mode for static GeoZarr pyramids yet.
+  Private GeoTIFFs on a non-AWS S3 store need `AWS_S3_ENDPOINT` (GDAL reads them).
+* Panes are linked in time to the same moment; a fixed offset between panes (e.g. 30 years earlier)
+  is planned.
 
 ## Contributing
 

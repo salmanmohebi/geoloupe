@@ -113,9 +113,20 @@ views:                                  # featured views: the gallery start scre
     vmin: 5
     vmax: 45
     # globe: true                       # optional: globe projection, basemap: minimal | light | dark
-    # compare: other-layer              # optional: a second layer, compare_mode: split | diff,
-    #                                   #   compare_time; overlay: <points-id> or none
+    # compare: other-layer              # optional: the difference A − B (compare_mode: diff,
+    #                                   #   compare_time); overlay: <points-id> or none
     # vectors: [regions]                # optional: the overlays shown in this view
+  - title: Storm Ciarán in three panes  # a view with several panes (up to 6)
+    layer: wind-gust                    # the first pane: the view's own layer, time, colours
+    time: "2023-11-02T00:00"
+    center: [-5, 48.5]
+    zoom: 4.2
+    layout: "3"                         # 2h (side by side), 2v (stacked), 3, 4, or e.g. r50(0,c50(1,2))
+    panes:                              # the other panes, in layout order
+      - {layer: precipitation, vmin: 0, vmax: 3}   # time: the view's unless given
+      - {layer: water-vapour}
+      # per pane also: dims, colormap, log, compare + compare_time (A − B in that pane),
+      # link_view: false / link_time: false (the pane keeps its own camera / time)
 
 settings:
   max_read_cells: 6000000               # per tile and source; above → next coarser level or skip

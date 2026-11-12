@@ -1494,7 +1494,7 @@ button.s3-entry:hover {
   white-space: nowrap;
 }
 .s3-size {
-  width: 64px;
+  width: 56px;
   color: var(--text-muted);
   text-align: right;
   font-variant-numeric: tabular-nums;

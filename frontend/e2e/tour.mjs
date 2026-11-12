@@ -74,11 +74,33 @@ for (const z of [5.5, 6.5, 7.5, 8.5, 9.5, 10.5]) {
   await frame(z === 10.5 ? 200 : 70);
 }
 
-// 4. satellite: true vs false colour, side by side
+// 4. split panes: a storm split into three variables with the keys, then the hover of all three
+await openView("Storm Ciarán reaches Europe");
+await frame(120);
+const layerSelect = page.locator(".layer-panel label.field select").first();
+for (const [key, layer] of [
+  ["%", "wind-gust"],
+  ['"', "water-vapour"],
+]) {
+  await page.locator(".map-pane.active .maplibregl-canvas, .map-pane .maplibregl-canvas").first().focus();
+  await page.keyboard.press(key); // tmux keys: % splits right, " splits down
+  await settle(4);
+  await layerSelect.selectOption(layer); // the new pane is the active one
+  await settle(4);
+  await frame(110);
+}
+const area = await page.locator(".map-view").boundingBox();
+await page.mouse.move(area.x + area.width * 0.32, area.y + area.height * 0.45, { steps: 4 });
+await page.waitForSelector(".hover-tip", { timeout: 15_000 });
+await frame(260);
+
+// 5. satellite: true vs false colour in two panes, and the Alps in four
 await openView("True vs false colour");
+await frame(180);
+await openView("The Western Alps in four panes");
 await frame(230);
 
-// 5. a climate model's ocean on its own grid: 165 years of warming
+// 6. a climate model's ocean on its own grid: 165 years of warming
 await openView("165 years of ocean warming");
 await frame(260);
 

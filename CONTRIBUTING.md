@@ -28,7 +28,9 @@ frontend/                 web client (TypeScript, React, MapLibre)
   src/components/         UI components
   src/state/store.ts      application state (zustand)
   e2e/smoke.mjs           browser smoke test and screenshots (Playwright)
-  e2e/gallery.mjs         browser test of the gallery: previews and every featured view
+  e2e/gallery.mjs         browser test of the gallery: previews, every featured view, S3 browsing
+  e2e/panes.mjs           browser test of the split panes (demo data)
+  e2e/tour.mjs, readme-shots.mjs   the README animation and pictures (docs/images)
 tests/                    Python tests (pytest)
 examples/                 configurations and notebooks
 docs/                     research, decisions, formats, configuration, benchmarks
@@ -62,7 +64,8 @@ Browser tests (need a running server and Playwright's Chromium):
 cd frontend && npx playwright install chromium
 node e2e/smoke.mjs http://127.0.0.1:8000 /tmp/shots     # demo data; fails on console errors or missing content
                                                         # (start the server with --open-root demo to test "Add data")
-node e2e/gallery.mjs http://127.0.0.1:8000 /tmp/gallery # `geoloupe gallery` (needs internet)
+node e2e/panes.mjs http://127.0.0.1:8000 /tmp/shots     # demo data: split panes
+node e2e/gallery.mjs http://127.0.0.1:8000 /tmp/gallery # `geoloupe gallery --allow-open` (needs internet)
 ```
 
 > **HPC / shared machines:** keep environments and caches out of the home directory. Point

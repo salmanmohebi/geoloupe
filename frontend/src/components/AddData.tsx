@@ -3,6 +3,7 @@
 // when the server was started with --allow-open (remote data) or --open-root DIR (local files).
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { api } from "../api/client";
 import type { BrowseEntry, BrowseResult, S3Access } from "../api/types";
 import { visibleVectors } from "../lib/vectors";
@@ -13,12 +14,12 @@ type Where = "pane" | "new";
 
 const KIND_LABEL: Record<NonNullable<BrowseEntry["kind"]>, string> = {
   zarr: "Zarr",
-  netcdf: "NetCDF / HDF5",
+  netcdf: "NetCDF",
   grib: "GRIB",
-  geotiff: "GeoTIFF / COG",
-  table: "Table (stations)",
+  geotiff: "GeoTIFF",
+  table: "Table",
   vector: "Vector",
-  reference: "Kerchunk references",
+  reference: "Kerchunk",
 };
 
 const STORE_KEY = "geoloupe.s3"; // the last bucket, endpoint and access (no secrets)
@@ -30,6 +31,13 @@ function remembered(): { url: string; endpoint: string; access: "public" | "cred
   } catch {
     return empty;
   }
+}
+
+/** A long file name shortened in the middle: the end (tile, date, extension) tells files apart. */
+function shortName(name: string, max = 52): string {
+  if (name.length <= max) return name;
+  const tail = Math.ceil(max * 0.55);
+  return `${name.slice(0, max - tail - 1)}…${name.slice(-tail)}`;
 }
 
 function fmtBytes(n: number | null): string {
@@ -50,7 +58,8 @@ export function AddDataButton() {
       <button className="btn tool" onClick={() => setOpen(true)}>
         Add data
       </button>
-      {open && <AddDataDialog onClose={() => setOpen(false)} />}
+      {/* in the page body: inside the toolbar, the backdrop would cover only the toolbar */}
+      {open && createPortal(<AddDataDialog onClose={() => setOpen(false)} />, document.body)}
     </>
   );
 }
@@ -211,6 +220,7 @@ function S3Tab({
   const [profiles, setProfiles] = useState<string[]>([]);
   const [match, setMatch] = useState("");
   const [listing, setListing] = useState<BrowseResult | null>(null);
+  const [listedMatch, setListedMatch] = useState(""); // the filter of the current listing
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const ctl = useRef<AbortController | null>(null);
@@ -237,6 +247,7 @@ function S3Tab({
     try {
       const res = await api.browse(where.trim(), access, filter || undefined, c.signal);
       setListing(res);
+      setListedMatch(filter);
       setUrl(res.url);
       try {
         localStorage.setItem(STORE_KEY, JSON.stringify({ url: res.url, endpoint, access: mode, profile }));
@@ -344,8 +355,8 @@ function S3Tab({
               value={match}
               placeholder="Filter names…"
               onChange={(e) => setMatch(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && list(listing.url, match)}
-              onBlur={() => match !== "" && list(listing.url, match)}
+              onKeyDown={(e) => e.key === "Enter" && match !== listedMatch && list(listing.url, match)}
+              onBlur={() => match !== listedMatch && list(listing.url, match)}
               aria-label="Filter names (press Enter)"
             />
           </div>
@@ -374,7 +385,7 @@ function S3Tab({
                 ) : (
                   <span className="s3-entry">
                     <span className="s3-name" title={e.url}>
-                      {e.name}
+                      {shortName(e.name)}
                       {e.dir ? "/" : ""}
                     </span>
                     <span className="s3-kind">{e.kind ? KIND_LABEL[e.kind] : ""}</span>

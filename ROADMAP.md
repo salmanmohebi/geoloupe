@@ -82,10 +82,23 @@ Later in this series: unstructured meshes (UGRID, ICON, HEALPix), vector fields 
 Icechunk. General analysis features (model error layers, station validation statistics, time-chunked
 copies for long series) follow in the next section.
 
+## Done in 0.2
+
+* Split panes like tmux (layout tree, up to 6 panes, draggable dividers, presets, keys, linked
+  camera and time per pane, hover and point series of all panes, layouts in links and in featured
+  views, the whole layout as one PNG). It replaces the side-by-side comparison.
+* *Add data → Browse S3*: AWS and S3-compatible stores, public or with the server's credentials;
+  viewer links (`?store=…&endpoint=…`) open their data; GeoZarr `multiscales` pyramids use every level.
+* HTTPS with the system's certificates (macOS, Windows), clear messages for unreachable data and for
+  data that is not a map.
+
 ## Next (short term: weeks)
 
 | Item | Why | Notes |
 |---|---|---|
+| **Time offset between panes** | Before/after, climate change: "the same day, 30 years earlier" | A pane linked with an offset; steps follow the active pane |
+| **Fjord and transect data on the map** | Data binned along a line (distance × time), e.g. along fjord centre lines | Needs the line geometry; draw segments coloured by value, or a distance × time chart |
+| **Browser-only mode for GeoZarr pyramids** | Public demos without a server (static hosting) | Read `multiscales` stores with zarrita in the client, as OpenLayers' GeoZarr source does |
 | **Station statistics** | Validation at a glance | Bias/RMSE of grid − stations in view, per day and over a period; optional alignment of local station days with UTC grid days |
 | **Time-optimised copies for series** | Point series over 38 years are slow with map-chunked data | `alternates:` in the dataset config, e.g. a rechunked (time-contiguous) copy used only by `/timeseries` |
 | **Overview builds on clusters** | Building overviews of multi-terabyte stores | Partition by time (template in `examples/hpc/`); resume; `--append` for new times |

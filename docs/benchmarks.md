@@ -84,7 +84,7 @@ and us-west-2, Google Cloud, NOAA). Network latency dominates; numbers vary betw
 | Public S3 (from the cluster): one CMIP6 field through s3fs / through HTTPS | 53.7 s / 4.0 s |
 | Public S3: open a CMIP6 Zarr store and a DEM COG (`s3://` paths, no credentials) | 6–7 s and 0.6 s |
 | 11 gallery previews (480 × 240 px, stitched from up to 9 tiles each) | 6.6–16 s for all, in the browser (the cold Sentinel-2 mosaics take longest) |
-| Open a featured view until all tiles are loaded (browser) | 2.3–4.6 s; 7.2 s for the side-by-side Sentinel-2 view |
+| Open a featured view until all tiles are loaded (browser) | 2.3–4.6 s; 7.2 s for the two-pane Sentinel-2 view (true and false colour) |
 
 ## Overview builds
 
@@ -99,6 +99,6 @@ and us-west-2, Google Cloud, NOAA). Network latency dominates; numbers vary betw
 |---|---|---|
 | Python (`pytest`): engine vs brute force, compositing, levels, budgets, CRSs, calendars, overviews, readers, API, stations, satellite rasters, classes, gallery, vectors, STAC, curvilinear grids, Add data, S3, regressions | 141 | 7–90 s (file-system dependent) |
 | Web client (`vitest`): tile decoding (byte layout shared with Python), colour mapping, RGB, classes, Mercator math, URL state, timelines, gallery links, comparison scales, overlays | 28 | < 2 s |
-| Browser smoke test, demo data (`e2e/smoke.mjs`): global, Alps 1 km + hover, inspector, split, difference, LAEA grid, station hover + click, points layer, Add data | 9 scenarios | ~35 s |
+| Browser smoke test, demo data (`e2e/smoke.mjs`): global, Alps 1 km + hover, inspector, two panes (from a 0.1 side-by-side link), difference, LAEA grid, station hover + click, points layer, Add data | 9 scenarios | ~35 s |
 | Browser smoke tests on public remote data (Sentinel-2 true and false colour, ARCO-ERA5, NOAA GHCN stations) | 4 scenarios | ~60 s |
 | Gallery test (`e2e/gallery.mjs`): start screen and previews, then every featured view from its card | 11 views | ~60 s |

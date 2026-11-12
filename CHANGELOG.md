@@ -15,7 +15,6 @@ the configuration format; such changes are listed here).
   read-out lists the value of every pane, and the other panes mark the point. Keys: `%` or `|`
   split right, `"` split down, `x` close, `z` zoom a pane, `Alt`+arrows move between panes.
   Presets (1, 2, 3, 4 panes) in the Compare menu. Links keep the whole layout.
-
 - With several panes, the point details show every pane at the clicked point: its value now and its
   time series around the current time, one chart per unit and time step (hourly and monthly data
   are not mixed on one axis), each pane in its own colour.
@@ -40,6 +39,8 @@ the configuration format; such changes are listed here).
 ### Fixed
 
 - Open menus (Export, Compare, …) are drawn above the point details panel.
+- The *Add data* dialog opens in the middle of the page over a dimmed map; it was squeezed into the
+  toolbar's corner.
 - Panes of a link or view that share the time start at the link's time, not at the latest one.
 
 - A `?` in a web address (query string) is no longer read as a file pattern, so signed or
