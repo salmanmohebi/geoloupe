@@ -2,6 +2,7 @@
 // after the current frame's tiles have loaded, so frames are never skipped.
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { prefetchFrame } from "../lib/prefetch";
 import { timelineOf } from "../lib/timeline";
 import { useStore } from "../state/store";
 import { Icon } from "./Icon";
@@ -23,7 +24,10 @@ export function TimeBar() {
   useEffect(() => {
     if (!playing) return;
     if (loading > 0) return;
-    if (!shownAt.current) shownAt.current = performance.now();
+    if (!shownAt.current) {
+      shownAt.current = performance.now();
+      prefetchFrame(i >= tl.count - 1 ? tl.at(0) : tl.at(i + 1)); // the next frame, in the background
+    }
     const wait = Math.max(0, SPEEDS[speed] - (performance.now() - shownAt.current));
     const t = setTimeout(() => {
       shownAt.current = 0;

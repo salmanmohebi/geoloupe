@@ -24,41 +24,45 @@ export function cachedTile(url: string): DataTile | undefined {
   return t;
 }
 
-export async function fetchTile(url: string, size: number, signal?: AbortSignal): Promise<DataTile> {
+export async function fetchTile(
+  url: string,
+  size: number,
+  signal?: AbortSignal,
+  tracked = true, // false: not counted as loading (prefetching)
+): Promise<DataTile> {
   const hit = cachedTile(url);
   if (hit !== undefined) return hit;
   let p = inflight.get(url);
   if (!p) {
-    p = track(
-      (async () => {
-        const r = await fetch(url);
-        const meta = {
-          contributions: parseContributions(r.headers.get("X-GeoLoupe-Sources")),
-          skipped: parseSkipped(r.headers.get("X-GeoLoupe-Skipped")),
-          ms: Number(r.headers.get("X-GeoLoupe-Time-Ms") ?? 0),
-          ...(r.headers.has("X-GeoLoupe-Exact")
-            ? {
-                exact: r.headers.get("X-GeoLoupe-Exact") === "1",
-                cellM: Number(r.headers.get("X-GeoLoupe-Cell-M") ?? NaN),
-              }
-            : {}),
-        };
-        if (r.status === 204) return { values: null, sourceMap: null, ...meta };
-        if (!r.ok) {
-          let detail = r.statusText;
-          try {
-            detail = (await r.json()).detail ?? detail;
-          } catch {
-            /* ignore */
-          }
-          throw new TileFetchError(`tile ${r.status}: ${detail}`);
+    const load = (async () => {
+      const r = await fetch(url);
+      const meta = {
+        contributions: parseContributions(r.headers.get("X-GeoLoupe-Sources")),
+        skipped: parseSkipped(r.headers.get("X-GeoLoupe-Skipped")),
+        ms: Number(r.headers.get("X-GeoLoupe-Time-Ms") ?? 0),
+        ...(r.headers.has("X-GeoLoupe-Exact")
+          ? {
+              exact: r.headers.get("X-GeoLoupe-Exact") === "1",
+              cellM: Number(r.headers.get("X-GeoLoupe-Cell-M") ?? NaN),
+            }
+          : {}),
+      };
+      if (r.status === 204) return { values: null, sourceMap: null, ...meta };
+      if (!r.ok) {
+        let detail = r.statusText;
+        try {
+          detail = (await r.json()).detail ?? detail;
+        } catch {
+          /* ignore */
         }
-        const buf = await r.arrayBuffer();
-        const nBands = Number(r.headers.get("X-GeoLoupe-Bands") ?? 1);
-        const { values, sourceMap, bands } = decodeValues(buf, size, nBands);
-        return { values, sourceMap, bands, ...meta };
-      })(),
-    );
+        throw new TileFetchError(`tile ${r.status}: ${detail}`);
+      }
+      const buf = await r.arrayBuffer();
+      const nBands = Number(r.headers.get("X-GeoLoupe-Bands") ?? 1);
+      const { values, sourceMap, bands } = decodeValues(buf, size, nBands);
+      return { values, sourceMap, bands, ...meta };
+    })();
+    p = tracked ? track(load) : load;
     inflight.set(url, p);
     p.then(
       (t) => {
