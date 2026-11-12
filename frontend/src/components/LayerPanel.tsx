@@ -12,7 +12,7 @@ import { visibleVectors } from "../lib/vectors";
 import { percentiles } from "../lib/view";
 import { paneIds } from "../lib/layout";
 import { drawStyle, errorScaleOf, fitErrorRange } from "../lib/paneDraw";
-import { fmtOffset, useStore, type TimeOffset } from "../state/store";
+import { centredRange, fmtOffset, useStore, type TimeOffset } from "../state/store";
 import { ErrorPanel } from "./ErrorPanel";
 import { Icon } from "./Icon";
 
@@ -291,7 +291,8 @@ export function StyleControls() {
       if (fit) set(fit);
     } else {
       const [p2, p98] = percentiles(sample, [2, 98]);
-      set({ vmin: Number(p2.toPrecision(3)), vmax: Number((p98 > p2 ? p98 : p2 + 1).toPrecision(3)) });
+      const [lo, hi] = centredRange(p2, p98 > p2 ? p98 : p2 + 1, st.colormap, useStore.getState().colormaps);
+      set({ vmin: Number(lo.toPrecision(3)), vmax: Number(hi.toPrecision(3)) });
     }
   };
 

@@ -37,6 +37,23 @@ export interface Follow {
 }
 export type Basemap = "minimal" | "light" | "dark";
 
+/** A range for data shown with a colormap: centred on 0 when the colormap is diverging and the
+ * data crosses 0 (wind components, anomalies, °C), so the neutral colour means zero. */
+export function centredRange(
+  lo: number,
+  hi: number,
+  colormap: string,
+  colormaps: Record<string, Colormap>,
+): [number, number] {
+  // a name, its reverse ("_r"), or the reverse of a reversed name: the same colours
+  const entry = colormaps[colormap] ?? colormaps[colormap.replace(/_r$/, "")] ?? colormaps[`${colormap}_r`];
+  if (entry?.category === "diverging" && lo < 0 && hi > 0) {
+    const m = Math.max(-lo, hi);
+    return [-m, m];
+  }
+  return [lo, hi];
+}
+
 /** A pane's time offset from its linked group, e.g. { n: -30, unit: "y" }: 30 years earlier. */
 export interface TimeOffset {
   n: number;
@@ -653,6 +670,7 @@ export const useStore = create<AppState>((set, get) => ({
       let hi = st.p98;
       if (hi <= lo) [lo, hi] = [lo - 1, hi + 1];
       if ((st.min ?? 0) >= 0 && lo < (hi - lo) * 0.05) lo = 0; // non-negative fields start at 0
+      [lo, hi] = centredRange(lo, hi, get().style.colormap, get().colormaps);
       set({
         style: { ...get().style, vmin: Number(lo.toPrecision(3)), vmax: Number(hi.toPrecision(3)) },
         styleReady: true,

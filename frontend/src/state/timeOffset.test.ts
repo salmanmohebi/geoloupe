@@ -100,3 +100,14 @@ describe("linked panes with an offset", () => {
     expect(useStore.getState().main.time).toBe("2021-07-15");
   });
 });
+
+describe("colour ranges", async () => {
+  const { centredRange } = await import("./store");
+  const maps = { RdBu_r: { category: "diverging" }, viridis: { category: "sequential" } } as never;
+  it("centre diverging colormaps on 0 when the data crosses 0", () => {
+    expect(centredRange(-3, 8, "RdBu_r", maps)).toEqual([-8, 8]);
+    expect(centredRange(-3, 8, "RdBu", maps)).toEqual([-8, 8]); // the reversed name
+    expect(centredRange(250, 300, "RdBu_r", maps)).toEqual([250, 300]); // K: no zero to centre on
+    expect(centredRange(-3, 8, "viridis", maps)).toEqual([-3, 8]);
+  });
+});
