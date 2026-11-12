@@ -25,9 +25,12 @@ anywhere.
    "Unreleased" section; update the links at the bottom.
 2. Set the version in **one** place, `src/geoloupe/__init__.py` (`__version__ = "X.Y.Z"`), and the
    `version` and `date-released` in `CITATION.cff`.
-3. Run every check on a fresh clone: `GALLERY=1 scripts/ci_local.sh`.
-4. Commit ("Release X.Y.Z"), push to `main`, and wait for a green CI run.
-5. Tag and push the tag:
+3. Rebuild the committed web client (`cd frontend && npm run build`) and commit `src/geoloupe/static`:
+   installs from a git checkout use it, and so does CI's gallery job. (The release workflow builds its
+   own for the wheel.)
+4. Run every check on a fresh clone: `GALLERY=1 scripts/ci_local.sh`.
+5. Commit ("Release X.Y.Z"), push to `main`, and wait for a green CI run.
+6. Tag and push the tag:
 
    ```bash
    git tag vX.Y.Z && git push origin vX.Y.Z
@@ -36,8 +39,8 @@ anywhere.
    The workflow checks that the tag equals `__version__`, rebuilds the web client from the tagged
    source, builds and checks the wheel, installs it in a clean environment and starts a server,
    uploads to PyPI, and creates the GitHub release with the files and generated notes.
-6. Check from a clean environment: `pip install "geoloupe[all]==X.Y.Z" && geoloupe --version`.
-7. Rebuild the public demo (below).
+7. Check from a clean environment: `pip install "geoloupe[all]==X.Y.Z" && geoloupe --version`.
+8. Rebuild the public demo (below).
 
 A dry run without upload: Actions → Release → *Run workflow*.
 

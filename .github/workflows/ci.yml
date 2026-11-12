@@ -73,7 +73,8 @@ jobs:
           node-version: 24
       - run: uv sync --all-extras
       - run: uv run geoloupe gallery --port 8766 --allow-open &
-      - run: cd frontend && npm ci && npx playwright install --with-deps chromium
+      # the committed client may lag behind: test the client of this commit
+      - run: cd frontend && npm ci && npx playwright install --with-deps chromium && npm run build
       - run: timeout 180 bash -c 'until curl -sf http://127.0.0.1:8766/api/health; do sleep 2; done'
       - run: cd frontend && node e2e/gallery.mjs http://127.0.0.1:8766 gallery-shots
       - uses: actions/upload-artifact@v7
