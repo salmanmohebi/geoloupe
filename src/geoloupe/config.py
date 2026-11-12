@@ -385,7 +385,9 @@ class ViewConfig(_Model):
             raise ValueError(f"view {self.title!r}: give the second layer as a pane, not compare")
         if self.layout is not None:
             if layout_panes(self.layout) != n:
-                raise ValueError(f"view {self.title!r}: layout {self.layout!r} is not for {n} panes")
+                raise ValueError(
+                    f"view {self.title!r}: layout {self.layout!r} is not for {n} panes"
+                )
         elif n > 4:
             raise ValueError(f"view {self.title!r}: give a layout for {n} panes")
         return self
