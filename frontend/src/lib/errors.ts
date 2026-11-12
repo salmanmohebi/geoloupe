@@ -126,3 +126,40 @@ export function computeError(e: Pick<ResolvedError, "fn">, p: Float32Array, t: F
   for (let i = 0; i < out.length; i++) out[i] = f(p[i], t[i]);
   return out;
 }
+
+/** P's values in T's units: P × scale + offset. `warning` when units differ but cannot be
+ * converted (then they are compared as they are). */
+export interface Conversion {
+  scale: number;
+  offset: number;
+  warning: string | null;
+}
+
+export function normaliseUnits(u: string | null | undefined): string {
+  return (u ?? "")
+    .trim()
+    .toLowerCase()
+    .replaceAll("**", "")
+    .replaceAll("^", "")
+    .replace(/[.·]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+type UnitDef = { group: string; scale: number; offset: number; names: string[] };
+const UNIT_INDEX = new Map<string, UnitDef>();
+for (const u of (table as { units?: UnitDef[] }).units ?? [])
+  for (const n of u.names) UNIT_INDEX.set(normaliseUnits(n), u);
+
+/** How to bring P's values into T's units. Missing units on either side: compared as they are. */
+export function conversion(pUnits: string | null | undefined, tUnits: string | null | undefined) {
+  const a = normaliseUnits(pUnits);
+  const b = normaliseUnits(tUnits);
+  const same: Conversion = { scale: 1, offset: 0, warning: null };
+  if (a === b || !a || !b) return same;
+  const ia = UNIT_INDEX.get(a);
+  const ib = UNIT_INDEX.get(b);
+  if (ia && ib && ia.group === ib.group)
+    return { scale: ia.scale / ib.scale, offset: (ia.offset - ib.offset) / ib.scale, warning: null };
+  return { ...same, warning: `units differ (${pUnits} and ${tUnits}); compared without conversion` };
+}

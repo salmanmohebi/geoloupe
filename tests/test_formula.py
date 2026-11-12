@@ -107,3 +107,10 @@ def test_no_python_evaluation() -> None:
     for text in ("P.__class__", "'a'", "P[0]", "P = 1", "__import__('os')", "lambda: 1"):
         with pytest.raises(fx.FormulaError):
             fx.check(fx.parse(text), {"P", "T"})
+
+
+@pytest.mark.parametrize("case", CASES["units"], ids=lambda c: f"{c['P']}->{c['T']}")
+def test_unit_conversion(case: dict) -> None:
+    c = errors.conversion(case["P"], case["T"])
+    assert case["value"] * c.scale + c.offset == pytest.approx(case["expect"], rel=1e-9, abs=1e-9)
+    assert (c.warning is not None) == case.get("warning", False)

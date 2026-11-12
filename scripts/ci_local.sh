@@ -50,6 +50,7 @@ trap 'kill $SERVER 2>/dev/null || true' EXIT
 timeout 300 bash -c 'until curl -sf http://127.0.0.1:8765/api/health >/dev/null; do sleep 2; done'
 (cd frontend && node e2e/smoke.mjs http://127.0.0.1:8765 "$WORK/shots")
 (cd frontend && node e2e/panes.mjs http://127.0.0.1:8765 "$WORK/shots")
+(cd frontend && node e2e/errors.mjs http://127.0.0.1:8765 "$WORK/shots")
 kill $SERVER 2>/dev/null || true
 
 if [ "${GALLERY:-0}" = 1 ]; then

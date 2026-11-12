@@ -5,14 +5,15 @@ import { api } from "../api/client";
 import { BASEMAPS } from "../lib/basemaps";
 import { getLut } from "../lib/colormap";
 import { exportLayoutPng, exportPng, type PaneFigure } from "../lib/exportImage";
-import { layerName } from "../lib/layers";
+import { drawStyle, drawTitle, drawUnits, isErrorPane, paneError } from "../lib/paneDraw";
 import { getPaneMaps } from "../lib/mapRegistry";
 import { MAX_PANES, paneIds, PRESET_PANES, preset, rects, type Preset } from "../lib/layout";
 import { unitLabel } from "../lib/format";
-import { timelineOf } from "../lib/timeline";
-import { paneOf, useStore, validTime, type Basemap, type CompareMode } from "../state/store";
+import { paneOf, useStore, type Basemap } from "../state/store";
 import { niceTicks } from "./Colorbar";
 import { AddDataButton } from "./AddData";
+import { NewErrorPane } from "./ErrorPanel";
+import { MenuClose } from "./menuContext";
 import { Icon } from "./Icon";
 
 function Menu({ label, children, active }: { label: string; children: React.ReactNode; active?: boolean }) {
@@ -29,7 +30,9 @@ function Menu({ label, children, active }: { label: string; children: React.Reac
       {open && (
         <>
           <div className="menu-backdrop" onClick={() => setOpen(false)} />
-          <div className="menu-pop panel">{children}</div>
+          <div className="menu-pop panel">
+            <MenuClose.Provider value={() => setOpen(false)}>{children}</MenuClose.Provider>
+          </div>
         </>
       )}
     </div>
@@ -97,93 +100,13 @@ function PanesSection() {
 }
 
 function ComparePanel() {
-  const catalog = useStore((s) => s.catalog);
-  const compare = useStore((s) => s.compare);
-  const main = useStore((s) => s.main);
-  const multi = useStore((s) => paneIds(s.layout).length > 1);
-  const { setCompare, setDiffStyle } = useStore.getState();
-  const modes: { id: CompareMode; label: string; help: string }[] = [
-    { id: "off", label: "Off", help: "" },
-    { id: "diff", label: "Difference A − B", help: "One map of A minus B at display resolution." },
-  ];
-  const tl = timelineOf(compare.layer);
-  const [bTime, setBTime] = useState<string | null>(null);
   return (
     <div className="compare-panel">
       <PanesSection />
       <div className="eyebrow section-gap">
-        Difference: {multi ? "the active pane's layer" : "the current layer"} (A) minus B
+        <Icon name="error" /> Error map: compare data with a reference
       </div>
-      <div className="seg">
-        {modes.map((m) => (
-          <button
-            key={m.id}
-            className={compare.mode === m.id ? "sel" : ""}
-            onClick={async () => {
-              await setCompare({ mode: m.id, layerId: compare.layerId ?? main.layerId });
-              if (m.id === "diff") setDiffStyle({ colormap: "RdBu_r" });
-            }}
-          >
-            {m.label}
-          </button>
-        ))}
-      </div>
-      {compare.mode !== "off" && (
-        <>
-          <p className="muted small">{modes.find((m) => m.id === compare.mode)?.help}</p>
-          <label className="field">
-            <span className="eyebrow">B layer</span>
-            <select
-              value={compare.layerId ?? ""}
-              onChange={(e) => setCompare({ layerId: e.target.value, layer: null })}
-            >
-              {catalog?.layers.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.title} {l.kind === "dataset" ? `(${l.id})` : ""}
-                </option>
-              ))}
-            </select>
-          </label>
-          {tl.count > 1 && (
-            <>
-              <label className="check">
-                <input
-                  type="checkbox"
-                  checked={compare.linkTime}
-                  onChange={(e) => setCompare({ linkTime: e.target.checked })}
-                />
-                same time as A
-              </label>
-              {!compare.linkTime && (
-                <label className="field">
-                  <span className="eyebrow">
-                    B time ({tl.at(0)} … {tl.at(tl.count - 1)})
-                  </span>
-                  <input
-                    type="text"
-                    className="time-input"
-                    value={bTime ?? compare.time ?? ""}
-                    onChange={(e) => setBTime(e.target.value)}
-                    onBlur={() => {
-                      if (bTime && compare.layer)
-                        setCompare({ time: validTime(compare.layer, bTime.trim()) });
-                      setBTime(null);
-                    }}
-                    onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
-                    aria-label="Time of B (ISO 8601)"
-                  />
-                </label>
-              )}
-            </>
-          )}
-          {compare.mode === "diff" && (
-            <p className="muted small">
-              Both layers are sampled on the same screen pixels, each at its own best resolution, then
-              subtracted. Use the colour panel to set the symmetric range (Fit to view).
-            </p>
-          )}
-        </>
-      )}
+      <NewErrorPane />
     </div>
   );
 }
@@ -226,10 +149,12 @@ export function Toolbar() {
       const map = maps[id];
       const l = p?.main.layer;
       if (!p || !l || !map) return;
-      const diff = p.compare.mode === "diff";
-      const st = diff ? p.diffStyle : p.style;
-      const bar = l.kind !== "rgb" && !l.bands && !l.classes && l.kind !== "points";
-      const name = diff ? `${layerName(l)} − ${layerName(p.compare.layer)}` : layerName(l);
+      const diff = isErrorPane(p);
+      const st = drawStyle(p);
+      const bar = diff
+        ? !paneError(p)?.e?.classes.length
+        : l.kind !== "rgb" && !l.bands && !l.classes && l.kind !== "points";
+      const name = drawTitle(p);
       figures.push({
         map,
         rect: boxes[id],
@@ -237,7 +162,7 @@ export function Toolbar() {
         scale: bar
           ? { lut: getLut(colormaps, st.colormap), vmin: st.vmin, vmax: st.vmax, log: st.log }
           : null,
-        units: diff ? "" : unitLabel(l.units),
+        units: unitLabel(drawUnits(p)),
         ticks: niceTicks(st.vmin, st.vmax, st.log),
       });
       if (p.main.time) times.add(p.main.time);
@@ -267,7 +192,8 @@ export function Toolbar() {
 
   const png = async () => {
     if (!main.layer) return;
-    const st = compare.mode === "diff" ? diffStyle : style;
+    const pane = { main, compare, style, diffStyle };
+    const st = drawStyle(pane);
     const sources = main.layer.sources.map((s) => s.dataset_title.split(" (")[0]).join(", ");
     const attrib = catalog?.datasets
       .filter((d) => main.layer!.sources.some((s) => s.dataset === d.id) && d.attribution)
@@ -277,7 +203,7 @@ export function Toolbar() {
       await exportPng(
         { lut: getLut(colormaps, st.colormap), vmin: st.vmin, vmax: st.vmax, log: st.log },
         {
-          title: compare.mode === "diff" ? `${main.layer.title} − ${compare.layer?.title}` : main.layer.title,
+          title: isErrorPane(pane) ? drawTitle(pane) : main.layer.title,
           subtitle: [
             main.time,
             ...Object.entries(main.dims).map(([k, v]) => `${k} ${v}`),
@@ -285,7 +211,7 @@ export function Toolbar() {
           ]
             .filter(Boolean)
             .join(" · "),
-          units: unitLabel(main.layer.units),
+          units: unitLabel(drawUnits(pane)),
           ticks: niceTicks(st.vmin, st.vmax, st.log),
           credit: `GeoLoupe${attrib ? ` · ${attrib}` : ""}`,
         },
@@ -326,8 +252,10 @@ export function Toolbar() {
         </button>
       )}
       <Menu
-        label={panes > 1 ? `Compare: ${panes} panes` : compare.mode === "diff" ? "Compare: A − B" : "Compare"}
-        active={compare.mode !== "off" || panes > 1}
+        label={
+          panes > 1 ? `Compare: ${panes} panes` : isErrorPane({ compare }) ? "Compare: error" : "Compare"
+        }
+        active={isErrorPane({ compare }) || panes > 1}
       >
         <ComparePanel />
       </Menu>

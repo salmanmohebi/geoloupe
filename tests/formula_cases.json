@@ -1,82 +1,1052 @@
 {
   "about": "Shared cases for the formula language and the error definitions. Run by tests/test_formula.py and frontend/src/lib/formula.test.ts, so the server and the browser agree. null means NaN (no value).",
   "values": [
-    { "formula": "P - T", "P": [3, 1, null, 2], "T": [1, 4, 1, null], "expect": [2, -3, null, null] },
-    { "formula": "1 + 2 * 3", "P": [0], "T": [0], "expect": [7] },
-    { "formula": "(1 + 2) * 3", "P": [0], "T": [0], "expect": [9] },
-    { "formula": "2 ^ 3 ^ 2", "P": [0], "T": [0], "expect": [512] },
-    { "formula": "2 ** 3", "P": [0], "T": [0], "expect": [8] },
-    { "formula": "-2 ^ 2", "P": [0], "T": [0], "expect": [-4] },
-    { "formula": "2 ^ -1", "P": [0], "T": [0], "expect": [0.5] },
-    { "formula": "10 - 4 - 3", "P": [0], "T": [0], "expect": [3] },
-    { "formula": "12 / 3 / 2", "P": [0], "T": [0], "expect": [2] },
-    { "formula": "- - P", "P": [5], "T": [0], "expect": [5] },
-    { "formula": "+P", "P": [5], "T": [0], "expect": [5] },
-    { "formula": "1.5e2 + .5 + 2.", "P": [0], "T": [0], "expect": [152.5] },
-    { "formula": "abs(P - T)", "P": [1, 5], "T": [4, 2], "expect": [3, 3] },
-    { "formula": "sqrt(P)", "P": [9, -1], "T": [0, 0], "expect": [3, null] },
-    { "formula": "log(P)", "P": [1, 0, -1], "T": [0, 0, 0], "expect": [0, null, null] },
-    { "formula": "log10(P)", "P": [100], "T": [0], "expect": [2] },
-    { "formula": "exp(P)", "P": [0, 1000], "T": [0, 0], "expect": [1, null] },
-    { "formula": "sign(P)", "P": [-3, 0, 2], "T": [0, 0, 0], "expect": [-1, 0, 1] },
-    { "formula": "P / T", "P": [1, 0, 1], "T": [0, 0, 2], "expect": [null, null, 0.5] },
-    { "formula": "min(P, T, 2)", "P": [1, 5], "T": [3, 4], "expect": [1, 2] },
-    { "formula": "max(P, T)", "P": [1, 5], "T": [3, 4], "expect": [3, 5] },
-    { "formula": "P > T", "P": [2, 1, 1], "T": [1, 1, 2], "expect": [1, 0, 0] },
-    { "formula": "P >= T", "P": [2, 1, 1], "T": [1, 1, 2], "expect": [1, 1, 0] },
-    { "formula": "P < T", "P": [2, 1, 1], "T": [1, 1, 2], "expect": [0, 0, 1] },
-    { "formula": "P <= T", "P": [2, 1, 1], "T": [1, 1, 2], "expect": [0, 1, 1] },
-    { "formula": "P == T", "P": [2, 1], "T": [1, 1], "expect": [0, 1] },
-    { "formula": "P != T", "P": [2, 1], "T": [1, 1], "expect": [1, 0] },
-    { "formula": "P > 1 and T > 1", "P": [2, 2, 0], "T": [2, 0, 2], "expect": [1, 0, 0] },
-    { "formula": "P > 1 or T > 1", "P": [2, 0, 0], "T": [0, 2, 0], "expect": [1, 1, 0] },
-    { "formula": "not P > 1", "P": [2, 0], "T": [0, 0], "expect": [0, 1] },
-    { "formula": "P + 1 > 2 and not T < 0 or P == 0", "P": [2, 2, 0, 1], "T": [1, -1, -1, 5], "expect": [1, 0, 1, 0] },
-    { "formula": "where(P > T, P, T)", "P": [1, 5], "T": [3, 4], "expect": [3, 5] },
-    { "formula": "where(T > 0, 1, nan)", "P": [0, 0], "T": [1, -1], "expect": [1, null] },
-    { "formula": "where(log(P) > 0, 1, 2)", "P": [5, 0.5, -1], "T": [0, 0, 0], "expect": [1, 2, null] },
-    { "formula": "log(P) > 0 or 1", "P": [-1], "T": [0], "expect": [null] },
-    { "formula": "not log(P)", "P": [-1, 1], "T": [0, 0], "expect": [null, 1] },
-    { "formula": "isnan(log(P))", "P": [-1, 1], "T": [0, 0], "expect": [1, 0] },
-    { "formula": "min(log(P), 5)", "P": [-1], "T": [0], "expect": [null] },
-    { "formula": "pi", "P": [0], "T": [0], "expect": [3.141592653589793] },
-    { "formula": "  P\t-\nT ", "P": [3], "T": [1], "expect": [2] }
+    {
+      "formula": "P - T",
+      "P": [
+        3,
+        1,
+        null,
+        2
+      ],
+      "T": [
+        1,
+        4,
+        1,
+        null
+      ],
+      "expect": [
+        2,
+        -3,
+        null,
+        null
+      ]
+    },
+    {
+      "formula": "1 + 2 * 3",
+      "P": [
+        0
+      ],
+      "T": [
+        0
+      ],
+      "expect": [
+        7
+      ]
+    },
+    {
+      "formula": "(1 + 2) * 3",
+      "P": [
+        0
+      ],
+      "T": [
+        0
+      ],
+      "expect": [
+        9
+      ]
+    },
+    {
+      "formula": "2 ^ 3 ^ 2",
+      "P": [
+        0
+      ],
+      "T": [
+        0
+      ],
+      "expect": [
+        512
+      ]
+    },
+    {
+      "formula": "2 ** 3",
+      "P": [
+        0
+      ],
+      "T": [
+        0
+      ],
+      "expect": [
+        8
+      ]
+    },
+    {
+      "formula": "-2 ^ 2",
+      "P": [
+        0
+      ],
+      "T": [
+        0
+      ],
+      "expect": [
+        -4
+      ]
+    },
+    {
+      "formula": "2 ^ -1",
+      "P": [
+        0
+      ],
+      "T": [
+        0
+      ],
+      "expect": [
+        0.5
+      ]
+    },
+    {
+      "formula": "10 - 4 - 3",
+      "P": [
+        0
+      ],
+      "T": [
+        0
+      ],
+      "expect": [
+        3
+      ]
+    },
+    {
+      "formula": "12 / 3 / 2",
+      "P": [
+        0
+      ],
+      "T": [
+        0
+      ],
+      "expect": [
+        2
+      ]
+    },
+    {
+      "formula": "- - P",
+      "P": [
+        5
+      ],
+      "T": [
+        0
+      ],
+      "expect": [
+        5
+      ]
+    },
+    {
+      "formula": "+P",
+      "P": [
+        5
+      ],
+      "T": [
+        0
+      ],
+      "expect": [
+        5
+      ]
+    },
+    {
+      "formula": "1.5e2 + .5 + 2.",
+      "P": [
+        0
+      ],
+      "T": [
+        0
+      ],
+      "expect": [
+        152.5
+      ]
+    },
+    {
+      "formula": "abs(P - T)",
+      "P": [
+        1,
+        5
+      ],
+      "T": [
+        4,
+        2
+      ],
+      "expect": [
+        3,
+        3
+      ]
+    },
+    {
+      "formula": "sqrt(P)",
+      "P": [
+        9,
+        -1
+      ],
+      "T": [
+        0,
+        0
+      ],
+      "expect": [
+        3,
+        null
+      ]
+    },
+    {
+      "formula": "log(P)",
+      "P": [
+        1,
+        0,
+        -1
+      ],
+      "T": [
+        0,
+        0,
+        0
+      ],
+      "expect": [
+        0,
+        null,
+        null
+      ]
+    },
+    {
+      "formula": "log10(P)",
+      "P": [
+        100
+      ],
+      "T": [
+        0
+      ],
+      "expect": [
+        2
+      ]
+    },
+    {
+      "formula": "exp(P)",
+      "P": [
+        0,
+        1000
+      ],
+      "T": [
+        0,
+        0
+      ],
+      "expect": [
+        1,
+        null
+      ]
+    },
+    {
+      "formula": "sign(P)",
+      "P": [
+        -3,
+        0,
+        2
+      ],
+      "T": [
+        0,
+        0,
+        0
+      ],
+      "expect": [
+        -1,
+        0,
+        1
+      ]
+    },
+    {
+      "formula": "P / T",
+      "P": [
+        1,
+        0,
+        1
+      ],
+      "T": [
+        0,
+        0,
+        2
+      ],
+      "expect": [
+        null,
+        null,
+        0.5
+      ]
+    },
+    {
+      "formula": "min(P, T, 2)",
+      "P": [
+        1,
+        5
+      ],
+      "T": [
+        3,
+        4
+      ],
+      "expect": [
+        1,
+        2
+      ]
+    },
+    {
+      "formula": "max(P, T)",
+      "P": [
+        1,
+        5
+      ],
+      "T": [
+        3,
+        4
+      ],
+      "expect": [
+        3,
+        5
+      ]
+    },
+    {
+      "formula": "P > T",
+      "P": [
+        2,
+        1,
+        1
+      ],
+      "T": [
+        1,
+        1,
+        2
+      ],
+      "expect": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "formula": "P >= T",
+      "P": [
+        2,
+        1,
+        1
+      ],
+      "T": [
+        1,
+        1,
+        2
+      ],
+      "expect": [
+        1,
+        1,
+        0
+      ]
+    },
+    {
+      "formula": "P < T",
+      "P": [
+        2,
+        1,
+        1
+      ],
+      "T": [
+        1,
+        1,
+        2
+      ],
+      "expect": [
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "formula": "P <= T",
+      "P": [
+        2,
+        1,
+        1
+      ],
+      "T": [
+        1,
+        1,
+        2
+      ],
+      "expect": [
+        0,
+        1,
+        1
+      ]
+    },
+    {
+      "formula": "P == T",
+      "P": [
+        2,
+        1
+      ],
+      "T": [
+        1,
+        1
+      ],
+      "expect": [
+        0,
+        1
+      ]
+    },
+    {
+      "formula": "P != T",
+      "P": [
+        2,
+        1
+      ],
+      "T": [
+        1,
+        1
+      ],
+      "expect": [
+        1,
+        0
+      ]
+    },
+    {
+      "formula": "P > 1 and T > 1",
+      "P": [
+        2,
+        2,
+        0
+      ],
+      "T": [
+        2,
+        0,
+        2
+      ],
+      "expect": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "formula": "P > 1 or T > 1",
+      "P": [
+        2,
+        0,
+        0
+      ],
+      "T": [
+        0,
+        2,
+        0
+      ],
+      "expect": [
+        1,
+        1,
+        0
+      ]
+    },
+    {
+      "formula": "not P > 1",
+      "P": [
+        2,
+        0
+      ],
+      "T": [
+        0,
+        0
+      ],
+      "expect": [
+        0,
+        1
+      ]
+    },
+    {
+      "formula": "P + 1 > 2 and not T < 0 or P == 0",
+      "P": [
+        2,
+        2,
+        0,
+        1
+      ],
+      "T": [
+        1,
+        -1,
+        -1,
+        5
+      ],
+      "expect": [
+        1,
+        0,
+        1,
+        0
+      ]
+    },
+    {
+      "formula": "where(P > T, P, T)",
+      "P": [
+        1,
+        5
+      ],
+      "T": [
+        3,
+        4
+      ],
+      "expect": [
+        3,
+        5
+      ]
+    },
+    {
+      "formula": "where(T > 0, 1, nan)",
+      "P": [
+        0,
+        0
+      ],
+      "T": [
+        1,
+        -1
+      ],
+      "expect": [
+        1,
+        null
+      ]
+    },
+    {
+      "formula": "where(log(P) > 0, 1, 2)",
+      "P": [
+        5,
+        0.5,
+        -1
+      ],
+      "T": [
+        0,
+        0,
+        0
+      ],
+      "expect": [
+        1,
+        2,
+        null
+      ]
+    },
+    {
+      "formula": "log(P) > 0 or 1",
+      "P": [
+        -1
+      ],
+      "T": [
+        0
+      ],
+      "expect": [
+        null
+      ]
+    },
+    {
+      "formula": "not log(P)",
+      "P": [
+        -1,
+        1
+      ],
+      "T": [
+        0,
+        0
+      ],
+      "expect": [
+        null,
+        1
+      ]
+    },
+    {
+      "formula": "isnan(log(P))",
+      "P": [
+        -1,
+        1
+      ],
+      "T": [
+        0,
+        0
+      ],
+      "expect": [
+        1,
+        0
+      ]
+    },
+    {
+      "formula": "min(log(P), 5)",
+      "P": [
+        -1
+      ],
+      "T": [
+        0
+      ],
+      "expect": [
+        null
+      ]
+    },
+    {
+      "formula": "pi",
+      "P": [
+        0
+      ],
+      "T": [
+        0
+      ],
+      "expect": [
+        3.141592653589793
+      ]
+    },
+    {
+      "formula": "  P\t-\nT ",
+      "P": [
+        3
+      ],
+      "T": [
+        1
+      ],
+      "expect": [
+        2
+      ]
+    }
   ],
   "errors": [
-    { "formula": "", "message": "empty formula", "pos": null },
-    { "formula": "   ", "message": "empty formula", "pos": null },
-    { "formula": "P - ", "message": "unexpected end of formula", "pos": 4 },
-    { "formula": "P $ T", "message": "unexpected character '$'", "pos": 2 },
-    { "formula": "(P - T", "message": "unexpected end of formula: expected ')'", "pos": 6 },
-    { "formula": "P - T)", "message": "unexpected ')'", "pos": 5 },
-    { "formula": "P T", "message": "unexpected 'T'", "pos": 2 },
-    { "formula": "foo(P)", "message": "unknown function 'foo'", "pos": 0 },
-    { "formula": "abs(P, T)", "message": "abs() takes 1 argument, not 2", "pos": 0 },
-    { "formula": "where(P, T)", "message": "where() takes 3 arguments, not 2", "pos": 0 },
-    { "formula": "max(P)", "message": "max() takes at least 2 arguments, not 1", "pos": 0 },
-    { "formula": "min()", "message": "min() takes at least 2 arguments, not 0", "pos": 0 },
-    { "formula": "1 < P < 3", "message": "comparisons cannot be chained; use 'and'", "pos": 6 },
-    { "formula": "P - X", "message": "unknown name 'X'", "pos": 4 },
-    { "formula": "abs(P - t)", "message": "unknown name 't'", "pos": 8 },
-    { "formula": "P and", "message": "unexpected end of formula", "pos": 5 },
-    { "formula": "and P", "message": "unexpected 'and'", "pos": 0 },
-    { "formula": "P,T", "message": "unexpected ','", "pos": 1 }
+    {
+      "formula": "",
+      "message": "empty formula",
+      "pos": null
+    },
+    {
+      "formula": "   ",
+      "message": "empty formula",
+      "pos": null
+    },
+    {
+      "formula": "P - ",
+      "message": "unexpected end of formula",
+      "pos": 4
+    },
+    {
+      "formula": "P $ T",
+      "message": "unexpected character '$'",
+      "pos": 2
+    },
+    {
+      "formula": "(P - T",
+      "message": "unexpected end of formula: expected ')'",
+      "pos": 6
+    },
+    {
+      "formula": "P - T)",
+      "message": "unexpected ')'",
+      "pos": 5
+    },
+    {
+      "formula": "P T",
+      "message": "unexpected 'T'",
+      "pos": 2
+    },
+    {
+      "formula": "foo(P)",
+      "message": "unknown function 'foo'",
+      "pos": 0
+    },
+    {
+      "formula": "abs(P, T)",
+      "message": "abs() takes 1 argument, not 2",
+      "pos": 0
+    },
+    {
+      "formula": "where(P, T)",
+      "message": "where() takes 3 arguments, not 2",
+      "pos": 0
+    },
+    {
+      "formula": "max(P)",
+      "message": "max() takes at least 2 arguments, not 1",
+      "pos": 0
+    },
+    {
+      "formula": "min()",
+      "message": "min() takes at least 2 arguments, not 0",
+      "pos": 0
+    },
+    {
+      "formula": "1 < P < 3",
+      "message": "comparisons cannot be chained; use 'and'",
+      "pos": 6
+    },
+    {
+      "formula": "P - X",
+      "message": "unknown name 'X'",
+      "pos": 4
+    },
+    {
+      "formula": "abs(P - t)",
+      "message": "unknown name 't'",
+      "pos": 8
+    },
+    {
+      "formula": "P and",
+      "message": "unexpected end of formula",
+      "pos": 5
+    },
+    {
+      "formula": "and P",
+      "message": "unexpected 'and'",
+      "pos": 0
+    },
+    {
+      "formula": "P,T",
+      "message": "unexpected ','",
+      "pos": 1
+    }
   ],
   "metrics": [
-    { "metric": "bias", "P": [3, 1, null], "T": [1, 4, 2], "expect": [2, -3, null] },
-    { "metric": "abs", "P": [3, 1], "T": [1, 4], "expect": [2, 3] },
-    { "metric": "sq", "P": [3, 1], "T": [1, 4], "expect": [4, 9] },
-    { "metric": "rel", "P": [3, 1, 1], "T": [2, 0, 4], "expect": [50, null, -75] },
-    { "metric": "rel", "params": { "eps": 0.5 }, "P": [3, 1, 1], "T": [0.4, -0.5, -2], "expect": [null, null, -150] },
-    { "metric": "absrel", "P": [3, 1], "T": [2, 4], "expect": [50, 75] },
-    { "metric": "symrel", "P": [3, 0, 0], "T": [1, 0, 2], "expect": [100, null, -200] },
-    { "metric": "ratio", "P": [3, 1], "T": [2, 0], "expect": [1.5, null] },
-    { "metric": "logratio", "P": [2, 0, 1], "T": [2, 1, -1], "expect": [0, null, null] },
-    { "metric": "norm", "params": { "s": 2 }, "P": [3, 1], "T": [1, 4], "expect": [1, -1.5] },
-    { "metric": "events", "P": [2, 0, 2, 0, null], "T": [2, 2, 0, 0, 0], "expect": [1, 2, 3, 4, null] },
-    { "metric": "events", "params": { "h": 5 }, "P": [5, 4.9], "T": [5, 5], "expect": [1, 2] },
-    { "metric": "sign", "P": [1, 1, -1, 0], "T": [2, -2, -3, 5], "expect": [1, 2, 1, 1] },
-    { "metric": "sign", "params": { "c": 273.15 }, "P": [275, 270], "T": [280, 280], "expect": [1, 2] },
-    { "metric": "custom", "formula": "abs(P - T) > 2", "P": [5, 1, null], "T": [1, 2, 0], "expect": [1, 0, null] }
+    {
+      "metric": "bias",
+      "P": [
+        3,
+        1,
+        null
+      ],
+      "T": [
+        1,
+        4,
+        2
+      ],
+      "expect": [
+        2,
+        -3,
+        null
+      ]
+    },
+    {
+      "metric": "abs",
+      "P": [
+        3,
+        1
+      ],
+      "T": [
+        1,
+        4
+      ],
+      "expect": [
+        2,
+        3
+      ]
+    },
+    {
+      "metric": "sq",
+      "P": [
+        3,
+        1
+      ],
+      "T": [
+        1,
+        4
+      ],
+      "expect": [
+        4,
+        9
+      ]
+    },
+    {
+      "metric": "rel",
+      "P": [
+        3,
+        1,
+        1
+      ],
+      "T": [
+        2,
+        0,
+        4
+      ],
+      "expect": [
+        50,
+        null,
+        -75
+      ]
+    },
+    {
+      "metric": "rel",
+      "params": {
+        "eps": 0.5
+      },
+      "P": [
+        3,
+        1,
+        1
+      ],
+      "T": [
+        0.4,
+        -0.5,
+        -2
+      ],
+      "expect": [
+        null,
+        null,
+        -150
+      ]
+    },
+    {
+      "metric": "absrel",
+      "P": [
+        3,
+        1
+      ],
+      "T": [
+        2,
+        4
+      ],
+      "expect": [
+        50,
+        75
+      ]
+    },
+    {
+      "metric": "symrel",
+      "P": [
+        3,
+        0,
+        0
+      ],
+      "T": [
+        1,
+        0,
+        2
+      ],
+      "expect": [
+        100,
+        null,
+        -200
+      ]
+    },
+    {
+      "metric": "ratio",
+      "P": [
+        3,
+        1
+      ],
+      "T": [
+        2,
+        0
+      ],
+      "expect": [
+        1.5,
+        null
+      ]
+    },
+    {
+      "metric": "logratio",
+      "P": [
+        2,
+        0,
+        1
+      ],
+      "T": [
+        2,
+        1,
+        -1
+      ],
+      "expect": [
+        0,
+        null,
+        null
+      ]
+    },
+    {
+      "metric": "norm",
+      "params": {
+        "s": 2
+      },
+      "P": [
+        3,
+        1
+      ],
+      "T": [
+        1,
+        4
+      ],
+      "expect": [
+        1,
+        -1.5
+      ]
+    },
+    {
+      "metric": "events",
+      "P": [
+        2,
+        0,
+        2,
+        0,
+        null
+      ],
+      "T": [
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "expect": [
+        1,
+        2,
+        3,
+        4,
+        null
+      ]
+    },
+    {
+      "metric": "events",
+      "params": {
+        "h": 5
+      },
+      "P": [
+        5,
+        4.9
+      ],
+      "T": [
+        5,
+        5
+      ],
+      "expect": [
+        1,
+        2
+      ]
+    },
+    {
+      "metric": "sign",
+      "P": [
+        1,
+        1,
+        -1,
+        0
+      ],
+      "T": [
+        2,
+        -2,
+        -3,
+        5
+      ],
+      "expect": [
+        1,
+        2,
+        1,
+        1
+      ]
+    },
+    {
+      "metric": "sign",
+      "params": {
+        "c": 273.15
+      },
+      "P": [
+        275,
+        270
+      ],
+      "T": [
+        280,
+        280
+      ],
+      "expect": [
+        1,
+        2
+      ]
+    },
+    {
+      "metric": "custom",
+      "formula": "abs(P - T) > 2",
+      "P": [
+        5,
+        1,
+        null
+      ],
+      "T": [
+        1,
+        2,
+        0
+      ],
+      "expect": [
+        1,
+        0,
+        null
+      ]
+    }
+  ],
+  "units": [
+    {
+      "P": "degC",
+      "T": "K",
+      "value": 20,
+      "expect": 293.15
+    },
+    {
+      "P": "K",
+      "T": "degC",
+      "value": 273.15,
+      "expect": 0
+    },
+    {
+      "P": "°C",
+      "T": "degF",
+      "value": 100,
+      "expect": 212
+    },
+    {
+      "P": "m/day",
+      "T": "mm/day",
+      "value": 0.002,
+      "expect": 2
+    },
+    {
+      "P": "kg m-2 s-1",
+      "T": "mm day-1",
+      "value": 0.0001,
+      "expect": 8.64
+    },
+    {
+      "P": "kg m**-2 s**-1",
+      "T": "mm/day",
+      "value": 0.0001,
+      "expect": 8.64
+    },
+    {
+      "P": "hPa",
+      "T": "Pa",
+      "value": 1013.25,
+      "expect": 101325
+    },
+    {
+      "P": "km/h",
+      "T": "m s-1",
+      "value": 36,
+      "expect": 10
+    },
+    {
+      "P": "%",
+      "T": "1",
+      "value": 50,
+      "expect": 0.5
+    },
+    {
+      "P": "m",
+      "T": "mm",
+      "value": 1.5,
+      "expect": 1500
+    },
+    {
+      "P": "K",
+      "T": "K",
+      "value": 3,
+      "expect": 3
+    },
+    {
+      "P": "",
+      "T": "K",
+      "value": 3,
+      "expect": 3
+    },
+    {
+      "P": "W m-2",
+      "T": "W/m2",
+      "value": 3,
+      "expect": 3,
+      "warning": true
+    },
+    {
+      "P": "K",
+      "T": "mm/day",
+      "value": 3,
+      "expect": 3,
+      "warning": true
+    }
   ]
 }

@@ -61,7 +61,7 @@ export function ProvenanceBadge() {
   return (
     <div className="provenance panel" role="status" aria-live="polite">
       {loading > 0 && <span className="spinner" aria-label="loading" />}
-      <span className="eyebrow">{compare.mode === "diff" ? "A shows" : "Showing"}</span>
+      <span className="eyebrow">{compare.mode === "error" ? "P shows" : "Showing"}</span>
       {parts.length === 0 && <span className="muted">{loading ? "loading…" : "no data in view"}</span>}
       {groups.map((g) => (
         <span key={g.key} className="prov-part" title={g.title}>

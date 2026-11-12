@@ -7,16 +7,16 @@ import type { Map as MlMap } from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useShallow } from "zustand/react/shallow";
 import type { LayerMeta, VectorInfo } from "../api/types";
-import { classTable } from "../lib/classes";
+import { classTable, type ClassDef } from "../lib/classes";
 import { cssGradient, getLut } from "../lib/colormap";
 import { dividers, paneIds, rects, type Divider, type Rect } from "../lib/layout";
-import { layerName } from "../lib/layers";
+import { drawStyle, drawTitle, drawUnits, isErrorPane, paneError } from "../lib/paneDraw";
 import { setMainMap, setPaneMaps } from "../lib/mapRegistry";
 import { useLatest } from "../lib/useLatest";
 import { fmt, fmtLonLat, unitLabel } from "../lib/format";
 import type { RenderSpec } from "../lib/protocol";
 import { summarize, valueAt, type HoverValue } from "../lib/view";
-import { paneOf, pointsLayerOf, useStore, type PaneState, type Style, type Target } from "../state/store";
+import { paneOf, pointsLayerOf, useStore, type PaneState, type Target } from "../state/store";
 import { colorExpression, fetchPoints, toGeoJSON, type PointsResult } from "../lib/points";
 import { useFetch } from "../lib/useFetch";
 import { featureDetails, featureLabel, visibleVectors } from "../lib/vectors";
@@ -28,7 +28,8 @@ interface HoverRow {
   value: HoverValue | null;
   layer: LayerMeta | null;
   units: string;
-  diff: boolean;
+  diff: boolean; // an error map (no single source to name)
+  classes: ClassDef[] | null;
 }
 
 interface Hover {
@@ -50,41 +51,69 @@ interface PaneDraw {
   layer: LayerMeta | null;
   diff: boolean;
   units: string;
+  classes: ClassDef[] | null;
 }
 
 const FULL: Rect = { x: 0, y: 0, w: 1, h: 1 };
 const MIN_PANE_PX = 140;
 
-function makeSpec(
-  t: Target,
-  style: Style,
-  colormaps: ReturnType<typeof useStore.getState>["colormaps"],
-  minus: Target | null,
-): RenderSpec | null {
-  if (!t.layer || !t.layerId || t.layer.kind === "points") return null; // points are not tiles
-  if (minus && (!minus.layer || !minus.layerId)) return null;
+type Colormaps = ReturnType<typeof useStore.getState>["colormaps"];
+type Drawable = Pick<PaneState, "main" | "style" | "styleReady" | "compare" | "diffStyle">;
+
+const ref = (t: Target) => ({ layerId: t.layerId!, time: t.time, dims: t.dims });
+
+/** A pane's render spec: its layer, or the error map of its layer (P) against T. */
+export function paneSpec(p: Drawable, colormaps: Colormaps): RenderSpec | null {
+  const t = p.main;
+  if (!p.styleReady || !t.layer || !t.layerId || t.layer.kind === "points") return null; // points are not tiles
+  const style = drawStyle(p);
+  const scale = {
+    lut: getLut(colormaps, style.colormap),
+    vmin: style.vmin,
+    vmax: style.vmax,
+    log: style.log,
+  };
+  const base = { data: ref(t), scale, tileSize: t.layer.tile_size };
+  if (!isErrorPane(p))
+    return {
+      ...base,
+      ref: null,
+      error: null,
+      rgb: t.layer.kind === "rgb" ? { gamma: style.gamma } : null,
+      classes: t.layer.classes ? classTable(t.layer.classes, getLut(colormaps, style.colormap)) : null,
+    };
+  const c = p.compare;
+  const pe = paneError(p);
+  if (!c.layer || !c.layerId || c.layer.kind === "points" || !pe?.e) return null;
   return {
-    data: { layerId: t.layerId, time: t.time, dims: t.dims },
-    minus: minus ? { layerId: minus.layerId!, time: minus.time, dims: minus.dims } : null,
-    scale: { lut: getLut(colormaps, style.colormap), vmin: style.vmin, vmax: style.vmax, log: style.log },
-    tileSize: t.layer.tile_size,
-    rgb: t.layer.kind === "rgb" && !minus ? { gamma: style.gamma } : null,
-    classes:
-      t.layer.classes && !minus ? classTable(t.layer.classes, getLut(colormaps, style.colormap)) : null,
+    ...base,
+    ref: ref(c),
+    error: { fn: pe.e.fn, scale: pe.conv.scale, offset: pe.conv.offset, key: pe.key },
+    rgb: null,
+    classes: pe.e.classes.length ? classTable(pe.e.classes, getLut(colormaps, style.colormap)) : null,
   };
 }
 
-/** A pane's render spec: its layer, or A − B in difference mode. */
-function paneSpec(p: PaneState, colormaps: ReturnType<typeof useStore.getState>["colormaps"]) {
-  const diff = p.compare.mode === "diff";
-  return p.styleReady
-    ? makeSpec(p.main, diff ? p.diffStyle : p.style, colormaps, diff ? p.compare : null)
-    : null;
+/** Classes of what a pane draws (for hover names), or null. */
+function drawClasses(p: Drawable): ClassDef[] | null {
+  if (!isErrorPane(p)) return p.main.layer?.classes ?? null;
+  const cls = paneError(p)?.e?.classes;
+  return cls?.length ? cls : null;
 }
 
 const keyOf = (s: RenderSpec | null, cmap: string) =>
   s
-    ? JSON.stringify([s.data, s.minus, cmap, s.scale.vmin, s.scale.vmax, s.scale.log, s.rgb, !!s.classes])
+    ? JSON.stringify([
+        s.data,
+        s.ref,
+        s.error?.key,
+        cmap,
+        s.scale.vmin,
+        s.scale.vmax,
+        s.scale.log,
+        s.rgb,
+        !!s.classes,
+      ])
     : "none";
 
 export function sourceLabel(layer: LayerMeta | null, source: number | null, level: number | null): string {
@@ -139,10 +168,9 @@ export function MapView() {
   const [hover, setHover] = useState<Hover | null>(null);
 
   // ---- provenance summary of the active pane
-  const diff = compare.mode === "diff";
   const specA = useMemo(
-    () => (styleReady ? makeSpec(main, diff ? diffStyle : style, colormaps, diff ? compare : null) : null),
-    [main, style, diffStyle, colormaps, compare, diff, styleReady],
+    () => paneSpec({ main, style, styleReady, compare, diffStyle }, colormaps),
+    [main, style, diffStyle, colormaps, compare, styleReady],
   );
   const specRef = useLatest<RenderSpec | null>(specA);
   const layerRef = useLatest(main.layer);
@@ -271,8 +299,15 @@ export function MapView() {
         const d = draws.current[p];
         const m = maps.current[p];
         const value = d?.spec && d.layer && m ? valueAt(d.spec, d.layer, m.getZoom(), e.lng, e.lat) : null;
-        const tag = many ? String(allIds.current.indexOf(p) + 1) : d?.diff ? "A − B" : "";
-        return { tag, value, layer: d?.layer ?? null, units: d?.units ?? "", diff: !!d?.diff };
+        const tag = many ? String(allIds.current.indexOf(p) + 1) : "";
+        return {
+          tag,
+          value,
+          layer: d?.layer ?? null,
+          units: d?.units ?? "",
+          diff: !!d?.diff,
+          classes: d?.classes ?? null,
+        };
       });
       const d = draws.current[id];
       const m = maps.current[id];
@@ -351,14 +386,16 @@ function PaneMap({
   const { setInspect, notify, activatePane } = useStore.getState();
 
   const p = pane ?? null;
-  const diff = p?.compare.mode === "diff";
-  const st = p ? (diff ? p.diffStyle : p.style) : null;
+  const diff = !!p && isErrorPane(p);
+  const st = p ? drawStyle(p) : null;
   const spec = useMemo(() => (p ? paneSpec(p, colormaps) : null), [p, colormaps]);
   const key = keyOf(spec, st?.colormap ?? "");
   const layer = p?.main.layer ?? null;
+  const units = p ? unitLabel(drawUnits(p)) : "";
+  const classes = useMemo(() => (p ? drawClasses(p) : null), [p]);
   useEffect(
-    () => report(id, { spec, layer, diff: !!diff, units: unitLabel(layer?.units) }),
-    [report, id, spec, layer, diff],
+    () => report(id, { spec, layer, diff, units, classes }),
+    [report, id, spec, layer, diff, units, classes],
   );
 
   // ---- point observations: the layer itself, or an overlay (not in difference mode)
@@ -483,16 +520,17 @@ function PaneBox({
     f();
   };
   const layer = p.main.layer;
-  const diff = p.compare.mode === "diff";
-  const st = diff ? p.diffStyle : p.style;
-  const title = diff ? `${layerName(layer)} − ${layerName(p.compare.layer)}` : layerName(layer);
-  const legend =
-    layer &&
-    p.styleReady &&
-    layer.kind !== "rgb" &&
-    !layer.bands &&
-    !layer.classes &&
-    layer.kind !== "points";
+  const diff = isErrorPane(p);
+  const st = drawStyle(p);
+  const title = drawTitle(p);
+  const legend = diff
+    ? p.styleReady && !drawClasses(p)
+    : layer &&
+      p.styleReady &&
+      layer.kind !== "rgb" &&
+      !layer.bands &&
+      !layer.classes &&
+      layer.kind !== "points";
   if (multi && folded)
     return (
       <div className="pane-box multi folded" onPointerDown={(e) => e.stopPropagation()}>
@@ -528,7 +566,7 @@ function PaneBox({
                 className="pane-grad"
                 style={{ background: cssGradient(getLut(colormaps, st.colormap)) }}
               />
-              {fmt(st.vmin)} – {fmt(st.vmax)} {diff ? "" : unitLabel(layer.units)}
+              {fmt(st.vmin)} – {fmt(st.vmax)} {unitLabel(drawUnits(p))}
             </span>
           )}
           <button
@@ -670,9 +708,8 @@ function HoverTip({
         <span className="tip-value">
           {v?.bands
             ? v.bands.map((b, k) => `${"RGB"[k]} ${b === null ? "–" : fmt(b)}`).join("  ")
-            : has && r.layer?.classes
-              ? (r.layer.classes.find((c) => c.value === Math.round(v!.value!))?.name ??
-                `class ${fmt(v!.value)}`)
+            : has && r.classes
+              ? (r.classes.find((c) => c.value === Math.round(v!.value!))?.name ?? `class ${fmt(v!.value)}`)
               : has
                 ? fmt(v!.value)
                 : v

@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import cases from "../../../tests/formula_cases.json";
-import { CUSTOM, ERROR_METRICS, computeError, errorUnits, resolveError } from "./errors";
+import { CUSTOM, ERROR_METRICS, computeError, conversion, errorUnits, resolveError } from "./errors";
 import { check, compile, evaluateRaw, FormulaError, parse } from "./formula";
 
 type Num = number | null;
@@ -118,4 +118,15 @@ describe("error definitions", () => {
     for (let k = 0; k < 10; k++) computeError(e, p, t);
     expect((performance.now() - t0) / 10).toBeLessThan(50); // ms per tile, generous for CI
   });
+});
+
+describe("unit conversion (shared cases)", () => {
+  type Case = { P: string; T: string; value: number; expect: number; warning?: boolean };
+  for (const c of cases.units as Case[]) {
+    it(`${c.P} -> ${c.T}`, () => {
+      const k = conversion(c.P, c.T);
+      expect(c.value * k.scale + k.offset).toBeCloseTo(c.expect, 6);
+      expect(k.warning !== null).toBe(!!c.warning);
+    });
+  }
 });

@@ -6,6 +6,7 @@ import { cssGradient, getLut, scalePosition } from "../lib/colormap";
 import { fmtTick, unitLabel } from "../lib/format";
 import { classShares, classTable } from "../lib/classes";
 import { pointsSample } from "../lib/points";
+import { drawTitle, drawUnits, paneError } from "../lib/paneDraw";
 import { histogram } from "../lib/view";
 import { useStore } from "../state/store";
 
@@ -39,36 +40,43 @@ export function Colorbar() {
   const summary = useStore((s) => s.summary);
   const points = useStore((s) => s.points);
   const isPoints = useStore((s) => s.main.layer?.kind === "points");
-  const diff = compare.mode === "diff";
-  const st = diff ? diffStyle : styleMain;
+  const pane = { main, compare, style: styleMain, diffStyle };
+  const diff = compare.mode === "error";
+  const st = diff ? diffStyle : styleMain; // = drawStyle(pane)
+  const errClasses = paneError(pane)?.e?.classes ?? [];
 
+  const { vmin, vmax, log } = st;
   const hist = useMemo(() => {
     const s = isPoints ? pointsSample(points) : summary?.sample;
     if (!s || !s.length) return null;
     let below = 0;
     let above = 0;
     for (let i = 0; i < s.length; i++) {
-      if (s[i] < st.vmin) below++;
-      else if (s[i] > st.vmax) above++;
+      if (s[i] < vmin) below++;
+      else if (s[i] > vmax) above++;
     }
     let counts: number[];
-    if (st.log && st.vmin > 0) {
+    if (log && vmin > 0) {
       const logs = new Float32Array(s.length);
       for (let i = 0; i < s.length; i++) logs[i] = s[i] > 0 ? Math.log(s[i]) : NaN;
-      counts = histogram(logs, Math.log(st.vmin), Math.log(st.vmax), BINS);
-    } else counts = histogram(s, st.vmin, st.vmax, BINS);
+      counts = histogram(logs, Math.log(vmin), Math.log(vmax), BINS);
+    } else counts = histogram(s, vmin, vmax, BINS);
     return { counts, max: Math.max(1, ...counts), below: below / s.length, above: above / s.length };
-  }, [summary, points, isPoints, st.vmin, st.vmax, st.log]);
+  }, [summary, points, isPoints, vmin, vmax, log]);
 
   if (!main.layer) return null;
-  if (main.layer.classes && !diff) {
-    const table = classTable(main.layer.classes, getLut(colormaps, st.colormap));
+  const classes = diff ? (errClasses.length ? errClasses : null) : main.layer.classes;
+  if (classes) {
+    const table = classTable(classes, getLut(colormaps, st.colormap));
     const shares = summary?.sample.length ? classShares(summary.sample, table) : null;
+    const name = drawTitle(pane);
     return (
       <div className="colorbar panel class-legend" aria-label="Legend">
-        <div className="cb-title">{main.layer.title}</div>
+        <div className="cb-title" title={name}>
+          {name}
+        </div>
         <ul>
-          {main.layer.classes.map((c) => {
+          {classes.map((c) => {
             const share = shares?.get(c.value) ?? 0;
             return (
               <li key={c.value} className={shares && !share ? "absent" : ""}>
@@ -112,10 +120,8 @@ export function Colorbar() {
   }
   const lut = getLut(colormaps, st.colormap);
   const ticks = niceTicks(st.vmin, st.vmax, st.log);
-  const units = unitLabel(main.layer.units);
-  const title = diff
-    ? `Difference A − B (${main.layer.title} − ${compare.layer?.title ?? ""})`
-    : main.layer.title;
+  const units = unitLabel(drawUnits(pane));
+  const title = diff ? drawTitle(pane) : main.layer.title;
 
   return (
     <div className="colorbar panel" aria-label="Legend">

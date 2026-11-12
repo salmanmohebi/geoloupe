@@ -2,7 +2,7 @@
 //
 // MapLibre handles what it is good at — which tiles are visible, level of
 // detail, caching, fading, globe projection — and asks this handler for each
-// tile image. The handler fetches the float data tile (or two, for difference
+// tile image. The handler fetches the float data tile (or two, for error
 // maps), colours it with the spec's colour scale and returns an ImageBitmap.
 // A "spec" is an immutable description of what to draw; any change (time,
 // colormap, range) creates a new spec id, which makes MapLibre request fresh
@@ -16,6 +16,7 @@ import { api } from "../api/client";
 import { colorizeClasses, type ClassTable } from "./classes";
 import { colorize, colorizeRgb, type ColorScale } from "./colormap";
 import type { DataTile } from "./datatile";
+import type { PixelFn } from "./formula";
 import { cachedTile, fetchTile } from "./tiles";
 
 export interface DataRef {
@@ -24,9 +25,18 @@ export interface DataRef {
   dims: Record<string, string>;
 }
 
+/** An error map: fn(P, T) per pixel, P = the data (in T's units: × scale + offset), T = ref. */
+export interface ErrorRender {
+  fn: PixelFn;
+  scale: number;
+  offset: number;
+  key: string; // identity of fn + conversion (for render keys)
+}
+
 export interface RenderSpec {
   data: DataRef;
-  minus: DataRef | null; // difference map: data − minus
+  ref: DataRef | null; // error maps: the reference T
+  error: ErrorRender | null;
   scale: ColorScale;
   tileSize: number;
   rgb?: { gamma: number } | null; // RGB layer: three bands, stretched, no colormap
@@ -51,12 +61,19 @@ export function getSpec(id: string): RenderSpec | undefined {
 export const dataUrl = (ref: DataRef, z: number, x: number, y: number) =>
   api.tileUrl(ref.layerId, z, x, y, ref.time, ref.dims);
 
-/** Values shown on one tile: the data, or the difference of two data tiles. */
-export function combine(a: DataTile, b: DataTile | null | undefined): Float32Array | null {
-  if (!b) return a.values;
+/** Values shown on one tile: the data, or the error of the data (P) against the reference (T). */
+export function combine(
+  a: DataTile,
+  b: DataTile | null | undefined,
+  error: ErrorRender | null = null,
+): Float32Array | null {
+  if (!b || !error) return a.values;
   if (!a.values || !b.values) return null;
-  const out = new Float32Array(a.values.length);
-  for (let i = 0; i < out.length; i++) out[i] = a.values[i] - b.values[i];
+  const { fn, scale, offset } = error;
+  const p = a.values;
+  const t = b.values;
+  const out = new Float32Array(p.length);
+  for (let i = 0; i < out.length; i++) out[i] = fn(p[i] * scale + offset, t[i]);
   return out;
 }
 
@@ -69,10 +86,10 @@ export function cachedValues(
 ): { tile: DataTile; values: Float32Array | null } | null {
   const a = cachedTile(dataUrl(spec.data, z, x, y));
   if (!a) return null;
-  if (!spec.minus) return { tile: a, values: a.values };
-  const b = cachedTile(dataUrl(spec.minus, z, x, y));
+  if (!spec.ref) return { tile: a, values: a.values };
+  const b = cachedTile(dataUrl(spec.ref, z, x, y));
   if (!b) return null;
-  return { tile: a, values: combine(a, b) };
+  return { tile: a, values: combine(a, b, spec.error) };
 }
 
 let blank: Promise<ImageBitmap> | null = null;
@@ -93,7 +110,7 @@ export function registerProtocol(): void {
     const size = spec.tileSize;
     const [a, b] = await Promise.all([
       fetchTile(dataUrl(spec.data, z, x, y), size, abort.signal),
-      spec.minus ? fetchTile(dataUrl(spec.minus, z, x, y), size, abort.signal) : Promise.resolve(null),
+      spec.ref ? fetchTile(dataUrl(spec.ref, z, x, y), size, abort.signal) : Promise.resolve(null),
     ]);
     if (spec.rgb && a.bands) {
       const rgba = colorizeRgb(a.bands, spec.scale.vmin, spec.scale.vmax, spec.rgb.gamma);
@@ -101,7 +118,7 @@ export function registerProtocol(): void {
         data: await createImageBitmap(new ImageData(rgba as Uint8ClampedArray<ArrayBuffer>, size, size)),
       };
     }
-    const values = combine(a, b);
+    const values = combine(a, b, spec.error);
     if (!values) return { data: await blankBitmap() };
     const rgba = spec.classes ? colorizeClasses(values, spec.classes) : colorize(values, spec.scale);
     return {

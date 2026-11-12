@@ -7,6 +7,7 @@ import type { PointResult, Series, TimeSeriesResult } from "../api/types";
 import { fetchStationSeries, type StationSeries } from "../lib/points";
 import { fmt, fmtLonLat, unitLabel } from "../lib/format";
 import { paneIds } from "../lib/layout";
+import { drawUnits, errorName, paneError } from "../lib/paneDraw";
 import { useStore } from "../state/store";
 import { timelineOf, type Timeline } from "../lib/timeline";
 import { useFetch } from "../lib/useFetch";
@@ -47,6 +48,13 @@ export function Inspector() {
   const { data: pointB } = useFetch<PointResult>(pointBKey, (signal) =>
     api.point(compare.layerId!, inspect!.lng, inspect!.lat, compare.time, compare.dims, signal),
   );
+
+  // error at the point, from the native values of P and T
+  const pe = paneError({ main, compare });
+  const errorNow =
+    pe?.e && point?.value != null && pointB?.value != null
+      ? pe.e.fn(point.value * pe.conv.scale + pe.conv.offset, pointB.value)
+      : null;
 
   // time series: a window around the time at which the point was picked, or the full period
   const range = useMemo(
@@ -209,11 +217,15 @@ export function Inspector() {
         )}
         {pointB && (
           <div className="compare-values">
-            <span className="tip-tag">B</span> {compare.layer?.title}{" "}
+            <span className="tip-tag">T</span> {compare.layer?.title}{" "}
             {compare.time ? `· ${compare.time}` : ""}: <b>{fmt(pointB.value)}</b>{" "}
             {unitLabel(compare.layer?.units)}
-            {point?.value != null && pointB.value != null && (
-              <span className="muted"> (A − B = {fmt(point.value - pointB.value)})</span>
+            {errorNow !== null && (
+              <div>
+                <span className="tip-tag">E</span> {errorName(compare.error)} = <b>{fmt(errorNow)}</b>{" "}
+                {unitLabel(drawUnits({ main, compare }))}
+                <span className="muted small"> (native cells, not the map's pixels)</span>
+              </div>
             )}
           </div>
         )}

@@ -3,8 +3,10 @@
 // With split panes, the top-level fields are pane `pa`; `lay` is the layout and `p1=…`, `p2=…`
 // hold the other panes, each a link of its own (encoded), e.g.
 // #layer=tas&t=1978-07-15&lay=r50(0,1)&pa=0&p1=layer%3Dpr%26t%3D1978-07-15
+// An error pane adds cmp=error, cl (T's layer), em (definition), ep (parameters, k:v,…), ef (custom
+// formula), eu (its units), fp/ft (the panes P and T follow, by index).
 
-import type { Basemap, CompareMode, UrlState } from "../state/store";
+import type { Basemap, UrlState } from "../state/store";
 
 export function parseHash(hash: string): Partial<UrlState> {
   const q = new URLSearchParams(hash.replace(/^#/, ""));
@@ -36,9 +38,22 @@ export function parseHash(hash: string): Partial<UrlState> {
   if (bm === "minimal" || bm === "light" || bm === "dark") out.basemap = bm as Basemap;
   if (q.get("globe") === "1") out.globe = true;
   const cmp = q.get("cmp");
-  if (cmp === "split" || cmp === "diff") out.cmp = cmp as CompareMode;
+  if (cmp === "split" || cmp === "diff" || cmp === "error") out.cmp = cmp;
   if (q.get("cl")) out.cmpLayer = q.get("cl")!;
   if (q.get("ct")) out.cmpT = q.get("ct")!;
+  if (q.get("em")) out.em = q.get("em")!;
+  if (q.get("ef")) out.ef = q.get("ef")!;
+  if (q.get("eu")) out.eu = q.get("eu")!;
+  if (q.get("ep")) {
+    const ep: Record<string, number> = {};
+    for (const part of q.get("ep")!.split(",")) {
+      const [k, v] = part.split(":");
+      if (k && v !== undefined && v !== "" && isFinite(Number(v))) ep[k] = Number(v);
+    }
+    if (Object.keys(ep).length) out.ep = ep;
+  }
+  out.fp = num(q.get("fp"));
+  out.ft = num(q.get("ft"));
   out.pt = pair(q.get("pt"));
   if (q.get("ov")) out.ov = q.get("ov")!;
   const vec = q.get("vec");
@@ -89,6 +104,18 @@ export function buildHash(s: Partial<UrlState>): string {
     add("cmp", s.cmp);
     add("cl", s.cmpLayer);
     add("ct", s.cmpT);
+    add("em", s.em);
+    if (s.ep && Object.keys(s.ep).length)
+      add(
+        "ep",
+        Object.entries(s.ep)
+          .map(([k, v]) => `${k}:${Number(v.toPrecision(6))}`)
+          .join(","),
+      );
+    add("ef", s.ef);
+    add("eu", s.eu);
+    add("fp", s.fp !== undefined ? String(s.fp) : undefined);
+    add("ft", s.ft !== undefined ? String(s.ft) : undefined);
   }
   if (s.pt) add("pt", s.pt.map((v) => v.toFixed(4)).join(","));
   add("ov", s.ov);

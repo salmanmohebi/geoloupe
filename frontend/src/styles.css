@@ -1554,3 +1554,64 @@ button.s3-entry:hover {
 .pane-box .pane-fold {
   margin-left: -2px;
 }
+
+/* ---- error maps (error pane section in the side panel, "Add error pane" in Compare) */
+.error-panel select,
+.new-error select {
+  width: 100%;
+}
+.error-panel > select {
+  margin-bottom: 4px;
+}
+.error-panel .param input {
+  width: 7em;
+}
+.error-panel .param .row {
+  align-items: center;
+}
+.error-source {
+  margin-top: 8px;
+}
+.error-source > select {
+  width: 100%;
+}
+.formula-input {
+  width: 100%;
+  font-family: var(--mono);
+}
+.formula-input.invalid {
+  border-color: var(--danger);
+  outline-color: var(--danger);
+}
+.warn-text {
+  margin-top: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--warn-soft);
+}
+.error-pick {
+  align-items: flex-start;
+}
+.error-pick .field {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.new-error .btn.primary {
+  width: 100%;
+  margin: 2px 0 4px;
+}
+.panel-note {
+  margin: -6px 0 8px;
+}
+.btn.small {
+  padding: 2px 8px;
+  font-size: 11.5px;
+}
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn.primary:disabled {
+  opacity: 0.5;
+}

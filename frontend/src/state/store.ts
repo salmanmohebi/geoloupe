@@ -20,11 +20,21 @@ import {
   type Layout,
   type Preset,
 } from "../lib/layout";
+import { CUSTOM, errorMetric, type ErrorChoice } from "../lib/errors";
+import { errorStyleFor, fitErrorRange, isErrorPane } from "../lib/paneDraw";
 import type { PointsResult } from "../lib/points";
 import { timelineOf } from "../lib/timeline";
 import type { ViewSummary } from "../lib/view";
 
-export type CompareMode = "off" | "split" | "diff";
+// "error": the pane shows an error map of its layer (P) against a reference (T, `compare`);
+// "split" only appears in links from 0.1 (now two panes).
+export type CompareMode = "off" | "split" | "error";
+
+/** Panes an error pane follows: its P and T take the layer, time and dims of these panes. */
+export interface Follow {
+  p: string | null;
+  t: string | null;
+}
 export type Basemap = "minimal" | "light" | "dark";
 
 export interface Target {
@@ -77,7 +87,14 @@ export interface AppState {
   style: Style;
   styleReady: boolean; // range known (from config, URL or stats)
   // ownStyle: B's colour scale when A and B are different quantities (else B uses A's)
-  compare: Target & { mode: CompareMode; linkTime: boolean; ownStyle: Style | null };
+  // In an error pane, `compare` is the reference T and `diffStyle` the error map's colour scale.
+  compare: Target & {
+    mode: CompareMode;
+    linkTime: boolean;
+    ownStyle: Style | null;
+    error: ErrorChoice;
+    follow: Follow;
+  };
   diffStyle: Style;
   basemap: Basemap;
   globe: boolean;
@@ -99,7 +116,7 @@ export interface AppState {
   vectorsOn: string[] | null; // vector overlays shown; null = those visible by default
   summary: ViewSummary | null;
   loading: number;
-  diffFitPending: boolean; // fit the A − B range once the first difference tiles are on screen
+  diffFitPending: boolean; // fit the error map's range once its first tiles are on screen
   showPoints: boolean;
   overlay: string | null; // point layer drawn over gridded layers; null = the configured one
   points: PointsResult | null;
@@ -114,6 +131,9 @@ export interface AppState {
   autoRange: (bbox?: number[]) => Promise<void>;
   setCompare: (c: Partial<AppState["compare"]>) => Promise<void>;
   setDiffStyle: (s: Partial<Style>) => void;
+  setError: (c: Partial<ErrorChoice>) => void;
+  setFollow: (f: Partial<Follow>) => Promise<void>;
+  addErrorPane: (p: string, t: string, choice?: ErrorChoice) => void;
   setBasemap: (b: Basemap) => void;
   setGlobe: (g: boolean) => void;
   setInspect: (p: Inspect | null) => void;
@@ -154,9 +174,15 @@ export interface UrlState {
   zoom: number;
   basemap: Basemap;
   globe: boolean;
-  cmp: CompareMode;
+  cmp: CompareMode | "diff"; // "diff": links from 0.2 (an error pane showing P − T)
   cmpLayer: string;
   cmpT: string;
+  em: string; // error definition (metric id or "custom")
+  ef: string; // custom formula
+  ep: Record<string, number>; // parameters of the error definition
+  eu: string; // units of a custom formula
+  fp: number; // pane (index) P follows
+  ft: number; // pane (index) T follows
   pt: [number, number];
   ov: string; // point overlay: a point layer id, or "none"
   vec: string[]; // vector overlays shown (empty: none)
@@ -200,9 +226,12 @@ export function paneOf(s: AppState, id: string): PaneState | undefined {
   return id === s.active ? snapshot(s) : s.panes[id];
 }
 
-/** A pane's part of a shareable link. The camera only for a pane that is not linked. */
-export function paneUrl(p: PaneState, withView = !p.linkView): Partial<UrlState> {
-  const diff = p.compare.mode === "diff";
+/** A pane's part of a shareable link. The camera only for a pane that is not linked. `order`:
+ * the panes in layout order (followed panes are stored by index). */
+export function paneUrl(p: PaneState, withView = !p.linkView, order: string[] = []): Partial<UrlState> {
+  const diff = isErrorPane(p);
+  const e = p.compare.error;
+  const idx = (id: string | null) => (id && order.includes(id) ? order.indexOf(id) : undefined);
   return {
     layer: p.main.layerId ?? undefined,
     t: p.main.time ?? undefined,
@@ -213,9 +242,15 @@ export function paneUrl(p: PaneState, withView = !p.linkView): Partial<UrlState>
     opacity: p.style.opacity,
     center: withView ? p.view?.center : undefined,
     zoom: withView ? p.view?.zoom : undefined,
-    cmp: diff ? "diff" : undefined,
+    cmp: diff ? "error" : undefined,
     cmpLayer: diff ? (p.compare.layerId ?? undefined) : undefined,
     cmpT: diff && !p.compare.linkTime ? (p.compare.time ?? undefined) : undefined,
+    em: diff ? e.metric : undefined,
+    ef: diff ? e.formula : undefined,
+    ep: diff && e.params && Object.keys(e.params).length ? e.params : undefined,
+    eu: diff ? e.units : undefined,
+    fp: diff ? idx(p.compare.follow.p) : undefined,
+    ft: diff ? idx(p.compare.follow.t) : undefined,
     lv: p.linkView ? undefined : false,
     lt: p.linkTime ? undefined : false,
   };
@@ -226,9 +261,9 @@ export function linkState(s: AppState): Partial<UrlState> {
   const order = paneIds(s.layout);
   const panes: Record<number, Partial<UrlState>> = {};
   for (const [i, id] of order.entries())
-    if (id !== s.active && s.panes[id]?.main.layerId) panes[i] = paneUrl(s.panes[id]);
+    if (id !== s.active && s.panes[id]?.main.layerId) panes[i] = paneUrl(s.panes[id], undefined, order);
   return {
-    ...paneUrl(snapshot(s), true),
+    ...paneUrl(snapshot(s), true, order),
     basemap: s.basemap,
     globe: s.globe,
     pt: s.inspect ? [s.inspect.lng, s.inspect.lat] : undefined,
@@ -266,7 +301,14 @@ const freshPane = (view: View | null): PaneState => ({
   main: emptyTarget,
   style: defaultStyle,
   styleReady: false,
-  compare: { ...emptyTarget, mode: "off", linkTime: true, ownStyle: null },
+  compare: {
+    ...emptyTarget,
+    mode: "off",
+    linkTime: true,
+    ownStyle: null,
+    error: { metric: "bias" },
+    follow: { p: null, t: null },
+  },
   diffStyle: defaultDiffStyle,
   diffFitPending: false,
   linkView: true,
@@ -310,7 +352,7 @@ export function pointsLayerOf(
   const layer = s.main.layer;
   if (!layer) return null;
   if (layer.kind === "points") return s.main.layerId;
-  if (!s.showPoints || s.compare.mode === "diff") return null;
+  if (!s.showPoints || s.compare.mode === "error") return null;
   return s.overlay ?? layer.points?.layer ?? null;
 }
 
@@ -415,17 +457,35 @@ export const useStore = create<AppState>((set, get) => ({
     await get().setLayer(known ? u.layer! : fallback, u);
     set({ linkView: u.lv ?? true, linkTime: u.lt ?? true });
     if (u.center && u.zoom !== undefined) set({ view: { center: u.center, zoom: u.zoom } });
-    if (u.cmp === "diff")
+    if (u.cmp === "diff" || u.cmp === "error") {
+      const error: ErrorChoice = {
+        metric: u.em ?? "bias", // links from 0.2 (cmp=diff) showed P − T
+        ...(u.ef ? { formula: u.ef } : {}),
+        ...(u.ep ? { params: u.ep } : {}),
+        ...(u.eu ? { units: u.eu } : {}),
+      };
+      const follow = {
+        p: u.fp !== undefined ? `p${u.fp}` : null,
+        t: u.ft !== undefined ? `p${u.ft}` : null,
+      };
+      set({ styleReady: true, diffStyle: errorStyleFor(error, get().diffStyle) });
       await get().setCompare({
-        mode: "diff",
+        mode: "error",
         layerId: u.cmpLayer ?? get().main.layerId,
         time: u.cmpT ?? null,
-        linkTime: !u.cmpT, // a link with its own B time (ct=) must keep it
+        linkTime: !u.cmpT, // a link with its own T time (ct=) must keep it
+        error,
+        follow,
       });
+    }
   },
 
   setLayer: async (id, keep = {}) => {
     const pane = get().active;
+    const c0 = get().compare;
+    // choosing P's layer by hand in an error pane stops following a pane
+    if (c0.mode === "error" && c0.follow.p && id !== get().main.layerId)
+      set({ compare: { ...c0, follow: { ...c0.follow, p: null } } });
     try {
       const layer = await api.layer(id);
       if (get().active !== pane) return; // the user moved to another pane meanwhile
@@ -522,7 +582,8 @@ export const useStore = create<AppState>((set, get) => ({
 
   setCompare: async (c) => {
     const cur = { ...get().compare, ...c };
-    if (cur.mode === "diff" && get().compare.mode !== "diff") set({ diffFitPending: true });
+    if (cur.mode === "error" && get().compare.mode !== "error")
+      set({ diffFitPending: true, styleReady: true });
     if (cur.mode === "off") {
       set({ compare: { ...cur } });
       return;
@@ -547,6 +608,72 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   setDiffStyle: (s) => set({ diffStyle: { ...get().diffStyle, ...s } }),
+
+  setError: (c) => {
+    const prev = get().compare.error;
+    let next: ErrorChoice;
+    if (c.metric && c.metric !== prev.metric) {
+      // a new definition starts with its own default parameters (unless given); a custom
+      // formula starts from the formula shown so far
+      const m = errorMetric(prev.metric);
+      const start = prev.formula ?? (m && !m.params ? m.formula : "P - T");
+      next =
+        c.metric === CUSTOM
+          ? { metric: CUSTOM, formula: c.formula ?? start, ...(c.units ? { units: c.units } : {}) }
+          : { metric: c.metric, ...(c.params ? { params: c.params } : {}) };
+    } else next = { ...prev, ...c };
+    const restyle = errorStyleFor(next, get().diffStyle);
+    const sameScale = errorStyleFor(prev, get().diffStyle).colormap === restyle.colormap;
+    set({
+      compare: { ...get().compare, error: next },
+      diffStyle: sameScale && next.metric === prev.metric ? get().diffStyle : restyle,
+      diffFitPending: true,
+    });
+  },
+
+  setFollow: async (f) => {
+    const follow = { ...get().compare.follow, ...f };
+    set({ compare: { ...get().compare, follow } });
+    syncFollowers();
+  },
+
+  addErrorPane: (pId, tId, choice = { metric: "bias" }) => {
+    const s = get();
+    const P = paneOf(s, pId);
+    const T = paneOf(s, tId);
+    if (!P?.main.layer || !T?.main.layer) return;
+    const ids = paneIds(s.layout);
+    if (ids.length >= MAX_PANES) {
+      get().notify("info", `At most ${MAX_PANES} panes: close one first (×).`);
+      return;
+    }
+    const id = freePaneId(ids);
+    const base = snapshot(s);
+    const pane: PaneState = {
+      ...base,
+      main: P.main,
+      style: P.style,
+      styleReady: true,
+      compare: {
+        ...T.main,
+        mode: "error",
+        linkTime: true,
+        ownStyle: null,
+        error: choice,
+        follow: { p: pId, t: tId },
+      },
+      diffStyle: errorStyleFor(choice, base.diffStyle),
+      diffFitPending: true,
+      linkTime: P.linkTime && T.linkTime,
+    };
+    // the new pane splits the active one along its longer side (in screen terms, roughly)
+    set({
+      layout: splitLayout(s.layout, s.active, ids.length % 2 ? "col" : "row", id),
+      panes: { ...s.panes, [id]: pane },
+      zoomed: null,
+    });
+    get().activatePane(id);
+  },
   setBasemap: (b) => set({ basemap: b }),
   setGlobe: (g) => set({ globe: g }),
   setInspect: (p) => set({ inspect: p }),
@@ -588,6 +715,7 @@ export const useStore = create<AppState>((set, get) => ({
     const panes = { ...get().panes };
     delete panes[gone];
     set({ layout, panes, zoomed: get().zoomed === gone ? null : get().zoomed });
+    unfollow(gone, paneIds(s.layout).indexOf(gone) + 1);
   },
 
   activatePane: (id) => {
@@ -659,19 +787,85 @@ export const useStore = create<AppState>((set, get) => ({
   setSummary: (s) => {
     set({ summary: s });
     const { diffFitPending, compare } = get();
-    // A new difference map starts with a symmetric range around 0 fitted to the screen.
-    if (
-      diffFitPending &&
-      compare.mode === "diff" &&
-      s &&
-      s.tilesLoaded === s.tilesTotal &&
-      s.sample.length > 200
-    ) {
-      const abs = Float32Array.from(s.sample, Math.abs).sort();
-      const m = abs[Math.floor(0.98 * (abs.length - 1))] || 1;
-      const r = Number(m.toPrecision(2));
-      set({ diffStyle: { ...get().diffStyle, vmin: -r, vmax: r }, diffFitPending: false });
+    // A new error map starts with a range fitted to the screen (by the kind of error).
+    if (diffFitPending && compare.mode === "error" && s && s.tilesLoaded === s.tilesTotal) {
+      const fit = s.sample.length > 200 ? fitErrorRange(compare.error, s.sample) : null;
+      if (fit) set({ diffStyle: { ...get().diffStyle, ...fit }, diffFitPending: false });
+      else if (s.tilesTotal > 0 && s.sample.length > 200) set({ diffFitPending: false });
     }
   },
   setLoading: (n) => set({ loading: n }),
 }));
+
+const sameDims = (a: Record<string, string>, b: Record<string, string>) => {
+  const ka = Object.keys(a);
+  return ka.length === Object.keys(b).length && ka.every((k) => a[k] === b[k]);
+};
+
+/** `src` as the new target of a follower, or null when nothing changed (or nothing to follow). */
+function followed(cur: Target, src: Target): Target | null {
+  if (!src.layer || !src.layerId || src.layer.kind === "points") return null;
+  if (cur.layerId === src.layerId && cur.time === src.time && sameDims(cur.dims, src.dims)) return null;
+  return { layerId: src.layerId, layer: src.layer, time: src.time, dims: src.dims };
+}
+
+/** Error panes take the layer, time and dims of the panes they follow (P and T). */
+export function syncFollowers(): void {
+  const s = useStore.getState();
+  const updates: Record<string, PaneState> = {};
+  for (const id of paneIds(s.layout)) {
+    const p = paneOf(s, id);
+    if (!p || p.compare.mode !== "error") continue;
+    const { p: fp, t: ft } = p.compare.follow;
+    const P = fp && fp !== id ? paneOf(s, fp) : undefined;
+    const T = ft && ft !== id ? paneOf(s, ft) : undefined;
+    const main = P ? followed(p.main, P.main) : null;
+    const ref = T ? followed(p.compare, T.main) : null;
+    if (!main && !ref) continue;
+    const newLayer =
+      (main !== null && main.layerId !== p.main.layerId) ||
+      (ref !== null && ref.layerId !== p.compare.layerId);
+    updates[id] = {
+      ...p,
+      main: main ?? p.main,
+      compare: ref ? { ...p.compare, ...ref } : p.compare,
+      diffFitPending: p.diffFitPending || newLayer,
+    };
+  }
+  if (!Object.keys(updates).length) return;
+  const top = updates[s.active];
+  const panes = { ...s.panes };
+  for (const [id, p] of Object.entries(updates)) if (id !== s.active) panes[id] = p;
+  useStore.setState({
+    panes,
+    ...(top ? { main: top.main, compare: top.compare, diffFitPending: top.diffFitPending } : {}),
+  });
+}
+
+useStore.subscribe((s, prev) => {
+  if (
+    s.panes !== prev.panes ||
+    s.main !== prev.main ||
+    s.compare !== prev.compare ||
+    s.layout !== prev.layout
+  )
+    syncFollowers();
+});
+
+/** A followed pane was closed: its followers keep the layer they show, now fixed. */
+function unfollow(gone: string, number: number): void {
+  const s = useStore.getState();
+  let hit = false;
+  const fix = (p: PaneState): PaneState => {
+    const f = p.compare.follow;
+    if (p.compare.mode !== "error" || (f.p !== gone && f.t !== gone)) return p;
+    hit = true;
+    const follow = { p: f.p === gone ? null : f.p, t: f.t === gone ? null : f.t };
+    return { ...p, compare: { ...p.compare, follow } };
+  };
+  const panes = Object.fromEntries(Object.entries(s.panes).map(([id, p]) => [id, fix(p)]));
+  const top = fix(snapshot(s));
+  if (!hit) return;
+  useStore.setState({ panes, compare: top.compare });
+  s.notify("info", `Pane ${number} was closed; error maps that followed it keep its layer.`);
+}

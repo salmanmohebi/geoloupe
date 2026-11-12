@@ -11,7 +11,9 @@ import { timelineOf } from "../lib/timeline";
 import { visibleVectors } from "../lib/vectors";
 import { percentiles } from "../lib/view";
 import { paneIds } from "../lib/layout";
+import { drawStyle, errorScaleOf, fitErrorRange } from "../lib/paneDraw";
 import { useStore } from "../state/store";
+import { ErrorPanel } from "./ErrorPanel";
 import { Icon } from "./Icon";
 
 function zoomText(tileZ: number): string {
@@ -124,7 +126,7 @@ function PointsOverlay() {
   const show = useStore((s) => s.showPoints);
   const overlay = useStore((s) => s.overlay);
   const points = useStore((s) => s.points);
-  const diff = useStore((s) => s.compare.mode === "diff");
+  const diff = useStore((s) => s.compare.mode === "error");
   const { setShowPoints, setOverlay } = useStore.getState();
   const options = catalog?.layers.filter((l) => l.kind === "points") ?? [];
   if (!layer || layer.kind === "points" || !options.length) return null;
@@ -158,7 +160,7 @@ function PointsOverlay() {
       </select>
       <div className="muted small">
         {diff
-          ? "hidden in difference mode"
+          ? "hidden on error maps"
           : show && points
             ? `${points.count.toLocaleString()} points on this day${points.truncated ? " (sampled)" : ""}; same colour scale as the map`
             : current
@@ -277,17 +279,16 @@ export function StyleControls() {
   const points = useStore((s) => s.points);
   const isPoints = useStore((s) => s.main.layer?.kind === "points");
   const { setStyle, setDiffStyle, autoRange, notify } = useStore.getState();
-  const diff = compare.mode === "diff";
-  const st = diff ? diffStyle : style;
+  const diff = compare.mode === "error";
+  const st = drawStyle({ main: useStore.getState().main, compare, style, diffStyle });
   const set = diff ? setDiffStyle : setStyle;
 
   const fitView = () => {
     const sample = isPoints ? pointsSample(points) : summary?.sample;
     if (!sample || !sample.length) return notify("info", "Nothing visible yet to fit the range to.");
     if (diff) {
-      const [p2, p98] = percentiles(sample, [2, 98]);
-      const m = Math.max(Math.abs(p2), Math.abs(p98)) || 1;
-      set({ vmin: -Number(m.toPrecision(2)), vmax: Number(m.toPrecision(2)) });
+      const fit = fitErrorRange(compare.error, sample);
+      if (fit) set(fit);
     } else {
       const [p2, p98] = percentiles(sample, [2, 98]);
       set({ vmin: Number(p2.toPrecision(3)), vmax: Number((p98 > p2 ? p98 : p2 + 1).toPrecision(3)) });
@@ -296,6 +297,8 @@ export function StyleControls() {
 
   const isRgb = useStore((s) => s.main.layer?.kind === "rgb") && !diff;
   const nClasses = useStore((s) => s.main.layer?.classes?.length ?? 0);
+  if (diff && errorScaleOf(compare.error) === "classes")
+    return <div className="style-controls muted small">Each class has its own colour (see the legend).</div>;
   if (nClasses && !diff)
     return (
       <div className="style-controls">
@@ -386,6 +389,8 @@ export function LayerPanel() {
     const ids = paneIds(s.layout);
     return ids.length > 1 ? ids.indexOf(s.active) + 1 : 0;
   });
+  const isError = useStore((s) => s.compare.mode === "error");
+  const followP = useStore((s) => (s.compare.mode === "error" ? s.compare.follow.p : null));
   const { setLayer, setDim, setPanelOpen } = useStore.getState();
   const layer = main.layer;
   const [showDatasets, setShowDatasets] = useState(false);
@@ -430,7 +435,7 @@ export function LayerPanel() {
       <section>
         <label className="field">
           <span className="eyebrow">
-            Layer
+            {isError ? "P · compared layer" : "Layer"}
             {paneNo > 0 && (
               <span className="pane-chip" title="The panel acts on the active pane (blue frame)">
                 pane {paneNo}
@@ -486,6 +491,13 @@ export function LayerPanel() {
           </>
         )}
       </section>
+
+      {isError && <ErrorPanel />}
+      {isError && followP && (
+        <p className="muted small panel-note">
+          P follows another pane; choosing a layer above makes it a fixed layer.
+        </p>
+      )}
 
       {layer && Object.keys(layer.dims).length > 0 && (
         <section>

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from functools import lru_cache
@@ -115,4 +116,47 @@ def resolve(
         m["units"],
         m["scale"],
         tuple(m.get("classes", ())),
+    )
+
+
+@dataclass(frozen=True)
+class Conversion:
+    """P's values in T's units: P * scale + offset. ``warning`` when units differ but cannot be
+    converted (then scale = 1, offset = 0: compared as they are)."""
+
+    scale: float = 1.0
+    offset: float = 0.0
+    warning: str | None = None
+
+    @property
+    def identity(self) -> bool:
+        return self.scale == 1.0 and self.offset == 0.0
+
+
+def normalise_units(u: str | None) -> str:
+    s = (u or "").strip().lower().replace("**", "").replace("^", "")
+    s = re.sub(r"[.·]", " ", s)
+    return re.sub(r"\s+", " ", s).strip()
+
+
+@lru_cache(maxsize=1)
+def _unit_index() -> dict[str, tuple[str, float, float]]:
+    out: dict[str, tuple[str, float, float]] = {}
+    for u in metric_table().get("units", []):
+        for name in u["names"]:
+            out[normalise_units(name)] = (u["group"], float(u["scale"]), float(u["offset"]))
+    return out
+
+
+def conversion(p_units: str | None, t_units: str | None) -> Conversion:
+    """How to bring P's values into T's units. Missing units on either side: compared as they are."""
+    a, b = normalise_units(p_units), normalise_units(t_units)
+    if a == b or not a or not b:
+        return Conversion()
+    idx = _unit_index()
+    ia, ib = idx.get(a), idx.get(b)
+    if ia and ib and ia[0] == ib[0]:
+        return Conversion(ia[1] / ib[1], (ia[2] - ib[2]) / ib[1])
+    return Conversion(
+        warning=f"units differ ({p_units} and {t_units}); compared without conversion"
     )
