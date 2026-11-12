@@ -191,6 +191,39 @@ def cmd_demo(a: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_errors(a: argparse.Namespace) -> int:
+    from geoloupe.api.app import parse_dims
+    from geoloupe.errorbuild import build_errors, config_snippet
+
+    cat = _catalog_from([a.config])
+    params = {k: float(v) for k, v in parse_dims(a.params).items()}
+    res = build_errors(
+        cat,
+        a.p,
+        a.t,
+        a.output,
+        metric=a.metric,
+        formula=a.formula,
+        params=params or None,
+        units=a.units,
+        start=a.start,
+        end=a.end,
+        p_dims=parse_dims(a.p_dims),
+        t_dims=parse_dims(a.t_dims),
+        overviews=not a.no_overviews,
+        overwrite=a.overwrite,
+        progress=lambda k, n: log.info("time step %d of %d", k, n),
+    )
+    name = Path(a.output.rstrip("/")).name.split(".")[0].replace(":", "-")
+    print(
+        f"Wrote the error for {res['time_steps']} time steps ({res['shape'][0]} × {res['shape'][1]} "
+        f"cells) in {res['seconds']:.1f} s.\nAdd to the configuration:\n\n"
+        f"{config_snippet(name, a.output, res['overviews'])}\n\n"
+        "Error panes with this P, T and definition then use it (exact at every zoom)."
+    )
+    return 0
+
+
 def cmd_overviews(a: argparse.Namespace) -> int:
     from geoloupe.overviews import build
 
@@ -290,6 +323,33 @@ def main(argv: list[str] | None = None) -> int:
     b.add_argument("--engine", default="auto")
     b.add_argument("--overwrite", action="store_true")
     b.set_defaults(func=cmd_overviews)
+
+    s = sub.add_parser("errors", help="precomputed error maps")
+    esub = s.add_subparsers(dest="ecmd", required=True)
+    b = esub.add_parser(
+        "build",
+        help="compute the error of layer P against layer T on T's native grid, with overviews",
+        description="Writes the error of P against T per native cell of T and time step, and its "
+        "overviews, so error panes asking for this error are exact at every zoom. Add the store "
+        "to the configuration (the command prints the lines).",
+    )
+    b.add_argument("config", help="the configuration (.yaml) that has both layers")
+    b.add_argument("p", help="layer id of P, the compared data (e.g. model:tas)")
+    b.add_argument("t", help="layer id of T, the reference: one dataset variable")
+    b.add_argument("output", help="new Zarr store, e.g. errors/model-vs-obs.zarr")
+    b.add_argument(
+        "--metric", default="bias", help="error definition (bias, abs, sq, rel, …, custom)"
+    )
+    b.add_argument("--formula", help="a custom formula of P and T (with --metric custom)")
+    b.add_argument("--params", help="parameters, e.g. eps:0.1 or h:1")
+    b.add_argument("--units", help="units of a custom formula's result")
+    b.add_argument("--start", help="first time (ISO 8601)")
+    b.add_argument("--end", help="last time (ISO 8601)")
+    b.add_argument("--p-dims", help="extra dimensions of P, e.g. plev:500")
+    b.add_argument("--t-dims", help="extra dimensions of T")
+    b.add_argument("--no-overviews", action="store_true", help="only the native error")
+    b.add_argument("--overwrite", action="store_true")
+    b.set_defaults(func=cmd_errors)
 
     a = p.parse_args(argv)
     logging.basicConfig(

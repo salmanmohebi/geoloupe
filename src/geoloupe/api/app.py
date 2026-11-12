@@ -43,6 +43,7 @@ from geoloupe.catalog import Catalog, Layer
 from geoloupe.colormaps import apply_classes, apply_colormap, colormap_table
 from geoloupe.config import DatasetConfig, PointsConfig, VectorConfig
 from geoloupe.engine import Selection, SelectionError, TileEngine
+from geoloupe.errorbuild import error_key, find_precomputed
 from geoloupe.errors import conversion as unit_conversion
 from geoloupe.errors import resolve as resolve_error
 from geoloupe.errortiles import ErrorQuery, ErrorQueryError, error_stats, error_tile_bytes
@@ -754,7 +755,24 @@ def create_app(catalog: Catalog, warm: bool = True) -> FastAPI:
         """Error tile of P against T, computed from native cells (see geoloupe/errortiles.py)."""
         q = error_query(p, t, pt, tt, pd, td, metric, formula, params, units)
         t0 = _time.perf_counter()
-        body, headers = error_tile_bytes(engine, q, Tile(z, x, y, settings.tile_size))
+        tile = Tile(z, x, y, settings.tile_size)
+        # a precomputed error pyramid (geoloupe errors build) is exact at every zoom
+        pre = find_precomputed(
+            catalog, error_key(q.p.id, q.t.id, q.spec, parse_dims(pd), parse_dims(td))
+        )
+        if (
+            pre is not None
+            and q.p_sel.time == q.t_sel.time
+            and (not pre.times or q.t_sel.time in pre.times)
+        ):
+            body, headers = engine.tile_bytes(pre, tile, Selection.make(q.t_sel.time))
+            headers = {
+                "X-GeoLoupe-Exact": "1",
+                "X-GeoLoupe-Precomputed": pre.id,
+                "X-GeoLoupe-Cell-M": f"{pre.sources[0].native.grid.cell_size_m():.1f}",
+            }
+        else:
+            body, headers = error_tile_bytes(engine, q, tile)
         headers = {**headers, "X-GeoLoupe-Time-Ms": f"{(_time.perf_counter() - t0) * 1000:.1f}"}
         headers["Cache-Control"] = "public, max-age=3600"
         if body is None:
