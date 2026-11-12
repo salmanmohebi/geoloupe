@@ -119,7 +119,16 @@ export interface FeaturedView {
 
 /** One more pane of a featured view. */
 export interface ViewPane {
-  layer: string;
+  layer: string; // (the server fills it in for error panes that follow P's pane)
+  error?: {
+    metric?: string; // default "bias"
+    formula?: string;
+    params?: Record<string, number>;
+    units?: string;
+    reference?: string; // T's layer
+    p_pane?: number; // follow pane (1 = the view's own layer)
+    t_pane?: number;
+  };
   time?: string;
   dims?: Record<string, string | number>;
   colormap?: string;

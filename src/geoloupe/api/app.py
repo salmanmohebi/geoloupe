@@ -46,7 +46,14 @@ from geoloupe.engine import Selection, SelectionError, TileEngine
 from geoloupe.errorbuild import error_key, find_precomputed
 from geoloupe.errors import conversion as unit_conversion
 from geoloupe.errors import resolve as resolve_error
-from geoloupe.errortiles import ErrorQuery, ErrorQueryError, error_stats, error_tile_bytes
+from geoloupe.errortiles import (
+    ErrorQuery,
+    ErrorQueryError,
+    error_parts,
+    error_range,
+    error_stats,
+    error_tile_bytes,
+)
 from geoloupe.points import PointRegistry, PointsError
 from geoloupe.query import QueryError, export_subset, point, stats, timeseries, to_netcdf_bytes
 from geoloupe.tiling import Tile, TileError
@@ -646,12 +653,29 @@ def create_app(catalog: Catalog, warm: bool = True) -> FastAPI:
 
         Stitched from the map tiles of zoom `zoom` (so it shares their cache), at most 5 × 5 tiles.
         """
+        layer = get_layer(layer_id)
+        sel = selection(layer, time, dims)
+        nb = 3 if layer.kind == "rgb" else 1
+
+        def render(tile: Tile) -> list[np.ndarray]:
+            res = engine.render(layer, tile, sel)
+            return res.bands if res.bands is not None else [res.data]
+
+        crop = stitch(render, center, zoom, width, height, nb)
+        bands = list(crop) if nb == 3 else None
+        return png_response(
+            colour(layer, crop[0], bands, sel, colormap, vmin, vmax, scale == "log")
+        )
+
+    def stitch(
+        render: Any, center: str, zoom: int, width: int, height: int, nb: int = 1
+    ) -> np.ndarray:
+        """(nb, height, width) values of a Web Mercator image centred on a point, stitched from
+        the tiles of zoom `zoom` (at most 5 × 5)."""
         try:
             lon, lat = (float(v) for v in center.split(","))
         except ValueError:
             raise HTTPException(400, "center must be 'lon,lat'") from None
-        layer = get_layer(layer_id)
-        sel = selection(layer, time, dims)
         ts = settings.tile_size
         n = 1 << zoom
         lat = max(-85.05, min(85.05, lat))
@@ -664,21 +688,60 @@ def create_app(catalog: Catalog, warm: bool = True) -> FastAPI:
         ty = range(y0 // ts, (y0 + height - 1) // ts + 1)
         if len(tx) * len(ty) > 25:
             raise HTTPException(400, "preview too large for this zoom: lower width/height")
-        nb = 3 if layer.kind == "rgb" else 1
         canvas = np.full((nb, len(ty) * ts, len(tx) * ts), np.nan, np.float32)
         for j, y in enumerate(ty):
             if not 0 <= y < n:
                 continue  # beyond the poles of the map: empty
             for i, x in enumerate(tx):
-                res = engine.render(layer, Tile(zoom, x % n, y, ts), sel)  # wraps in longitude
-                planes = res.bands if res.bands is not None else [res.data]
+                planes = render(Tile(zoom, x % n, y, ts))  # wraps in longitude
                 for b, plane in enumerate(planes[:nb]):
                     canvas[b, j * ts : (j + 1) * ts, i * ts : (i + 1) * ts] = plane
         ox, oy = x0 - tx[0] * ts, y0 - ty[0] * ts
-        crop = canvas[:, oy : oy + height, ox : ox + width]
-        bands = list(crop) if nb == 3 else None
+        return canvas[:, oy : oy + height, ox : ox + width]
+
+    @app.get("/api/error/preview.png")
+    def error_preview(
+        p: str,
+        t: str,
+        center: str,
+        zoom: Annotated[int, Query(ge=0, le=22)],
+        width: Annotated[int, Query(ge=16, le=1024)] = 480,
+        height: Annotated[int, Query(ge=16, le=1024)] = 240,
+        pt: str | None = None,
+        tt: str | None = None,
+        pd: str | None = None,
+        td: str | None = None,
+        metric: str = "bias",
+        formula: str | None = None,
+        params: str | None = None,
+        units: str | None = None,
+        colormap: str | None = None,
+        vmin: float | None = None,
+        vmax: float | None = None,
+    ) -> Response:
+        """A preview image of an error map (gallery thumbnails of error panes); without a range,
+        the default colours of the error definition, fitted to the image."""
+        q = error_query(p, t, pt, tt, pd, td, metric, formula, params, units)
+
+        def render(tile: Tile) -> list[np.ndarray]:
+            parts = error_parts(engine, q, tile)
+            return [parts.values() if parts is not None else np.full((tile.size,) * 2, np.nan)]
+
+        data = stitch(render, center, zoom, width, height)[0]
+        if q.spec.classes:
+            classes: dict[int, dict[str, str | None]] = {
+                int(c["value"]): {"name": c["name"], "color": c["color"]} for c in q.spec.classes
+            }
+            return png_response(apply_classes(data, classes, "turbo"))
+        lo, hi, log_scale, cmap = error_range(q.spec.scale, data)
         return png_response(
-            colour(layer, crop[0], bands, sel, colormap, vmin, vmax, scale == "log")
+            apply_colormap(
+                data,
+                colormap or cmap,
+                vmin if vmin is not None else lo,
+                vmax if vmax is not None else hi,
+                log_scale,
+            )
         )
 
     @app.get("/api/layers/{layer_id}/tilejson.json")

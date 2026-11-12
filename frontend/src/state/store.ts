@@ -238,9 +238,10 @@ export function paneUrl(p: PaneState, withView = !p.linkView, order: string[] = 
     layer: p.main.layerId ?? undefined,
     t: p.main.time ?? undefined,
     dims: p.main.dims,
-    cmap: p.style.colormap,
-    range: [p.style.vmin, p.style.vmax],
-    log: p.style.log,
+    // an error pane's link keeps the error map's colours
+    cmap: (diff ? p.diffStyle : p.style).colormap,
+    range: diff ? [p.diffStyle.vmin, p.diffStyle.vmax] : [p.style.vmin, p.style.vmax],
+    log: (diff ? p.diffStyle : p.style).log,
     opacity: p.style.opacity,
     center: withView ? p.view?.center : undefined,
     zoom: withView ? p.view?.zoom : undefined,
@@ -480,6 +481,19 @@ export const useStore = create<AppState>((set, get) => ({
         error,
         follow,
       });
+      // colours given by the link (or view) are the error map's, and are kept as they are
+      if (u.cmap || u.range || u.log) {
+        const d = get().diffStyle;
+        set({
+          diffStyle: {
+            ...d,
+            colormap: u.cmap ?? d.colormap,
+            log: u.log ?? d.log,
+            ...(u.range ? { vmin: u.range[0], vmax: u.range[1] } : {}),
+          },
+          diffFitPending: !u.range,
+        });
+      }
     }
   },
 

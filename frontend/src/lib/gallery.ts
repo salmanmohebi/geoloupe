@@ -24,6 +24,27 @@ const dimsOf = (d?: Record<string, string | number>) =>
   d ? Object.fromEntries(Object.entries(d).map(([k, x]) => [k, String(x)])) : undefined;
 
 function paneState(p: ViewPane): Partial<UrlState> {
+  const e = p.error;
+  if (e)
+    return {
+      layer: p.layer,
+      t: p.time,
+      dims: dimsOf(p.dims),
+      cmap: p.colormap,
+      range: p.vmin !== undefined && p.vmax !== undefined ? [p.vmin, p.vmax] : undefined,
+      log: p.log,
+      cmp: "error",
+      cmpLayer: e.reference,
+      cmpT: p.compare_time,
+      em: e.metric ?? "bias",
+      ef: e.formula,
+      ep: e.params,
+      eu: e.units,
+      fp: e.p_pane !== undefined ? e.p_pane - 1 : undefined, // link indices start at 0
+      ft: e.t_pane !== undefined ? e.t_pane - 1 : undefined,
+      lv: p.link_view === false ? false : undefined,
+      lt: p.link_time === false ? false : undefined,
+    };
   return {
     layer: p.layer,
     t: p.time,
@@ -83,6 +104,33 @@ export function viewHash(v: FeaturedView): string {
  * `layer` overrides the view's layer (the B side of a comparison); `pane` draws one more pane.
  */
 export function thumbnailUrl(v: FeaturedView, layer = v.layer, time = v.time, pane?: ViewPane): string {
+  const e = pane?.error;
+  if (pane && e?.reference) {
+    // an error pane: the server's preview of the error map
+    const [lng, lat] = v.center ?? [0, 20];
+    const t = pane.time ?? v.time;
+    return apiUrl("error/preview.png", {
+      p: pane.layer,
+      t: e.reference,
+      pt: t,
+      tt: pane.compare_time ?? t,
+      metric: e.metric ?? "bias",
+      formula: e.formula,
+      params: e.params
+        ? Object.entries(e.params)
+            .map(([k, x]) => `${k}:${x}`)
+            .join(",")
+        : undefined,
+      units: e.units,
+      center: `${lng},${lat}`,
+      zoom: Math.max(0, Math.min(22, Math.round((v.zoom ?? 1) - 1.6))),
+      width: 480,
+      height: 240,
+      colormap: pane.colormap,
+      vmin: pane.vmin,
+      vmax: pane.vmax,
+    });
+  }
   if (pane)
     return thumbnailUrl({
       ...v,

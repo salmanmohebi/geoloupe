@@ -181,3 +181,21 @@ def test_error_stats_endpoint(client: TestClient) -> None:
     s = r.json()
     assert s["exact"] and s["mean_abs"] == pytest.approx(1.0, abs=1e-4)
     assert s["rms"] == pytest.approx(1.0, abs=1e-4)
+
+
+def test_error_preview_png(client: TestClient) -> None:
+    base = {"p": "model:tas", "t": "obs:tas", "pt": "2021-01-02", "tt": "2021-01-02"}
+    for metric in ("abs", "bias", "ratio", "events"):
+        r = client.get(
+            "/api/error/preview.png",
+            params={
+                **base,
+                "metric": metric,
+                "center": "10,46",
+                "zoom": 3,
+                "width": 64,
+                "height": 32,
+            },
+        )
+        assert r.status_code == 200 and r.headers["content-type"] == "image/png", metric
+        assert r.content[:8] == b"\x89PNG\r\n\x1a\n"

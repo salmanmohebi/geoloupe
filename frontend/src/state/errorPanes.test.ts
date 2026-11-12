@@ -174,3 +174,12 @@ describe("error tiles", () => {
     expect(fitErrorRange({ metric: "custom", formula: "abs(P)" }, [0, 3])).toMatchObject({ vmin: 0 });
   });
 });
+
+describe("error pane colours in links", () => {
+  it("are the error map's", () => {
+    useStore.getState().addErrorPane("p1", "p0", { metric: "abs" });
+    useStore.getState().setDiffStyle({ vmin: 0, vmax: 4, colormap: "magma" });
+    const link = linkState(useStore.getState());
+    expect(link).toMatchObject({ cmap: "magma", range: [0, 4] });
+  });
+});

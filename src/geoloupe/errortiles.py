@@ -283,3 +283,22 @@ def contingency(counts: dict[int, float]) -> dict[str, float | None]:
         "csi": ratio(a, a + b + c),  # critical success index
         "freq_bias": ratio(a + c, a + b),  # forecast events / observed events
     }
+
+
+def error_range(scale: str, values: np.ndarray) -> tuple[float, float, bool, str]:
+    """(vmin, vmax, log, colormap): the default colours of an error map, fitted to its values as
+    in the web client (symmetric around 0 for signed errors, from 0 for sizes of errors,
+    symmetric around 1 on a log scale for ratios)."""
+    v = values[np.isfinite(values)]
+    if v.size == 0:
+        return -1.0, 1.0, False, "RdBu_r"
+    if scale == "ratio":
+        pos = np.abs(np.log(v[v > 0]))
+        r = float(np.quantile(pos, 0.98)) if pos.size else math.log(2)
+        r = r or math.log(2)
+        return math.exp(-r), math.exp(r), True, "RdBu_r"
+    lo, hi = (float(x) for x in np.quantile(v, [0.02, 0.98]))
+    if scale == "sequential":
+        return 0.0, hi if hi > 0 else 1.0, False, "YlOrRd"
+    m = max(abs(lo), abs(hi)) or 1.0
+    return -m, m, False, "RdBu_r"

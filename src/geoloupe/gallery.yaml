@@ -304,6 +304,20 @@ views:
     vmax: 32
     panes:
       - {layer: sea-temperature, time: "2014-08-16T12:00", colormap: thermal, vmin: -2, vmax: 32}
+  - title: How far is the model from the reanalysis?
+    description: "Error maps of the GFDL-ESM4 model (P, in °C) against ERA5 (T, in K, converted): the bias P − T and the absolute error |P − T|, computed from the native cells. The pane boxes give bias, MAE and RMSE of the view. Change pane 1 or 2, and the error panes follow."
+    layer: ocean-model:tos
+    time: "2014-08-16T12:00"
+    center: [-40, 45]
+    zoom: 2.3
+    colormap: thermal
+    vmin: -2
+    vmax: 32
+    layout: "4"
+    panes:
+      - {layer: sea-temperature, time: "2014-08-16T12:00", colormap: thermal, vmin: -2, vmax: 32}
+      - {error: {metric: bias, p_pane: 1, t_pane: 2}, vmin: -4, vmax: 4, colormap: RdBu_r}
+      - {error: {metric: abs, p_pane: 1, t_pane: 2}, vmin: 0, vmax: 4, colormap: YlOrRd}
   - title: From 31 km to 30 m
     description: The Matterhorn in the Copernicus DEM. Zoom out to see ERA5's coarse orography take over outside the Alps.
     layer: elevation

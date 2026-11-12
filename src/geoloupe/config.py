@@ -316,10 +316,35 @@ _LAYOUT_PRESETS = {"2h": 2, "2v": 2, "3": 3, "4": 4}
 _MAX_PANES = 6
 
 
+class ViewError(_Model):
+    """An error pane: the error of P (the pane's layer) against the reference T.
+
+    ``p_pane``/``t_pane`` make P/T follow another pane of the view (numbers as on screen: 1 is
+    the view's own layer); ``reference`` gives T's layer (default: the layer of ``t_pane``)."""
+
+    metric: str = "bias"
+    formula: str | None = None
+    params: dict[str, float] = Field(default_factory=dict)
+    units: str | None = None
+    reference: str | None = None
+    p_pane: int | None = None
+    t_pane: int | None = None
+
+    @model_validator(mode="after")
+    def _check(self) -> ViewError:
+        from geoloupe.errors import resolve
+
+        resolve(self.metric, self.formula, self.params or None, self.units)
+        if not self.reference and self.t_pane is None:
+            raise ValueError("an error pane needs its reference: reference (a layer) or t_pane")
+        return self
+
+
 class ViewPane(_Model):
     """One more pane of a featured view (the view's own layer is the first pane)."""
 
-    layer: str
+    layer: str | None = None  # an error pane following P's pane may leave it out
+    error: ViewError | None = None
     time: str | None = None
     dims: dict[str, str | int | float] = Field(default_factory=dict)
     colormap: str | None = None
@@ -388,6 +413,24 @@ class ViewConfig(_Model):
             raise ValueError(f"view {self.title!r}: at most {_MAX_PANES} panes")
         if self.panes and self.compare and self.compare_mode == "split":
             raise ValueError(f"view {self.title!r}: give the second layer as a pane, not compare")
+        layers = [self.layer, *(p.layer for p in self.panes)]
+        for k, p in enumerate(self.panes, start=2):
+            e = p.error
+            for name, ref in (
+                ("p_pane", e.p_pane if e else None),
+                ("t_pane", e.t_pane if e else None),
+            ):
+                if ref is not None and not (1 <= ref <= n and ref != k):
+                    raise ValueError(
+                        f"view {self.title!r}, pane {k}: {name} must be another pane (1 … {n})"
+                    )
+            if e and e.p_pane is not None and not p.layer:
+                p.layer = layers[e.p_pane - 1]
+            if e and not e.reference and e.t_pane is not None:
+                e.reference = layers[e.t_pane - 1]
+            if not p.layer:
+                raise ValueError(f"view {self.title!r}, pane {k}: give its layer (or error.p_pane)")
+            layers[k - 1] = p.layer
         if self.layout is not None:
             if layout_panes(self.layout) != n:
                 raise ValueError(
@@ -401,7 +444,7 @@ class ViewConfig(_Model):
         """Every layer the view needs."""
         ids = [self.layer, self.compare]
         for p in self.panes:
-            ids += [p.layer, p.compare]
+            ids += [p.layer, p.compare, p.error.reference if p.error else None]
         return [i for i in ids if i]
 
 

@@ -35,7 +35,7 @@ def test_gallery_config_is_valid_and_views_point_at_layers() -> None:
     assert cfg.views and cfg.description
     prefixes = set(cfg.datasets) | set(cfg.points)
     for v in cfg.views:
-        for lid in filter(None, (v.layer, v.compare)):
+        for lid in v.layer_ids():
             assert lid in cfg.layers or lid.split(":")[0] in prefixes, (v.title, lid)
     # public data only: every file is a URL anyone can read
     paths = [
@@ -265,3 +265,35 @@ def test_views_with_panes() -> None:
     for extra in bad:
         with pytest.raises(ValueError):
             ViewConfig(title="t", layer="a", **extra)
+
+
+def test_views_with_error_panes() -> None:
+    from geoloupe.config import ViewConfig
+
+    v = ViewConfig(
+        title="t",
+        layer="model:tas",
+        layout="3",
+        panes=[
+            {"layer": "obs:tas"},
+            {"error": {"metric": "rel", "params": {"eps": 0.5}, "p_pane": 1, "t_pane": 2}},
+        ],
+    )
+    err = v.panes[1]
+    assert err.layer == "model:tas" and err.error and err.error.reference == "obs:tas"
+    assert set(v.layer_ids()) == {"model:tas", "obs:tas"}
+    fixed = ViewConfig(title="t", layer="a", panes=[{"layer": "b", "error": {"reference": "c"}}])
+    assert fixed.panes[0].error and fixed.panes[0].error.metric == "bias"
+    for panes, msg in [
+        ([{"layer": "b", "error": {}}], "needs its reference"),
+        ([{"error": {"t_pane": 1}}], "give its layer"),
+        ([{"layer": "b", "error": {"t_pane": 2}}], "must be another pane"),  # itself
+        ([{"layer": "b", "error": {"t_pane": 5}}], "must be another pane"),
+        ([{"layer": "b", "error": {"reference": "c", "metric": "nope"}}], "unknown error"),
+        (
+            [{"layer": "b", "error": {"reference": "c", "metric": "custom", "formula": "P -"}}],
+            "end of formula",
+        ),
+    ]:
+        with pytest.raises(ValueError, match=msg):
+            ViewConfig(title="t", layer="a", panes=panes)
