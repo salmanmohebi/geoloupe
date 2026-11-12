@@ -61,8 +61,8 @@ def kind_of(name: str, is_dir: bool) -> str | None:
     low = name.lower().rstrip("/")
     for kind, ends in _KINDS.items():
         if low.endswith(ends):
-            if kind == "reference" and is_dir:
-                return None
+            if kind == "reference" and (is_dir or not ("ref" in low or "kerchunk" in low)):
+                return None  # plain JSON is not data; Kerchunk files say what they are
             if is_dir and kind != "zarr":
                 return None
             return kind
@@ -96,6 +96,24 @@ def normalise(url: str) -> str:
     if not u.startswith("s3://"):
         u = "s3://" + u.lstrip("/")
     return u
+
+
+def clean_location(text: str) -> str:
+    """What the user meant: no surrounding blanks, quotes or angle brackets (copied from a chat or a
+    terminal), and a lower-case scheme (HTTPS:// → https://)."""
+    loc = text.strip().strip("'\"`<>").strip()
+    head, sep, rest = loc.partition("://")
+    return f"{head.lower()}{sep}{rest}" if sep and head.isalpha() else loc
+
+
+def looks_like_address(loc: str) -> bool:
+    """A web or bucket address without its scheme, e.g. os.example.org/bucket/data.zarr."""
+    if "://" in loc or loc.startswith(("/", "~", ".")):
+        return False
+    first = loc.split("/", 1)[0]
+    return first.startswith("www.") or (
+        "/" in loc and "." in first and first.rsplit(".", 1)[-1].isalpha() and len(first) > 4
+    )
 
 
 def unwrap_viewer_link(loc: str) -> tuple[str, str | None]:

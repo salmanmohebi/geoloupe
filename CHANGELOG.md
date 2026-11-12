@@ -33,6 +33,9 @@ the configuration format; such changes are listed here).
 - A `?` in a web address (query string) is no longer read as a file pattern, so signed or
   parameterised URLs open with the right reader; a web page (`.html`) gets a clear message.
 - An `s3://` bucket that is not found on AWS suggests giving the endpoint of its S3 service.
+- *Add data* takes a pasted address with quotes, angle brackets or an upper-case scheme; an address
+  without `https://` (e.g. `host.org/bucket/data.zarr`) gets a clear message instead of "opening
+  local files is off".
 
 ### Changed
 

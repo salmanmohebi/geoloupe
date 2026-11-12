@@ -379,10 +379,10 @@ def create_app(catalog: Catalog, warm: bool = True) -> FastAPI:
 
         Off by default: remote URLs need `allow_open`, local files must lie below `open_roots`.
         """
-        from geoloupe.browse import unwrap_viewer_link
+        from geoloupe.browse import clean_location, looks_like_address, unwrap_viewer_link
         from geoloupe.cli import config_for_paths
 
-        loc = req.path.strip()
+        loc = clean_location(req.path)
         if not loc:
             raise HTTPException(400, "give a path or a URL")
         loc, link_endpoint = unwrap_viewer_link(loc)  # a viewer's link: open its data
@@ -398,9 +398,18 @@ def create_app(catalog: Catalog, warm: bool = True) -> FastAPI:
             raise HTTPException(403, "opening URLs is off: start the server with --allow-open")
         if not remote:
             roots = [Path(r).expanduser().resolve() for r in settings.open_roots]
-            if not roots:
+            if looks_like_address(loc):
                 raise HTTPException(
-                    403, "opening local files is off: start the server with --open-root DIR"
+                    400,
+                    f"{loc!r} looks like a web address: start it with https:// (or s3:// for a "
+                    "bucket, with its endpoint in Browse S3 if it is not on AWS)",
+                )
+            if not roots:
+                log.info("refused local path %r (no --open-root)", loc)
+                raise HTTPException(
+                    403,
+                    f"{loc!r} is not a URL, and opening local files is off: give a URL starting "
+                    "with https:// or s3://, or start the server with --open-root DIR",
                 )
             p = Path(loc).expanduser()
             p = (p if p.is_absolute() else roots[0] / p).resolve()

@@ -89,6 +89,7 @@ def test_errors_say_what_to_do(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_kinds_names_and_options() -> None:
     assert kind_of("a.zarr", True) == "zarr" and kind_of("a.nc", True) is None
     assert kind_of("x.TIF", False) == "geotiff" and kind_of("refs.json", False) == "reference"
+    assert kind_of("column_descriptions.json", False) is None  # plain JSON is not data
     assert kind_of("notes.md", False) is None
     assert normalise("bkt/a/") == "s3://bkt/a/"
     assert normalise("https://s3.console.aws.amazon.com/s3/buckets/bkt?region=x") == "s3://bkt"
@@ -209,3 +210,28 @@ def test_api_opens_the_data_of_a_viewer_link(
         "client_kwargs": {"endpoint_url": "https://os.example.org"},
         "anon": True,
     }
+
+
+def test_locations_as_pasted() -> None:
+    from geoloupe.browse import clean_location, looks_like_address
+
+    assert clean_location("  'https://x.org/a.zarr'\n") == "https://x.org/a.zarr"
+    assert clean_location('"s3://b/a.zarr"') == "s3://b/a.zarr"
+    assert clean_location("<HTTPS://x.org/a.zarr>") == "https://x.org/a.zarr"
+    assert clean_location("data/a.nc") == "data/a.nc"
+    assert looks_like_address("os.zhdk.cloud.switch.ch/bucket/a.zarr")
+    assert looks_like_address("www.example.org/a.nc")
+    assert not looks_like_address("data/a.nc") and not looks_like_address("a.nc")
+    assert not looks_like_address("results.v2/a.nc")  # a local folder with a dot: not a host
+    assert not looks_like_address("/abs/path.nc") and not looks_like_address("https://x.org/a")
+
+
+def test_api_pasted_addresses(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    c, cat = _client(tmp_path, True)
+    monkeypatch.setattr(cat, "add_datasets", lambda found: (["a:v"], []))
+    quoted = "'https://os.example.org/b/t/preview.html?store=s3://b/t/a.zarr&endpoint=https://os.example.org/'"
+    assert c.post("/api/datasets", json={"path": quoted}).status_code == 200
+    r = c.post("/api/datasets", json={"path": "os.example.org/b/t/a.zarr"})
+    assert r.status_code == 400 and "start it with https://" in r.json()["detail"]
+    r = c.post("/api/datasets", json={"path": "a.zarr"})
+    assert r.status_code == 403 and "is not a URL" in r.json()["detail"]
