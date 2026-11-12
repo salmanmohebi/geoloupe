@@ -22,8 +22,17 @@ the configuration format; such changes are listed here).
   active pane or a new pane. Public access, or the server's credentials (environment or a named
   AWS profile; the browser only sees profile names). Public objects of S3-compatible stores are read
   over path-style HTTPS.
+- *Add data* opens the data behind a web viewer's link (`…/preview.html?store=s3://…&endpoint=…`,
+  e.g. a GeoZarr preview page), with its S3 endpoint. GeoZarr multiscale stores (`multiscales`
+  layout of levels `0`, `1`, …) open with every level used as an overview.
 - The side panel shows which pane it acts on; pane titles name the dataset of a variable when the
   title does not.
+
+### Fixed
+
+- A `?` in a web address (query string) is no longer read as a file pattern, so signed or
+  parameterised URLs open with the right reader; a web page (`.html`) gets a clear message.
+- An `s3://` bucket that is not found on AWS suggests giving the endpoint of its S3 service.
 
 ### Changed
 

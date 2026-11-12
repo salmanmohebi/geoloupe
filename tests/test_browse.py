@@ -165,3 +165,47 @@ def test_api_open_passes_the_access_to_the_dataset(
     }
     bad = c.post("/api/datasets", json={"path": "https://x.org/a.zarr", "profile": "work"})
     assert bad.status_code == 400 and "s3:// locations only" in bad.json()["detail"]
+
+
+def test_viewer_links_and_web_pages() -> None:
+    from geoloupe.browse import unwrap_viewer_link
+    from geoloupe.readers import OpenError, detect_engine
+
+    link = (
+        "https://os.example.org/b/test/preview.html?store=s3://b/test/sst.zarr"
+        "&endpoint=https://os.example.org/&var=sst&time=2016-02-13T09:00:00.000Z&z=6.42"
+    )
+    assert unwrap_viewer_link(link) == ("s3://b/test/sst.zarr", "https://os.example.org")
+    assert unwrap_viewer_link("https://x.org/v.html?url=https://x.org/a.zarr") == (
+        "https://x.org/a.zarr",
+        None,
+    )
+    assert unwrap_viewer_link("https://x.org/a.zarr") == ("https://x.org/a.zarr", None)
+    assert unwrap_viewer_link("https://x.org/page?id=3") == ("https://x.org/page?id=3", None)
+    # a query string is not a glob, and a page is not data
+    assert detect_engine("https://x.org/data.nc?token=abc") == "netcdf"
+    assert detect_engine("https://x.org/scene.tif?X-Amz-Signature=1") == "geotiff"
+    with pytest.raises(OpenError, match="is a web page, not data"):
+        detect_engine("https://x.org/preview.html?var=sst")
+    assert detect_engine("s3://b/files/*.nc") == "netcdf"  # globs of files still work
+
+
+def test_api_opens_the_data_of_a_viewer_link(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    c, cat = _client(tmp_path, True)
+    seen: dict[str, Any] = {}
+
+    def add(found: dict[str, Any]) -> tuple[list[str], list[str]]:
+        seen.update(found)
+        return ["sst:sst"], []
+
+    monkeypatch.setattr(cat, "add_datasets", add)
+    link = "https://os.example.org/b/t/preview.html?store=s3://b/t/sst.zarr&endpoint=https://os.example.org/"
+    assert c.post("/api/datasets", json={"path": link}).json()["layers"] == ["sst:sst"]
+    (cfg,) = seen.values()
+    assert cfg.path == "s3://b/t/sst.zarr"
+    assert cfg.storage_options == {
+        "client_kwargs": {"endpoint_url": "https://os.example.org"},
+        "anon": True,
+    }

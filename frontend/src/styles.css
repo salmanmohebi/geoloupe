@@ -216,7 +216,9 @@ input {
 }
 .pane-legend {
   display: inline-flex;
-  flex: none;
+  flex: 0 1 auto; /* shrinks before the buttons when the box is narrow */
+  min-width: 0;
+  overflow: hidden;
   align-items: center;
   gap: 5px;
   margin-left: 4px;
@@ -225,6 +227,7 @@ input {
   white-space: nowrap;
 }
 .pane-grad {
+  flex: none;
   width: 44px;
   height: 8px;
   border-radius: 2px;

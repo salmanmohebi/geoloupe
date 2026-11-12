@@ -98,6 +98,22 @@ def normalise(url: str) -> str:
     return u
 
 
+def unwrap_viewer_link(loc: str) -> tuple[str, str | None]:
+    """The data behind a web viewer's link, e.g. a GeoZarr preview page:
+    https://host/preview.html?store=s3://bucket/data.zarr&endpoint=https://host/ →
+    (s3://bucket/data.zarr, https://host). Other locations come back unchanged, without endpoint."""
+    from urllib.parse import parse_qs, urlsplit
+
+    if not loc.startswith(("http://", "https://")) or "?" not in loc:
+        return loc, None
+    q = parse_qs(urlsplit(loc).query)
+    store = next((q[k][0] for k in ("store", "url", "src", "source") if q.get(k)), None)
+    if not store or not store.startswith(("s3://", "http://", "https://", "gs://")):
+        return loc, None
+    endpoint = q.get("endpoint", [None])[0]
+    return store, (endpoint.rstrip("/") if endpoint and store.startswith("s3://") else None)
+
+
 def list_location(
     url: str, storage_options: dict[str, Any] | None = None, match: str | None = None
 ) -> dict[str, Any]:

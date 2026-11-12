@@ -152,10 +152,17 @@ def detect_engine(location: str | list[str]) -> str:
     """Guess the engine from the path. Lists and globs are NetCDF collections."""
     if isinstance(location, list):
         return "netcdf"
-    loc = location.lower().rstrip("/")
-    if _looks_like_zarr(location):
+    web = location.startswith(("http://", "https://"))
+    path = location.split("?", 1)[0].split("#", 1)[0] if web else location  # no query in the name
+    loc = path.lower().rstrip("/")
+    if web and loc.endswith((".html", ".htm", ".php", ".aspx")):
+        raise OpenError(
+            f"{location} is a web page, not data: give the address of the data itself (a Zarr "
+            "store, NetCDF or GeoTIFF file), or a viewer link with store=…"
+        )
+    if _looks_like_zarr(path):
         return "zarr"
-    if any(ch in location for ch in "*?["):
+    if not web and any(ch in location for ch in "*?["):  # a glob of local or s3:// files
         return "netcdf"
     if loc.endswith(_NETCDF_EXT):
         return "netcdf"
@@ -215,9 +222,16 @@ def open_dataset(
             try:
                 return _open(location, engine, {**so, "anon": False}, open_kwargs, group)
             except OpenError:
+                elsewhere = (
+                    ""
+                    if (so.get("client_kwargs") or {}).get("endpoint_url")
+                    else "; a bucket on another S3 service (not AWS) needs its endpoint: "
+                    "Add data → Browse S3 → Endpoint, or storage_options: "
+                    "{client_kwargs: {endpoint_url: https://…}}"
+                )
                 raise OpenError(
                     f"{first} (read without credentials, as public data; for a private bucket "
-                    "set AWS credentials, and storage_options: {anon: false})"
+                    f"set AWS credentials, and storage_options: {{anon: false}}{elsewhere})"
                 ) from first
     return _open(location, engine, so, open_kwargs, group)
 
