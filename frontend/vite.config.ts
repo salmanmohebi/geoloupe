@@ -14,6 +14,8 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: { "/api": "http://127.0.0.1:8000" },
+    // The client imports src/geoloupe/errors.json, which it shares with the server.
+    fs: { allow: [".."] },
   },
   test: {
     environment: "node",
