@@ -46,8 +46,8 @@ def config_for_paths(
     return raw
 
 
-def _catalog_from(targets: list[str], engine: str = "auto"):
-    """A catalog from a YAML config or directly from data paths."""
+def _catalog_from(targets: list[str], engine: str = "auto", storage_options: dict | None = None):
+    """A catalog from a YAML config or directly from data paths (with S3 access options)."""
     from geoloupe.catalog import Catalog
     from geoloupe.config import config_from_dict, load_config
 
@@ -55,22 +55,34 @@ def _catalog_from(targets: list[str], engine: str = "auto"):
         return Catalog(load_config(targets[0]))
     if any(t.endswith((".yaml", ".yml")) for t in targets):
         raise ValueError("give either one configuration file or data paths, not both")
-    return Catalog(config_from_dict(config_for_paths(targets, engine), base_dir=Path.cwd()))
+    raw = config_for_paths(targets, engine, storage_options)
+    return Catalog(config_from_dict(raw, base_dir=Path.cwd()))
 
 
 def cmd_serve(a: argparse.Namespace) -> int:
     from geoloupe.server import serve
 
-    cat = _catalog_from(a.target, a.engine)
-    if getattr(a, "allow_open", False):
+    so = None
+    if getattr(a, "endpoint", None) or getattr(a, "profile", None) or getattr(a, "anon", False):
+        from geoloupe.browse import access_options
+
+        so = access_options(a.endpoint, a.profile, True if a.anon else None)
+    cat = _catalog_from(a.target, a.engine, so)
+    # 'Add data' may open remote URLs: on by default when only this machine can reach the
+    # server; when it listens on other interfaces, only with --allow-open.
+    local = a.host in LOCAL_HOSTS
+    if getattr(a, "no_open", False):
+        cat.settings.allow_open = False
+    elif getattr(a, "allow_open", False) or local:
         cat.settings.allow_open = True
     for root in getattr(a, "open_root", None) or []:
         cat.settings.open_roots.append(str(Path(root).expanduser().resolve()))
-    if cat.settings.allow_open or cat.settings.open_roots:
+    if (cat.settings.allow_open or cat.settings.open_roots) and not local:
         log.warning(
-            "'Add data' is on (%s): anyone who can reach this server can make it read those; "
-            "keep it on localhost or behind a login",
+            "'Add data' is on (%s) and the server listens on %s: anyone who can reach it can make "
+            "it read those; keep it behind a login",
             ", ".join(["remote URLs"] * cat.settings.allow_open + cat.settings.open_roots),
+            a.host,
         )
     bad = [d for d in cat.datasets.values() if d.status != "ok"]
     for d in bad:
@@ -95,6 +107,7 @@ def cmd_serve(a: argparse.Namespace) -> int:
 
 
 GALLERY = Path(__file__).with_name("gallery.yaml")
+LOCAL_HOSTS = ("127.0.0.1", "localhost", "::1")
 
 
 def cmd_gallery(a: argparse.Namespace) -> int:
@@ -250,8 +263,10 @@ def _open_args(s: argparse.ArgumentParser) -> None:
     s.add_argument(
         "--allow-open",
         action="store_true",
-        help="let the browser open remote data (https://, s3://, gs:// URLs) with 'Add data'",
+        help="let 'Add data' open remote data (https://, s3://, gs:// URLs) also when the server "
+        "listens on other interfaces (--host 0.0.0.0); on by default on localhost",
     )
+    s.add_argument("--no-open", action="store_true", help="'Add data' cannot open remote URLs")
     s.add_argument(
         "--open-root",
         action="append",
@@ -280,6 +295,12 @@ def main(argv: list[str] | None = None) -> int:
         "--engine", default="auto", help="reader for a dataset path (default: from the extension)"
     )
     s.add_argument("--log-level", default="info")
+    s.add_argument(
+        "--endpoint",
+        help="S3-compatible endpoint for s3:// paths (e.g. https://os.zhdk.cloud.switch.ch)",
+    )
+    s.add_argument("--profile", help="credentials profile (~/.aws) for s3:// paths")
+    s.add_argument("--anon", action="store_true", help="read s3:// paths without credentials")
     _open_args(s)
     s.set_defaults(func=cmd_serve)
 

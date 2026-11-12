@@ -1640,3 +1640,30 @@ button.s3-entry:hover {
   background: var(--surface-2);
   border: 1px solid var(--border);
 }
+.btn.tool.off {
+  opacity: 0.6;
+}
+.add-off {
+  padding: 4px 18px 16px;
+}
+.add-off pre {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-family: var(--mono);
+}
+.recent {
+  padding: 4px 18px 8px;
+}
+.recent ul {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+}
+.recent li {
+  margin: 2px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

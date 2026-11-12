@@ -49,18 +49,99 @@ function fmtBytes(n: number | null): string {
   return `${v < 10 && i ? v.toFixed(1) : Math.round(v)} ${units[i]}`;
 }
 
+// Recently opened data (this browser only): one click opens it again.
+const RECENT_KEY = "geoloupe.recent";
+interface Recent {
+  path: string;
+  name?: string;
+  access?: S3Access;
+}
+function loadRecent(): Recent[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]");
+    return Array.isArray(v) ? v.filter((r) => typeof r?.path === "string").slice(0, 8) : [];
+  } catch {
+    return [];
+  }
+}
+function remember(r: Recent): void {
+  try {
+    const list = [r, ...loadRecent().filter((x) => x.path !== r.path)].slice(0, 8);
+    localStorage.setItem(RECENT_KEY, JSON.stringify(list));
+  } catch {
+    /* storage may be off (private window): nothing to remember */
+  }
+}
+
 export function AddDataButton() {
   const catalog = useStore((s) => s.catalog);
   const [open, setOpen] = useState(false);
-  if (!catalog?.allow_open && !catalog?.open_roots?.length) return null;
+  const enabled = !!catalog?.allow_open || !!catalog?.open_roots?.length;
+  if (!catalog) return null;
   return (
     <>
-      <button className="btn tool" onClick={() => setOpen(true)}>
+      <button
+        className={`btn tool${enabled ? "" : " off"}`}
+        onClick={() => setOpen(true)}
+        title={
+          enabled ? "Open a file, URL or S3 bucket" : "Opening data is off on this server: how to turn it on"
+        }
+      >
         Add data
       </button>
       {/* in the page body: inside the toolbar, the backdrop would cover only the toolbar */}
-      {open && createPortal(<AddDataDialog onClose={() => setOpen(false)} />, document.body)}
+      {open &&
+        createPortal(
+          enabled ? (
+            <AddDataDialog onClose={() => setOpen(false)} />
+          ) : (
+            <AddDataOff onClose={() => setOpen(false)} />
+          ),
+          document.body,
+        )}
     </>
+  );
+}
+
+/** When the server does not open data: how to start it so that it does. */
+function AddDataOff({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="gallery-backdrop" onClick={onClose}>
+      <div
+        className="add-data panel"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Add data"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="gallery-head">
+          <div>
+            <div className="eyebrow">Add data</div>
+            <h1>Opening data is off on this server</h1>
+          </div>
+          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">
+            <Icon name="close" />
+          </button>
+        </div>
+        <div className="add-off">
+          <p>
+            Whoever started GeoLoupe decides what the browser may open. On your own machine, start it like
+            this:
+          </p>
+          <pre>geoloupe gallery --open-root ~/data</pre>
+          <p className="muted small">
+            Remote data (<code>https://</code>, <code>s3://</code>, <code>gs://</code>) can be opened by
+            default when the server listens on this machine only. A server reachable by others (
+            <code>--host 0.0.0.0</code>) needs <code>--allow-open</code>; <code>--no-open</code> turns it off.
+            Local files are opened only below the folders given with <code>--open-root</code>.
+          </p>
+          <p className="muted small">
+            You can also open data directly: <code>geoloupe serve my_data.zarr</code>, or{" "}
+            <code>geoloupe serve s3://bucket/data.zarr --endpoint https://… --anon</code>.
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -79,6 +160,7 @@ function AddDataDialog({ onClose }: { onClose: () => void }) {
     setError(null);
     try {
       const res = await api.addData(path, name, access);
+      remember({ path, ...(name ? { name } : {}), ...(Object.keys(access).length ? { access } : {}) });
       const st = useStore.getState();
       const shown = visibleVectors(st.catalog, st.vectorsOn).map((v) => v.id);
       await st.refreshCatalog();
@@ -144,6 +226,7 @@ function AddDataDialog({ onClose }: { onClose: () => void }) {
           </div>
         )}
         {tab === "path" ? <PathTab busy={!!busy} onOpen={open} /> : <S3Tab busy={busy} onOpen={open} />}
+        <RecentList busy={!!busy} onOpen={open} />
         {error && <div className="add-data-error">{error}</div>}
         <div className="gallery-foot">
           <span className="add-where">
@@ -426,6 +509,55 @@ function S3Tab({
           stores, NetCDF, GeoTIFF/COG, station tables and vector files can be opened.
         </p>
       )}
+    </div>
+  );
+}
+
+/** Data opened before in this browser: one click opens it again. */
+function RecentList({
+  busy,
+  onOpen,
+}: {
+  busy: boolean;
+  onOpen: (path: string, name?: string, access?: S3Access) => void;
+}) {
+  const [items, setItems] = useState(loadRecent);
+  if (!items.length) return null;
+  return (
+    <div className="recent">
+      <div className="eyebrow">
+        Opened before{" "}
+        <button
+          className="link-btn small"
+          onClick={() => {
+            try {
+              localStorage.removeItem(RECENT_KEY);
+            } catch {
+              /* nothing stored */
+            }
+            setItems([]);
+          }}
+        >
+          forget
+        </button>
+      </div>
+      <ul>
+        {items.map((r) => (
+          <li key={r.path}>
+            <button
+              className="link-btn"
+              disabled={busy}
+              title={r.path}
+              onClick={() => onOpen(r.path, r.name ?? "", r.access ?? {})}
+            >
+              {shortName(r.name || r.path, 64)}
+            </button>
+            {r.access?.endpoint && (
+              <span className="muted small"> · {r.access.endpoint.replace(/^https?:\/\//, "")}</span>
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

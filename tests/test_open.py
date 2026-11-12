@@ -76,3 +76,46 @@ def test_points_vectors_and_broken_files(tmp_path: Path) -> None:
     assert r.status_code == 400 and "broken" in r.json()["detail"]
     after = c.get("/api/catalog").json()
     assert [d["id"] for d in after["datasets"]] == [d["id"] for d in before["datasets"]]  # not kept
+
+
+@pytest.mark.parametrize(
+    ("args", "remote"),
+    [
+        ([], True),  # localhost: on by default
+        (["--no-open"], False),
+        (["--host", "0.0.0.0"], False),  # reachable by others: only when asked
+        (["--host", "0.0.0.0", "--allow-open"], True),
+    ],
+)
+def test_serve_opens_remote_data_by_default_on_localhost(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, args: list[str], remote: bool
+) -> None:
+    import geoloupe.server
+    from geoloupe.cli import main
+
+    seen: dict[str, object] = {}
+
+    def fake_serve(cat, host: str, port: int, log_level: str) -> None:
+        seen["allow_open"] = cat.settings.allow_open
+        seen["datasets"] = {d: e.config.storage_options for d, e in cat.datasets.items()}
+
+    monkeypatch.setattr(geoloupe.server, "serve", fake_serve)
+    path = tmp_path / "a.nc"
+    _grid(path)
+    assert main(["serve", str(path), *args]) == 0
+    assert seen["allow_open"] is remote
+
+
+def test_serve_s3_options(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from geoloupe import cli
+
+    got: dict[str, object] = {}
+
+    def catalog_from(targets: list[str], engine: str, so: dict | None = None) -> None:
+        got["so"] = so
+        raise SystemExit(0)  # stop before serving
+
+    monkeypatch.setattr(cli, "_catalog_from", catalog_from)
+    with pytest.raises(SystemExit):
+        cli.main(["serve", "s3://bucket/x.zarr", "--endpoint", "os.example.org", "--anon"])
+    assert got["so"] == {"client_kwargs": {"endpoint_url": "https://os.example.org"}, "anon": True}
