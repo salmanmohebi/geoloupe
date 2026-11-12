@@ -5,6 +5,7 @@ import { api } from "../api/client";
 import { BASEMAPS } from "../lib/basemaps";
 import { getLut } from "../lib/colormap";
 import { exportPng } from "../lib/exportImage";
+import { MAX_PANES, paneIds, PRESET_PANES, preset, rects, type Preset } from "../lib/layout";
 import { unitLabel } from "../lib/format";
 import { timelineOf } from "../lib/timeline";
 import { useStore, validTime, type Basemap, type CompareMode } from "../state/store";
@@ -33,21 +34,84 @@ function Menu({ label, children, active }: { label: string; children: React.Reac
   );
 }
 
+const PRESETS: { id: Preset; label: string }[] = [
+  { id: "1", label: "One map" },
+  { id: "2h", label: "Two, side by side" },
+  { id: "2v", label: "Two, one above the other" },
+  { id: "3", label: "Three: one large, two small" },
+  { id: "4", label: "Four (2 × 2)" },
+];
+
+/** A small picture of a preset layout. */
+function PresetIcon({ p }: { p: Preset }) {
+  const ids = Array.from({ length: PRESET_PANES[p] }, (_, i) => String(i));
+  return (
+    <svg width="30" height="20" viewBox="0 0 30 20" aria-hidden>
+      {Object.values(rects(preset(p, ids))).map((r, i) => (
+        <rect
+          key={i}
+          x={1 + r.x * 28 + 0.75}
+          y={1 + r.y * 18 + 0.75}
+          width={r.w * 28 - 1.5}
+          height={r.h * 18 - 1.5}
+          rx="1.5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.3"
+        />
+      ))}
+    </svg>
+  );
+}
+
+function PanesSection() {
+  const count = useStore((s) => paneIds(s.layout).length);
+  const { applyPreset, equalizePanes } = useStore.getState();
+  return (
+    <>
+      <div className="eyebrow">
+        Panes ({count} of at most {MAX_PANES})
+      </div>
+      <div className="preset-row">
+        {PRESETS.map((p) => (
+          <button key={p.id} className="btn preset" title={p.label} onClick={() => applyPreset(p.id)}>
+            <PresetIcon p={p.id} />
+          </button>
+        ))}
+        {count > 1 && (
+          <button className="btn" onClick={equalizePanes} title="All dividers back to the middle">
+            Equal sizes
+          </button>
+        )}
+      </div>
+      <p className="muted small">
+        Each pane shows its own layer, time and colours; the side panel acts on the active pane (blue frame).
+        Use the buttons in a pane's corner, or the keys <kbd>%</kbd> or <kbd>|</kbd> split right, <kbd>"</kbd>{" "}
+        split down, <kbd>x</kbd> close, <kbd>z</kbd> zoom a pane, <kbd>Alt</kbd>+arrows move between panes.
+        Drag a divider to resize it.
+      </p>
+    </>
+  );
+}
+
 function ComparePanel() {
   const catalog = useStore((s) => s.catalog);
   const compare = useStore((s) => s.compare);
   const main = useStore((s) => s.main);
+  const multi = useStore((s) => paneIds(s.layout).length > 1);
   const { setCompare, setDiffStyle } = useStore.getState();
   const modes: { id: CompareMode; label: string; help: string }[] = [
     { id: "off", label: "Off", help: "" },
-    { id: "split", label: "Side by side", help: "Two synchronised maps with the same colour scale." },
     { id: "diff", label: "Difference A − B", help: "One map of A minus B at display resolution." },
   ];
   const tl = timelineOf(compare.layer);
   const [bTime, setBTime] = useState<string | null>(null);
   return (
     <div className="compare-panel">
-      <div className="eyebrow">Compare A (current layer) with B</div>
+      <PanesSection />
+      <div className="eyebrow section-gap">
+        Difference: {multi ? "the active pane's layer" : "the current layer"} (A) minus B
+      </div>
       <div className="seg">
         {modes.map((m) => (
           <button
@@ -132,6 +196,7 @@ export function Toolbar() {
   const colormaps = useStore((s) => s.colormaps);
   const view = useStore((s) => s.view);
   const catalog = useStore((s) => s.catalog);
+  const panes = useStore((s) => paneIds(s.layout).length);
   const { setBasemap, setGlobe, notify } = useStore.getState();
 
   const share = async () => {
@@ -192,14 +257,8 @@ export function Toolbar() {
         </button>
       )}
       <Menu
-        label={
-          compare.mode === "off"
-            ? "Compare"
-            : compare.mode === "split"
-              ? "Compare: side by side"
-              : "Compare: A − B"
-        }
-        active={compare.mode !== "off"}
+        label={panes > 1 ? `Compare: ${panes} panes` : compare.mode === "diff" ? "Compare: A − B" : "Compare"}
+        active={compare.mode !== "off" || panes > 1}
       >
         <ComparePanel />
       </Menu>

@@ -118,6 +118,36 @@ describe("url state", () => {
   it("ignores junk", () => {
     expect(parseHash("#range=a,b&z=x&bm=nope")).toEqual({});
   });
+  it("round-trips split panes, each pane a link of its own", () => {
+    const s = {
+      layer: "tas",
+      t: "2021-07-15",
+      center: [10.2, 46.4] as [number, number],
+      zoom: 6.5,
+      lay: "r30(0,c50(1,2))",
+      pa: 0,
+      panes: {
+        1: { layer: "era5:pr", t: "2021-07-15", dims: { level: "500" }, range: [0, 30] as [number, number] },
+        2: {
+          layer: "s2:visual:rgb",
+          lv: false,
+          lt: false,
+          t: "2020-01-01",
+          center: [7, 45] as [number, number],
+          zoom: 9,
+        },
+      },
+    };
+    const h = buildHash(s);
+    expect(h).toContain("lay=r30(0,c50(1,2))&pa=0&p1=");
+    expect(h.split("&").filter((p) => p.startsWith("p2=")).length).toBe(1); // a pane's & and = are encoded
+    expect(parseHash(h)).toMatchObject(s);
+  });
+  it("does not nest panes", () => {
+    const inner = encodeURIComponent("layer=a&lay=r50(0,1)&p1=layer%3Db");
+    const back = parseHash(`#layer=x&lay=r50(0,1)&pa=0&p1=${inner}`);
+    expect(back.panes?.[1]).toEqual({ layer: "a" });
+  });
 });
 
 describe("statistics and helpers", () => {

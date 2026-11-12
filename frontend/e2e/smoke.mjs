@@ -27,9 +27,9 @@ const DEFAULT = [
     expect: ["Time series"],
   },
   {
-    name: "04-split",
+    name: "04-panes", // a 0.1 side-by-side link opens as two panes
     hash: "#layer=alps:tas&t=2021-07-15&c=10.2,46.4&z=6.5&cmp=split&cl=global:tas",
-    expect: ["B ·"],
+    expect: ["· Alps downscaled", "· Global reanalysis"],
   },
   {
     name: "05-difference",

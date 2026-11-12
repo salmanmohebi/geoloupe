@@ -8,8 +8,9 @@ import { LoadingBar, Notices, ProvenanceBadge } from "./components/StatusBar";
 import { TimeBar } from "./components/TimeBar";
 import { Toolbar } from "./components/Toolbar";
 import { onActivity } from "./lib/tiles";
+import { neighbour, type Side } from "./lib/layout";
 import { buildHash, parseHash } from "./lib/urlState";
-import { useStore } from "./state/store";
+import { linkState, useStore } from "./state/store";
 
 /** Keep the URL hash in sync with the state, so every view is a shareable link. */
 function useUrlSync() {
@@ -19,28 +20,42 @@ function useUrlSync() {
       if (!s.main.layerId) return;
       clearTimeout(timer);
       timer = window.setTimeout(() => {
-        const hash = buildHash({
-          layer: s.main.layerId!,
-          t: s.main.time ?? undefined,
-          dims: s.main.dims,
-          cmap: s.style.colormap,
-          range: [s.style.vmin, s.style.vmax],
-          log: s.style.log,
-          opacity: s.style.opacity,
-          center: s.view?.center,
-          zoom: s.view?.zoom,
-          basemap: s.basemap,
-          globe: s.globe,
-          cmp: s.compare.mode,
-          cmpLayer: s.compare.layerId ?? undefined,
-          cmpT: s.compare.linkTime ? undefined : (s.compare.time ?? undefined),
-          pt: s.inspect ? [s.inspect.lng, s.inspect.lat] : undefined,
-          ov: !s.showPoints ? "none" : (s.overlay ?? undefined),
-          vec: s.vectorsOn ?? undefined,
-        });
+        const hash = buildHash(linkState(s));
         if (hash !== window.location.hash) history.replaceState(null, "", hash || window.location.pathname);
       }, 250);
     });
+  }, []);
+}
+
+const ARROWS: Record<string, Side> = {
+  ArrowLeft: "left",
+  ArrowRight: "right",
+  ArrowUp: "up",
+  ArrowDown: "down",
+};
+
+/** Pane keys, as in tmux: % or | split right, " split down, x close, z zoom, Alt+arrows move. */
+function usePaneKeys() {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t?.closest("input, textarea, select, [contenteditable]")) return;
+      if (e.metaKey || (e.ctrlKey && !e.altKey)) return; // Ctrl+Alt is AltGr (| on many keyboards)
+      const s = useStore.getState();
+      if (s.galleryOpen) return;
+      if (e.altKey && ARROWS[e.key]) {
+        const next = neighbour(s.layout, s.active, ARROWS[e.key]);
+        if (next) s.activatePane(next);
+      } else if (e.key === "|" || e.key === "%") s.splitPane("row");
+      else if (e.key === '"') s.splitPane("col");
+      else if (e.key === "x" && !e.altKey) s.closePane();
+      else if (e.key === "z" && !e.altKey) s.toggleZoom();
+      else return;
+      e.preventDefault();
+      e.stopPropagation(); // capture phase: the map's own keys do not see it
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
   }, []);
 }
 
@@ -48,6 +63,7 @@ export default function App() {
   const catalog = useStore((s) => s.catalog);
   const main = useStore((s) => s.main);
   useUrlSync();
+  usePaneKeys();
 
   useEffect(() => {
     useStore.getState().init(parseHash(window.location.hash)); // also restores layer, time, style

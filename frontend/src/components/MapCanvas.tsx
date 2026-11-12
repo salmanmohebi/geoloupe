@@ -48,6 +48,7 @@ export interface MapCanvasProps {
   basemap: Basemap;
   globe: boolean;
   marker: { lng: number; lat: number } | null;
+  cursor?: { lng: number; lat: number } | null; // the hover position in another pane
   initialView: { center: [number, number]; zoom: number } | null;
   onMap?: (map: MlMap | null) => void;
   onHover?: (e: MapEventInfo | null) => void;
@@ -193,7 +194,16 @@ export function MapCanvas(p: MapCanvasProps) {
     setMap(m);
     const onMap = propsRef.current.onMap;
     onMap?.(m);
+    // MapLibre follows window resizes only; split panes change the container's size
+    let raf = 0;
+    const ro = new ResizeObserver(() => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => m.resize());
+    });
+    ro.observe(el.current!);
     return () => {
+      ro.disconnect();
+      cancelAnimationFrame(raf);
       onMap?.(null);
       m.remove();
     };
@@ -364,6 +374,22 @@ export function MapCanvas(p: MapCanvasProps) {
       markerRef.current = new maplibregl.Marker({ element: dot }).setLngLat(p.marker).addTo(map);
     } else markerRef.current.setLngLat(p.marker);
   }, [map, p.marker]);
+
+  // the hover position in another pane: a small cross
+  const cursorRef = useRef<maplibregl.Marker | null>(null);
+  useEffect(() => {
+    if (!map) return;
+    if (!p.cursor) {
+      cursorRef.current?.remove();
+      cursorRef.current = null;
+      return;
+    }
+    if (!cursorRef.current) {
+      const cross = document.createElement("div");
+      cross.className = "cursor-cross";
+      cursorRef.current = new maplibregl.Marker({ element: cross }).setLngLat(p.cursor).addTo(map);
+    } else cursorRef.current.setLngLat(p.cursor);
+  }, [map, p.cursor]);
 
   return (
     <div className="map-canvas">

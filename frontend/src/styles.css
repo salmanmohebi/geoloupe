@@ -74,19 +74,171 @@ input {
 .map-view {
   position: absolute;
   inset: 0;
-  display: flex;
 }
 .map-pane {
-  position: relative;
-  flex: 1;
+  position: absolute;
+  overflow: hidden;
+  container-type: size;
+}
+.map-view.multi .map-pane.active::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--accent);
+  pointer-events: none;
+  z-index: 2;
+}
+/* only the active pane has navigation buttons */
+.map-view.multi .map-pane:not(.active) .maplibregl-ctrl-top-right {
+  display: none;
+}
+.pane-divider {
+  position: absolute;
+  z-index: 4;
+  touch-action: none;
+}
+.pane-divider.row {
+  width: 10px;
+  margin-left: -5px;
+  cursor: col-resize;
+}
+.pane-divider.col {
+  height: 10px;
+  margin-top: -5px;
+  cursor: row-resize;
+}
+.pane-divider::before {
+  content: "";
+  position: absolute;
+  background: var(--surface-solid);
+  transition: background 0.15s;
+}
+.pane-divider.row::before {
+  left: 4px;
+  width: 2px;
+  top: 0;
+  bottom: 0;
+}
+.pane-divider.col::before {
+  top: 4px;
+  height: 2px;
+  left: 0;
+  right: 0;
+}
+.pane-divider:hover::before,
+.pane-divider:active::before {
+  background: var(--accent);
+}
+.pane-box {
+  position: absolute;
+  right: 10px;
+  bottom: 36px; /* above the scale bar */
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  max-width: calc(100% - 20px);
+  padding: 3px 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+/* panes along the bottom edge: above the time bar and the colour bar */
+.map-pane.at-bottom .pane-box {
+  bottom: 152px;
+}
+.map-pane:hover .pane-box,
+.pane-box.multi,
+.pane-box:focus-within {
+  opacity: 1;
+}
+.pane-box button {
+  display: flex;
+  padding: 3px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.pane-box button:hover {
+  background: var(--accent-soft);
+  color: var(--text-primary);
+}
+.pane-box button.on {
+  color: var(--accent);
+}
+.pane-num {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  font-size: 11px;
+  font-weight: 700;
+}
+.map-pane.active .pane-num {
+  background: var(--accent);
+  color: #fff;
+}
+.pane-title {
   min-width: 0;
+  max-width: 280px;
+  overflow: hidden;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
-.map-view.split .map-pane + .map-pane {
-  border-left: 2px solid var(--surface-solid);
+.pane-time {
+  font-weight: 400;
+  color: var(--text-secondary);
 }
-.map-view.split .map-pane + .map-pane .map-label {
-  right: auto;
-  left: 12px;
+.pane-legend {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  margin-left: 4px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.pane-grad {
+  width: 44px;
+  height: 8px;
+  border-radius: 2px;
+}
+.pane-sep {
+  width: 1px;
+  height: 16px;
+  margin: 0 2px;
+  background: var(--border);
+}
+@container (max-width: 560px) {
+  .pane-legend {
+    display: none;
+  }
+}
+@container (max-width: 400px) {
+  .pane-title {
+    display: none;
+  }
+}
+.cursor-cross {
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+  background:
+    linear-gradient(#111, #111) center / 2px 100% no-repeat,
+    linear-gradient(#111, #111) center / 100% 2px no-repeat;
+  filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff);
 }
 .map-canvas,
 .map-el {
@@ -1168,4 +1320,31 @@ button:focus-visible {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* compare menu: layout presets */
+.preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0;
+}
+.btn.preset {
+  padding: 3px 5px;
+  line-height: 0;
+  color: var(--text-secondary);
+}
+.btn.preset:hover {
+  color: var(--accent);
+}
+.section-gap {
+  margin-top: 14px;
+}
+kbd {
+  padding: 0 4px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface-2);
+  font-family: var(--mono);
+  font-size: 11px;
 }

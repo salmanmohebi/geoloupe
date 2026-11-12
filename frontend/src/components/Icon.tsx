@@ -9,6 +9,11 @@ const PATHS = {
   menu: "M3 4.5h10M3 8h10M3 11.5h10",
   play: "M5 3.5v9l7.5-4.5z",
   pause: "M5 3.5v9M11 3.5v9",
+  splitRight: "M2.5 3.5h11v9h-11zM8 3.5v9",
+  splitDown: "M2.5 3.5h11v9h-11zM2.5 8h11",
+  expand: "M3 6V3h3M10 3h3v3M13 10v3h-3M6 13H3v-3",
+  link: "M6.5 9.5l3-3M5.5 8L4 9.5a2.1 2.1 0 003 3L8.5 11M10.5 8L12 6.5a2.1 2.1 0 00-3-3L7.5 5",
+  clock: "M8 2.5a5.5 5.5 0 110 11 5.5 5.5 0 010-11zM8 5v3.2l2.2 1.6",
 } as const;
 
 export type IconName = keyof typeof PATHS;

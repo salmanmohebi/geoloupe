@@ -52,6 +52,7 @@ jobs:
       - run: cd frontend && npm ci && npx playwright install --with-deps chromium && npm run build
       - run: timeout 300 bash -c 'until curl -sf http://127.0.0.1:8765/api/health; do sleep 2; done'
       - run: cd frontend && node e2e/smoke.mjs http://127.0.0.1:8765 shots
+      - run: cd frontend && node e2e/panes.mjs http://127.0.0.1:8765 shots
       - uses: actions/upload-artifact@v7
         if: always()
         with:

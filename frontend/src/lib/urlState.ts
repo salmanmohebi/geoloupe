@@ -1,5 +1,8 @@
 // Shareable links: the view state lives in the URL hash, e.g.
 // #layer=tas&t=1978-07-15&cmap=RdYlBu_r&range=250,310&c=8.5,46.5&z=6.2
+// With split panes, the top-level fields are pane `pa`; `lay` is the layout and `p1=…`, `p2=…`
+// hold the other panes, each a link of its own (encoded), e.g.
+// #layer=tas&t=1978-07-15&lay=r50(0,1)&pa=0&p1=layer%3Dpr%26t%3D1978-07-15
 
 import type { Basemap, CompareMode, UrlState } from "../state/store";
 
@@ -40,6 +43,21 @@ export function parseHash(hash: string): Partial<UrlState> {
   if (q.get("ov")) out.ov = q.get("ov")!;
   const vec = q.get("vec");
   if (vec !== null) out.vec = vec === "-" || vec === "" ? [] : vec.split(",");
+  if (q.get("lay")) out.lay = q.get("lay")!;
+  out.pa = num(q.get("pa"));
+  if (q.get("lv") === "0") out.lv = false;
+  if (q.get("lt") === "0") out.lt = false;
+  const panes: Record<number, Partial<UrlState>> = {};
+  for (const [k, v] of q.entries()) {
+    const m = /^p(\d)$/.exec(k);
+    if (!m) continue;
+    const sub = parseHash(v);
+    delete sub.panes; // panes do not nest
+    delete sub.lay;
+    delete sub.pa;
+    panes[Number(m[1])] = sub;
+  }
+  if (Object.keys(panes).length) out.panes = panes;
   for (const k of Object.keys(out) as (keyof UrlState)[]) if (out[k] === undefined) delete out[k];
   return out;
 }
@@ -75,5 +93,15 @@ export function buildHash(s: Partial<UrlState>): string {
   if (s.pt) add("pt", s.pt.map((v) => v.toFixed(4)).join(","));
   add("ov", s.ov);
   if (s.vec) add("vec", s.vec.length ? s.vec.join(",") : "-");
+  if (s.lay && s.lay !== "0") {
+    add("lay", s.lay);
+    add("pa", s.pa !== undefined ? String(s.pa) : undefined);
+  }
+  if (s.lv === false) add("lv", "0");
+  if (s.lt === false) add("lt", "0");
+  for (const [i, p] of Object.entries(s.panes ?? {})) {
+    const sub = buildHash(p).slice(1);
+    if (sub) q.push(`p${i}=${encodeURIComponent(sub)}`);
+  }
   return q.length ? `#${q.join("&")}` : "";
 }

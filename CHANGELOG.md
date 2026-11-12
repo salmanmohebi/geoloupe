@@ -6,6 +6,20 @@ the configuration format; such changes are listed here).
 
 ## [Unreleased]
 
+### Added
+
+- Split panes, like tmux: split the map right or down as often as needed (up to 6 panes), drag the
+  dividers to resize, and show a different layer, time and colour scale in each pane. The side
+  panel, time bar and colour bar act on the active pane; each pane's corner shows its layer, time
+  and colour range. Panes share the camera and the time unless unlinked (per pane). The hover
+  read-out lists the value of every pane, and the other panes mark the point. Keys: `%` or `|`
+  split right, `"` split down, `x` close, `z` zoom a pane, `Alt`+arrows move between panes.
+  Presets (1, 2, 3, 4 panes) in the Compare menu. Links keep the whole layout.
+
+### Changed
+
+- "Side by side" comparison is replaced by the panes; links from 0.1 (`cmp=split`) open as two panes.
+
 ## [0.1.1] - 2026-11-12
 
 ### Fixed
