@@ -4,6 +4,8 @@
 import { track } from "../lib/activity";
 import type {
   AddDataResult,
+  BrowseResult,
+  S3Access,
   Catalog,
   Colormap,
   LayerMeta,
@@ -110,12 +112,24 @@ export const api = {
       dims: dimsParam(dims),
     }),
   /** Open a file or URL on the server ("Add data"; only when the server allows it). */
-  addData: (path: string, name?: string) =>
+  addData: (path: string, name?: string, access: S3Access = {}) =>
     track(
       getJsonUntracked<AddDataResult>(apiUrl("datasets"), undefined, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path, name: name || undefined }),
+        body: JSON.stringify({ path, name: name || undefined, ...access }),
       }),
     ),
+  browse: (url: string, access: S3Access, match?: string, signal?: AbortSignal) =>
+    getJson<BrowseResult>(
+      apiUrl("browse", {
+        url,
+        endpoint: access.endpoint,
+        profile: access.profile,
+        anon: access.anon === undefined ? undefined : String(access.anon),
+        match,
+      }),
+      signal,
+    ),
+  s3Profiles: () => getJsonUntracked<{ profiles: string[] }>(apiUrl("s3/profiles")),
 };

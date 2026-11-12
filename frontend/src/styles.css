@@ -88,8 +88,10 @@ input {
   pointer-events: none;
   z-index: 2;
 }
-/* only the active pane has navigation buttons */
-.map-view.multi .map-pane:not(.active) .maplibregl-ctrl-top-right {
+/* several panes: no navigation buttons (they would sit under the panels; the mouse, keys and
+   links zoom), and the attribution once, in the active pane */
+.map-view.multi .maplibregl-ctrl-top-right,
+.map-view.multi .map-pane:not(.active) .maplibregl-ctrl-attrib {
   display: none;
 }
 .pane-divider {
@@ -144,12 +146,24 @@ input {
   border-radius: 999px;
   box-shadow: var(--shadow);
   font-size: 12px;
+  overflow: hidden;
   opacity: 0;
   transition: opacity 0.15s;
+}
+.pane-box > button,
+.pane-box > .pane-num {
+  flex: none;
 }
 /* panes along the bottom edge: above the time bar and the colour bar */
 .map-pane.at-bottom .pane-box {
   bottom: 152px;
+}
+.map-pane.under-panel .pane-box {
+  max-width: calc(100% - 372px);
+}
+.map-pane.under-inspector .pane-box {
+  right: 424px;
+  max-width: calc(100% - 434px);
 }
 .map-pane:hover .pane-box,
 .pane-box.multi,
@@ -1160,7 +1174,10 @@ button:focus-visible {
 }
 
 .add-data {
-  width: min(560px, 100%);
+  width: min(720px, 100%);
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
   background: var(--surface-solid);
 }
 .add-data-body {
@@ -1172,7 +1189,10 @@ button:focus-visible {
   display: grid;
   gap: 3px;
 }
-.add-data-body input {
+.add-data label.radio {
+  display: flex;
+}
+.add-data-body input:not([type="radio"]) {
   font: inherit;
   padding: 6px 8px;
   border: 1px solid var(--border);
@@ -1259,6 +1279,10 @@ button:focus-visible {
   }
 }
 
+.stations-toggle select {
+  width: 100%;
+  box-sizing: border-box;
+}
 .stations-toggle {
   margin-top: 8px;
   padding: 6px 9px;
@@ -1347,4 +1371,128 @@ kbd {
   background: var(--surface-2);
   font-family: var(--mono);
   font-size: 11px;
+}
+
+.pane-chip {
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Add data: tabs, S3 browser, target pane */
+.add-tabs {
+  margin: 0 20px 8px;
+}
+.s3-tab {
+  min-height: 0;
+  overflow: auto;
+}
+.s3-row {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+}
+.s3-row .grow {
+  flex: 1;
+}
+.s3-access {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+}
+.s3-crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.s3-crumbs .link-btn {
+  font-family: var(--mono);
+  color: var(--accent);
+}
+.s3-filter {
+  margin-left: auto;
+  width: 180px;
+  font-family: var(--font);
+}
+.s3-zarr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 9px;
+  border-radius: 7px;
+  background: var(--accent-soft);
+  font-size: 12px;
+}
+.s3-list {
+  max-height: 290px;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.s3-list li + li {
+  border-top: 1px solid var(--border);
+}
+.s3-list li.dim {
+  opacity: 0.55;
+}
+.s3-entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 30px;
+  padding: 3px 9px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+}
+button.s3-entry {
+  cursor: pointer;
+}
+button.s3-entry:hover {
+  background: var(--accent-soft);
+}
+.s3-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--mono);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.s3-kind {
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.s3-size {
+  width: 64px;
+  color: var(--text-muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.btn.btn-sm {
+  padding: 2px 9px;
+  font-size: 12px;
+}
+.add-where {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 12px;
 }

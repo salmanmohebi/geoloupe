@@ -84,9 +84,14 @@ def s3_options(loc: str, storage_options: dict[str, Any] | None) -> dict[str, An
 def gdal_path(path: str, storage_options: dict[str, Any] | None = None) -> str:
     """The path GDAL should open: public s3:// objects through HTTPS (no AWS keys needed)."""
     so = storage_options or {}
-    custom_endpoint = bool((so.get("client_kwargs") or {}).get("endpoint_url"))
-    if is_s3(path) and s3_anonymous(so) and not custom_endpoint:
-        return s3_https(path)
+    endpoint = (so.get("client_kwargs") or {}).get("endpoint_url")
+    if not is_s3(path):
+        return path
+    if not endpoint:
+        return s3_https(path) if s3_anonymous(so) else path
+    if so.get("anon") is True:  # a public bucket of an S3-compatible store: path-style HTTPS
+        bucket, _, key = path[5:].partition("/")
+        return f"{endpoint.rstrip('/')}/{bucket}/{key}"
     return path
 
 

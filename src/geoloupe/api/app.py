@@ -200,6 +200,12 @@ class OpenRequest(BaseModel):
     path: str
     name: str | None = None
     engine: str = "auto"
+    # S3 access (see geoloupe.browse.access_options): endpoint of an S3-compatible store, a profile
+    # of the server's AWS config, or anonymous (public) access. No keys: those stay on the server.
+    endpoint: str | None = None
+    profile: str | None = None
+    anon: bool | None = None
+    region: str | None = None
 
 
 def create_app(catalog: Catalog, warm: bool = True) -> FastAPI:
@@ -396,7 +402,14 @@ def create_app(catalog: Catalog, warm: bool = True) -> FastAPI:
             if not p.exists():
                 raise HTTPException(404, f"not found: {p}")
             loc = str(p)
-        raw = config_for_paths([loc], req.engine)
+        from geoloupe.browse import access_options, normalise
+
+        if remote and loc.startswith("s3://"):
+            loc = normalise(loc)
+        so = access_options(req.endpoint, req.profile, req.anon, req.region)
+        if so and not loc.startswith("s3://"):
+            raise HTTPException(400, "endpoint, profile and access apply to s3:// locations only")
+        raw = config_for_paths([loc], req.engine, storage_options=so)
         out: dict[str, list[str]] = {"layers": [], "vectors": [], "errors": []}
         with open_lock:
             cfg = catalog.config
@@ -444,6 +457,34 @@ def create_app(catalog: Catalog, warm: bool = True) -> FastAPI:
             raise HTTPException(400, "; ".join(out["errors"]) or "nothing to show in this file")
         log.info("opened %s: %s", loc, out)
         return out
+
+    @app.get("/api/browse")
+    def browse(
+        url: str,
+        endpoint: str | None = None,
+        profile: str | None = None,
+        anon: bool | None = None,
+        region: str | None = None,
+        match: str | None = None,
+    ) -> dict[str, Any]:
+        """List an s3:// bucket or prefix for "Add data" (needs `allow_open`)."""
+        from geoloupe.browse import BrowseError, access_options, list_location
+
+        if not settings.allow_open:
+            raise HTTPException(403, "browsing buckets is off: start the server with --allow-open")
+        try:
+            return list_location(url, access_options(endpoint, profile, anon, region), match)
+        except BrowseError as e:
+            raise HTTPException(400, str(e)) from None
+
+    @app.get("/api/s3/profiles")
+    def s3_profiles() -> dict[str, list[str]]:
+        """Names of the AWS profiles on the server (no secrets), for "Add data"."""
+        from geoloupe.browse import profiles
+
+        if not settings.allow_open:
+            raise HTTPException(403, "opening URLs is off: start the server with --allow-open")
+        return {"profiles": profiles()}
 
     @app.get("/api/colormaps")
     def colormaps() -> Response:

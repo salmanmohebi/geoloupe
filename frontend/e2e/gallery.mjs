@@ -109,6 +109,38 @@ for (const v of views) {
 await page.click("button.btn.tool:has-text('Gallery')");
 await page.waitForSelector(".gallery", { timeout: 5_000 }).catch(() => fail("Gallery button"));
 
+// 4. "Add data" (when the server allows remote data): browse a public S3 bucket and open a COG in a
+//    new pane on the right
+const cat = await page.evaluate(() => window.fetch("api/catalog").then((r) => r.json()));
+if (cat.allow_open) {
+  t0 = Date.now();
+  await page.goto(`${base}/#layer=landcover:landcover&c=6.6,46.42&z=9`, { waitUntil: "load" });
+  await settle();
+  await page.click("button.btn.tool:has-text('Add data')");
+  await page.click(".add-tabs button:has-text('Browse S3')");
+  await page.fill(".s3-tab input[placeholder^='s3://']", "s3://esa-worldcover/v200/2021/map/");
+  await page.click(".s3-tab button:has-text('List')");
+  await page.waitForSelector(".s3-list li", { timeout: 60_000 });
+  await page.fill(".s3-filter", "N45E006");
+  await page.press(".s3-filter", "Enter");
+  await page.waitForFunction(() => document.querySelectorAll(".s3-list li").length <= 3, null, {
+    timeout: 30_000,
+  });
+  await page.check("input[name=where] >> nth=1"); // a new pane on the right
+  await page.click(".s3-list button:has-text('Open')");
+  await page
+    .waitForSelector(".add-data", { state: "detached", timeout: 120_000 })
+    .catch(() => fail("S3 open"));
+  await settle();
+  const titles = await page.evaluate(() =>
+    [...document.querySelectorAll(".map-pane")].map((p) => p.querySelector(".pane-title")?.textContent ?? ""),
+  );
+  if (titles.length !== 2 || !titles[1].includes("N45E006"))
+    fail(`S3 COG in a new pane: ${JSON.stringify(titles)}`);
+  await page.screenshot({ path: `${out}/14-add-data-s3.png` });
+  console.log(`ok   14-add-data-s3 (${((Date.now() - t0) / 1000).toFixed(1)} s) · ${titles.join(" | ")}`);
+}
+
 await browser.close();
 for (const e of errors) console.log(`  console error: ${e}`);
 if (errors.length || failed) {

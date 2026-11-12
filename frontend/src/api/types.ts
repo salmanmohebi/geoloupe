@@ -52,6 +52,32 @@ export interface AddDataResult {
   errors: string[];
 }
 
+/** How to reach an S3 bucket: an S3-compatible endpoint, and public access or the server's
+ * credentials (a profile of its AWS config, or its environment). Keys never leave the server. */
+export interface S3Access {
+  endpoint?: string;
+  profile?: string;
+  anon?: boolean;
+}
+
+export interface BrowseEntry {
+  name: string;
+  url: string;
+  dir: boolean;
+  size: number | null;
+  kind: "zarr" | "netcdf" | "grib" | "geotiff" | "table" | "vector" | "reference" | null;
+}
+
+/** GET /api/browse: one level of a bucket. */
+export interface BrowseResult {
+  url: string;
+  parent: string | null;
+  zarr: boolean; // the location itself is a Zarr store
+  entries: BrowseEntry[];
+  total: number;
+  truncated: boolean;
+}
+
 /** A vector overlay (regions, rivers, tracks, sites): GeoJSON from /api/vectors/{id}.geojson. */
 export interface VectorInfo {
   id: string;

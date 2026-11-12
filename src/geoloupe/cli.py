@@ -14,13 +14,16 @@ from geoloupe.certs import use_system_certificates
 log = logging.getLogger("geoloupe")
 
 
-def config_for_paths(targets: list[str], engine: str = "auto") -> dict:
+def config_for_paths(
+    targets: list[str], engine: str = "auto", storage_options: dict | None = None
+) -> dict:
     """A configuration for data paths given on the command line.
 
     Vector files (GeoJSON, Shapefile, GeoPackage, …) become overlays; tables (CSV, Parquet) and CF
     timeSeries NetCDF become point datasets; everything else gridded datasets. Names come from the
-    file names.
+    file names. `storage_options` (S3 endpoint, profile, anonymous access) go to each entry.
     """
+    extra = {"storage_options": dict(storage_options)} if storage_options else {}
     from geoloupe.points import looks_like_points
     from geoloupe.vectors import looks_like_vector
 
@@ -33,11 +36,11 @@ def config_for_paths(targets: list[str], engine: str = "auto") -> dict:
             name, k = f"{base}-{k}", k + 1
         used.add(name)
         if looks_like_vector(t):
-            raw["vectors"][name] = {"path": t, "visible": True}
+            raw["vectors"][name] = {"path": t, "visible": True, **extra}
         elif looks_like_points(t):
-            raw["points"][name] = {"path": t}
+            raw["points"][name] = {"path": t, **extra}
         else:
-            raw["datasets"][name] = {"path": t, "engine": engine}
+            raw["datasets"][name] = {"path": t, "engine": engine, **extra}
     names = ", ".join(Path(t).name for t in targets[:3]) + (" …" if len(targets) > 3 else "")
     raw["title"] = f"GeoLoupe · {names}"
     return raw

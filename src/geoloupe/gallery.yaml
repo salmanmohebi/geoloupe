@@ -15,7 +15,7 @@ description: >-
 
 datasets:
   era5:
-    title: ERA5 hourly reanalysis, 0.25° (ARCO-ERA5)
+    title: ERA5 hourly reanalysis (ARCO-ERA5)
     description: ECMWF's global reanalysis of the atmosphere, land and ocean, hour by hour since 1940.
     path: https://storage.googleapis.com/gcp-public-data-arco-era5/ar/full_37-1h-0p25deg-chunk-1.zarr-v3
     variables:

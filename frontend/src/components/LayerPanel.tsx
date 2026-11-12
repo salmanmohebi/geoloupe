@@ -10,6 +10,7 @@ import { pointsSample } from "../lib/points";
 import { timelineOf } from "../lib/timeline";
 import { visibleVectors } from "../lib/vectors";
 import { percentiles } from "../lib/view";
+import { paneIds } from "../lib/layout";
 import { useStore } from "../state/store";
 import { Icon } from "./Icon";
 
@@ -380,6 +381,11 @@ export function LayerPanel() {
   const main = useStore((s) => s.main);
   const panelOpen = useStore((s) => s.panelOpen);
   const view = useStore((s) => s.view);
+  // with several panes: the number of the active one, which the panel acts on
+  const paneNo = useStore((s) => {
+    const ids = paneIds(s.layout);
+    return ids.length > 1 ? ids.indexOf(s.active) + 1 : 0;
+  });
   const { setLayer, setDim, setPanelOpen } = useStore.getState();
   const layer = main.layer;
   const [showDatasets, setShowDatasets] = useState(false);
@@ -423,7 +429,14 @@ export function LayerPanel() {
 
       <section>
         <label className="field">
-          <span className="eyebrow">Layer</span>
+          <span className="eyebrow">
+            Layer
+            {paneNo > 0 && (
+              <span className="pane-chip" title="The panel acts on the active pane (blue frame)">
+                pane {paneNo}
+              </span>
+            )}
+          </span>
           <select value={main.layerId ?? ""} onChange={(e) => setLayer(e.target.value)}>
             {composites.length > 0 && (
               <optgroup label="Combined layers">

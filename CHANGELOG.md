@@ -16,6 +16,15 @@ the configuration format; such changes are listed here).
   split right, `"` split down, `x` close, `z` zoom a pane, `Alt`+arrows move between panes.
   Presets (1, 2, 3, 4 panes) in the Compare menu. Links keep the whole layout.
 
+- Browse S3 buckets in *Add data* (with `--allow-open`): list a bucket or prefix on AWS or an
+  S3-compatible store (custom endpoint), filter names, see which entries GeoLoupe opens (Zarr,
+  NetCDF, GeoTIFF/COG, tables, vector files; a folder that is a Zarr store), and open one in the
+  active pane or a new pane. Public access, or the server's credentials (environment or a named
+  AWS profile; the browser only sees profile names). Public objects of S3-compatible stores are read
+  over path-style HTTPS.
+- The side panel shows which pane it acts on; pane titles name the dataset of a variable when the
+  title does not.
+
 ### Changed
 
 - "Side by side" comparison is replaced by the panes; links from 0.1 (`cmp=split`) open as two panes.

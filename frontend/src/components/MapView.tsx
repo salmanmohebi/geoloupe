@@ -343,6 +343,7 @@ function PaneMap({
   const vectorsOn = useStore((s) => s.vectorsOn);
   const showPoints = useStore((s) => s.showPoints);
   const overlay = useStore((s) => s.overlay);
+  const panelOpen = useStore((s) => s.panelOpen);
   const vectors = useMemo(() => visibleVectors(catalog, vectorsOn), [catalog, vectorsOn]);
   const { setInspect, notify, activatePane } = useStore.getState();
 
@@ -412,7 +413,15 @@ function PaneMap({
     : { display: "none" };
   return (
     <div
-      className={`map-pane${multi && isActive ? " active" : ""}${rect && rect.y + rect.h > 0.999 ? " at-bottom" : ""}`}
+      className={[
+        "map-pane",
+        multi && isActive && "active",
+        rect && rect.y + rect.h > 0.999 && "at-bottom", // its box goes above the time bar
+        rect && rect.x < 0.001 && panelOpen && "under-panel", // … and right of the side panel
+        rect && rect.x + rect.w > 0.999 && inspect && "under-inspector", // … left of the details
+      ]
+        .filter(Boolean)
+        .join(" ")}
       style={box}
       data-pane={index + 1}
       onPointerDownCapture={() => {
@@ -444,6 +453,14 @@ function PaneMap({
   );
 }
 
+/** Whether a layer title already names its dataset (or the other way round). */
+function overlaps(title: string, dataset: string): boolean {
+  const a = title.toLowerCase();
+  const b = dataset.split(" (")[0].toLowerCase();
+  const inner = /\(([^)]+)\)/.exec(title)?.[1]?.toLowerCase();
+  return a.includes(b) || b.includes(a) || (!!inner && b.includes(inner));
+}
+
 /** A pane's corner box: number, layer, time, colour legend, links, split / zoom / close. */
 function PaneBox({
   id,
@@ -473,8 +490,8 @@ function PaneBox({
   const name = (l: LayerMeta | null) =>
     !l
       ? ""
-      : l.kind === "dataset" && l.sources[0] // the same variable of several datasets: say which one
-        ? `${l.title} · ${l.sources[0].dataset_title.split(" (")[0]}`
+      : l.kind === "dataset" && l.sources[0] && !overlaps(l.title, l.sources[0].dataset_title)
+        ? `${l.title} · ${l.sources[0].dataset_title.split(" (")[0]}` // which dataset's variable
         : l.title;
   const title = diff ? `${name(layer)} − ${name(p.compare.layer)}` : name(layer);
   const legend =

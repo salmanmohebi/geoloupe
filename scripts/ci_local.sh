@@ -56,7 +56,7 @@ if [ "${GALLERY:-0}" = 1 ]; then
   step "gallery (live public data)"
   last=${PYTHONS##* }
   export UV_PROJECT_ENVIRONMENT="$WORK/venv$last"
-  uv run --no-sync geoloupe gallery --port 8766 > "$WORK/gallery.log" 2>&1 &
+  uv run --no-sync geoloupe gallery --port 8766 --allow-open > "$WORK/gallery.log" 2>&1 &
   SERVER=$!
   trap 'kill $SERVER 2>/dev/null || true' EXIT
   timeout 180 bash -c 'until curl -sf http://127.0.0.1:8766/api/health >/dev/null; do sleep 2; done'

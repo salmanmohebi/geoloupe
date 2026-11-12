@@ -70,6 +70,16 @@ uv run geoloupe serve config.yaml --allow-open --open-root ~/data   # "Add data"
 uv run geoloupe info  /path/to/data.zarr        # what GeoLoupe sees: variables, grid, CRS, times
 ```
 
+**Data in S3 buckets:** start the server with `--allow-open` (for example `geoloupe gallery
+--allow-open`), then use *Add data → Browse S3*. List a bucket on AWS, or on any S3-compatible store
+through its endpoint (MinIO, Ceph, SWITCH, Cloudflare R2, …), filter the names, and open a Zarr
+store, NetCDF, GeoTIFF/COG, station table or vector file, in the active pane or in a new pane. Public
+buckets need no setup. Private buckets use the credentials of the machine where GeoLoupe runs
+(`AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`, or a profile in `~/.aws`); keys are never typed in the
+browser. In a configuration file, the same access is
+`storage_options: {client_kwargs: {endpoint_url: https://…}, profile: work}`. Private GeoTIFFs on a
+non-AWS store are read by GDAL, which takes its endpoint from `AWS_S3_ENDPOINT`.
+
 To combine datasets into one layer, add colour scales, or list featured views, write a small YAML
 file ([full reference](docs/configuration.md), more in [examples/](examples/)):
 
