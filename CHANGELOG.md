@@ -6,6 +6,15 @@ the configuration format; such changes are listed here).
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-11-13
+
+### Fixed
+
+- `geoloupe serve` and `gallery` answer at once ("Starting GeoLoupe…", the API answers 503) and
+  open the datasets in the background. Before, the server listened only after opening every
+  dataset (about 1 min 45 s for the gallery in a RenkuLab session), and RenkuLab stopped the
+  session as dead. If nothing can be opened, the page shows why instead of the server exiting.
+
 ## [0.3.1] - 2026-11-13
 
 ### Added
@@ -161,7 +170,8 @@ First public version.
 - The gallery: ERA5, Copernicus DEM, Sentinel-2 (STAC), ESA WorldCover, a CMIP6 climate model ocean,
   NOAA stations and Natural Earth overlays, all read live from public archives.
 
-[Unreleased]: https://github.com/salmanmohebi/geoloupe/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/salmanmohebi/geoloupe/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/salmanmohebi/geoloupe/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/salmanmohebi/geoloupe/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/salmanmohebi/geoloupe/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/salmanmohebi/geoloupe/compare/v0.1.1...v0.2.0
