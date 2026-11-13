@@ -6,6 +6,8 @@ the configuration format; such changes are listed here).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-13
+
 ### Added
 
 - **Error panes**: the error of one layer (P, e.g. a model) against another (T, e.g. observations)
@@ -150,7 +152,8 @@ First public version.
 - The gallery: ERA5, Copernicus DEM, Sentinel-2 (STAC), ESA WorldCover, a CMIP6 climate model ocean,
   NOAA stations and Natural Earth overlays, all read live from public archives.
 
-[Unreleased]: https://github.com/salmanmohebi/geoloupe/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/salmanmohebi/geoloupe/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/salmanmohebi/geoloupe/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/salmanmohebi/geoloupe/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/salmanmohebi/geoloupe/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/salmanmohebi/geoloupe/releases/tag/v0.1.0
