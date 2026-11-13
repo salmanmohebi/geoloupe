@@ -306,7 +306,8 @@ class Settings(_Model):
     # Upper bound on the GeoJSON size of one vector overlay.
     max_vector_mb: float = 60
     cors_origins: list[str] = Field(default_factory=lambda: ["*"])
-    # "Add data" from the browser (off by default): remote URLs (https, s3, gs) when allow_open,
+    # "Add data" from the browser: remote URLs (https, s3, gs) when allow_open (the serve command
+    # turns it on for servers on localhost),
     # local files only below open_roots. Never expose such a server to untrusted users.
     allow_open: bool = False
     open_roots: list[str] = Field(default_factory=list)
@@ -351,7 +352,7 @@ class ViewPane(_Model):
     vmin: float | None = None
     vmax: float | None = None
     log: bool = False
-    # the difference A − B in this pane: B's layer, and its own time (default: the pane's time)
+    # an error pane P − T (the 0.2 difference): T's layer, and its own time (default: the pane's)
     compare: str | None = None
     compare_time: str | None = None
     # follow the other panes' camera and time (as in the browser's link buttons)

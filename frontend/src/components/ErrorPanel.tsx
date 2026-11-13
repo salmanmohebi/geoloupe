@@ -10,7 +10,8 @@ import { getPaneMaps } from "../lib/mapRegistry";
 import { paneIds } from "../lib/layout";
 import { drawUnits, isErrorPane, paneError } from "../lib/paneDraw";
 import { summarize } from "../lib/view";
-import { paneOf, useStore, type AppState } from "../state/store";
+import { paneOf, useStore, validTime, type AppState } from "../state/store";
+import { timelineOf } from "../lib/timeline";
 import { Icon } from "./Icon";
 import { useMenuClose } from "./menuContext";
 
@@ -197,6 +198,46 @@ function SourceRow({
   );
 }
 
+/** T's time: the same as P's, or its own (e.g. August 1850 against August 2014). */
+function RefTime() {
+  const compare = useStore((s) => s.compare);
+  const { setCompare } = useStore.getState();
+  const [text, setText] = useState<string | null>(null);
+  const tl = timelineOf(compare.layer);
+  if (tl.count < 2) return null;
+  return (
+    <>
+      <label className="check">
+        <input
+          type="checkbox"
+          checked={compare.linkTime}
+          onChange={(e) => void setCompare({ linkTime: e.target.checked })}
+        />
+        same time as P
+      </label>
+      {!compare.linkTime && (
+        <label className="field">
+          <span className="eyebrow">
+            T's time ({tl.at(0)} … {tl.at(tl.count - 1)})
+          </span>
+          <input
+            type="text"
+            className="time-input"
+            value={text ?? compare.time ?? ""}
+            onChange={(e) => setText(e.target.value)}
+            onBlur={() => {
+              if (text && compare.layer) void setCompare({ time: validTime(compare.layer, text.trim()) });
+              setText(null);
+            }}
+            onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+            aria-label="Time of T (ISO 8601)"
+          />
+        </label>
+      )}
+    </>
+  );
+}
+
 /** Side panel section of the active pane when it is an error map. */
 export function ErrorPanel() {
   const main = useStore((s) => s.main);
@@ -290,7 +331,11 @@ export function ErrorPanel() {
             </option>
           ))}
         </select>
+        <RefTime />
       </SourceRow>
+      {compare.follow.t && compare.time && (
+        <div className="muted small">T's time: {compare.time} (from the pane it follows)</div>
+      )}
       {pe && pe.conv.warning && <div className="warn-text small">{pe.conv.warning}</div>}
       {pe && !pe.conv.warning && (pe.conv.scale !== 1 || pe.conv.offset !== 0) && (
         <div className="muted small">

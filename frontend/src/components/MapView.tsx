@@ -621,7 +621,7 @@ function PaneBox({
           </span>
           <span className="pane-title" title={title}>
             {title}
-            {p.main.time && (
+            {p.main.time && !title.includes(` · ${p.main.time} vs `) && (
               <span className="pane-time">
                 {" "}
                 · {p.main.time}

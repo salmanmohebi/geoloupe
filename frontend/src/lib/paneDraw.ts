@@ -82,7 +82,11 @@ function defaults(id: string): Record<string, number> {
 /** The pane's title: its layer, or "<error> · P-layer vs T-layer". */
 export function drawTitle(p: Pick<PaneState, "main" | "compare">): string {
   if (!isErrorPane(p)) return layerName(p.main.layer);
-  return `${errorName(p.compare.error)} · ${layerName(p.main.layer)} vs ${layerName(p.compare.layer)}`;
+  const name = errorName(p.compare.error);
+  // one layer at two times (e.g. 2014 against 1850): name the times
+  if (p.main.layerId && p.main.layerId === p.compare.layerId && p.main.time !== p.compare.time)
+    return `${name} · ${layerName(p.main.layer)} · ${p.main.time ?? "–"} vs ${p.compare.time ?? "–"}`;
+  return `${name} · ${layerName(p.main.layer)} vs ${layerName(p.compare.layer)}`;
 }
 
 /** Units of what the pane draws. */

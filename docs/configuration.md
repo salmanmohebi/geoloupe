@@ -113,7 +113,7 @@ views:                                  # featured views: the gallery start scre
     vmin: 5
     vmax: 45
     # globe: true                       # optional: globe projection, basemap: minimal | light | dark
-    # compare: other-layer              # optional: the difference A − B (compare_mode: diff,
+    # compare: other-layer              # optional: an error pane P − T (compare_mode: diff,
     #                                   #   compare_time); overlay: <points-id> or none
     # vectors: [regions]                # optional: the overlays shown in this view
   - title: Storm Ciarán in three panes  # a view with several panes (up to 6)

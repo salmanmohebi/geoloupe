@@ -249,6 +249,27 @@ await settle();
 check((await legendTitle()).startsWith("P − T"), "an old difference link opens as an error map");
 check((await histBars()) > 5, "and draws");
 
+// 11. One layer at two times: T has its own time, named in the title and set in the side panel
+await page.goto("about:blank");
+await page.goto(
+  `${base}/#layer=alps:tas&t=2021-07-15&c=10.2,46.4&z=6.5&ov=none&cmp=error&cl=alps:tas&ct=2021-07-01`,
+  { waitUntil: "load" },
+);
+await settle();
+check(
+  (await legendTitle()).includes("2021-07-15 vs 2021-07-01"),
+  `the title names both times (${await legendTitle()})`,
+);
+const tTime = page.locator("input[aria-label='Time of T (ISO 8601)']");
+check(
+  (await tTime.count()) === 1 && (await tTime.inputValue()) === "2021-07-01",
+  "T's own time is in the side panel",
+);
+await tTime.fill("2021-06-01");
+await tTime.press("Enter");
+await settle();
+check((await legendTitle()).includes("vs 2021-06-01"), "and can be changed");
+
 check(errors.length === 0, `no console errors${errors.length ? `: ${errors.slice(0, 3).join(" | ")}` : ""}`);
 await browser.close();
 process.exit(failed ? 1 : 0);

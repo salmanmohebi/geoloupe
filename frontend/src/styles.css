@@ -294,8 +294,9 @@ input {
   display: flex;
   flex-direction: column;
 }
+/* below the toolbar's row: the toolbar is wide, and long layer names would run under it */
 .top-center {
-  top: 12px;
+  top: 62px;
   left: 50%;
   transform: translateX(-50%);
   max-width: calc(100% - 760px);
