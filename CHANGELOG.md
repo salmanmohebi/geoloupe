@@ -6,6 +6,13 @@ the configuration format; such changes are listed here).
 
 ## [Unreleased]
 
+### Added
+
+- Serving under a URL path prefix: `--base-path`, `GEOLOUPE_BASE_PATH`, or RenkuLab's
+  `RENKU_BASE_URL_PATH`, so the container image runs unchanged in a RenkuLab session
+  ([docs/renkulab.md](docs/renkulab.md)).
+- A container image on every release: `ghcr.io/salmanmohebi/geoloupe:<version>` and `:latest`.
+
 ## [0.3.0] - 2026-11-13
 
 ### Added

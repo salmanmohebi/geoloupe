@@ -103,6 +103,10 @@ views:                            # optional: the gallery start screen
   - {title: The Matterhorn, layer: elevation, center: [7.66, 45.98], zoom: 11}
 ```
 
+**On RenkuLab (no installation, shareable):** a public RenkuLab project with the GeoLoupe image
+(`ghcr.io/salmanmohebi/geoloupe`) gives everyone a link that opens their own GeoLoupe session; see
+[docs/renkulab.md](docs/renkulab.md).
+
 **On a remote machine or HPC node:** run `geoloupe serve config.yaml --port 8000` there and tunnel:
 `ssh -N -L 8000:localhost:8000 <host>`. Behind JupyterHub with jupyter-server-proxy, open
 `…/user/<name>/proxy/8000/` (all URLs are relative).
