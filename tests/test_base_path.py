@@ -43,3 +43,49 @@ def test_base_path_from_the_environment(monkeypatch: pytest.MonkeyPatch) -> None
     monkeypatch.setenv("GEOLOUPE_BASE_PATH", "/geo")
     assert base_path() == "/geo"
     assert base_path("") == ""  # --base-path "" turns it off
+
+
+def test_starting_answers_at_once_then_serves(composite_catalog: Catalog) -> None:
+    import threading
+    import time
+
+    from geoloupe.server import Starting
+
+    gate = threading.Event()
+
+    def build():
+        gate.wait(10)  # a slow start: opening the datasets
+        return create_app(composite_catalog, warm=False)
+
+    with TestClient(BasePath(Starting(build), "/sessions/x")) as c:
+        page = c.get("/sessions/x/")
+        assert page.status_code == 200 and "Starting GeoLoupe" in page.text
+        assert 'http-equiv="refresh"' in page.text
+        api = c.get("/sessions/x/api/catalog")
+        assert api.status_code == 503 and api.json() == {"detail": "starting"}
+        gate.set()
+        for _ in range(100):
+            if c.get("/sessions/x/api/health").status_code == 200:
+                break
+            time.sleep(0.05)
+        assert c.get("/sessions/x/api/catalog").json()["layers"]
+
+
+def test_starting_shows_why_it_failed() -> None:
+    import time
+
+    from geoloupe.server import Starting
+
+    def build():
+        raise RuntimeError("nothing to serve: no dataset could be opened")
+
+    app = Starting(build)
+    for _ in range(100):
+        if app.error:
+            break
+        time.sleep(0.02)
+    with TestClient(app) as c:
+        page = c.get("/")
+        assert page.status_code == 500 and "nothing to serve" in page.text
+        assert "refresh" not in page.text
+        assert c.get("/api/health").json()["detail"].startswith("nothing to serve")

@@ -224,13 +224,17 @@ def create_app(catalog: Catalog, warm: bool = True) -> FastAPI:
     engine = TileEngine(catalog)
     settings = catalog.settings
 
+    def start_background() -> None:
+        """Warm the caches and load the vector overlays (in threads)."""
+        threading.Thread(
+            target=warm_up, args=(engine, catalog), daemon=True, name="warm-up"
+        ).start()
+        threading.Thread(target=vectors.preload, daemon=True, name="vectors").start()
+
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         if warm:
-            threading.Thread(
-                target=warm_up, args=(engine, catalog), daemon=True, name="warm-up"
-            ).start()
-            threading.Thread(target=vectors.preload, daemon=True, name="vectors").start()
+            start_background()
         yield
 
     app = FastAPI(
@@ -243,6 +247,7 @@ def create_app(catalog: Catalog, warm: bool = True) -> FastAPI:
     )
     app.state.catalog = catalog
     app.state.engine = engine
+    app.state.start_background = start_background
 
     # point observations (stations): layers of their own, and overlays on gridded layers
     registry = PointRegistry(catalog.config, set(catalog.layers))

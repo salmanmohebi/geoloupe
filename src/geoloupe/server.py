@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import socket
 import threading
 import time
+from collections.abc import Callable
+from html import escape
 from typing import Any
 from urllib.parse import quote
 
@@ -73,6 +76,76 @@ class BasePath:
         await self.app(scope, receive, send)
 
 
+STARTING_PAGE = """<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{refresh}<title>GeoLoupe</title><style>
+body{{font-family:system-ui,sans-serif;background:#e9edf1;color:#0b0b0b;display:grid;
+place-items:center;min-height:100vh;margin:0}} div{{max-width:34em;padding:16px;text-align:center}}
+p{{color:#52514e}} @media (prefers-color-scheme:dark){{body{{background:#14161a;color:#eee}}
+p{{color:#aaa}}}}</style></head><body><div><h1>{title}</h1><p>{text}</p></div></body></html>"""
+
+
+class Starting:
+    """An app that answers at once while the real one is built in a background thread.
+
+    Opening the datasets of a large configuration (or the public gallery on a slow machine) can
+    take a minute or more; a server that listens only afterwards looks dead to browsers and to
+    platforms that check the port (RenkuLab stops such sessions). Until the real app is ready,
+    pages show "Starting GeoLoupe…" (and reload themselves) and the API answers 503.
+    """
+
+    def __init__(self, build: Callable[[], Any]):
+        self.app: Any = None
+        self.error: str | None = None
+        threading.Thread(target=self._build, args=(build,), daemon=True, name="start").start()
+
+    def _build(self, build: Callable[[], Any]) -> None:
+        try:
+            app = build()
+            start = getattr(app.state, "start_background", None)
+            if start:
+                start()  # warm-up and vector overlays, as the app's own start-up would
+            self.app = app
+        except Exception as e:  # shown on the page; the server keeps answering
+            log.error("GeoLoupe could not start: %s", e)
+            self.error = str(e) or type(e).__name__
+
+    async def __call__(self, scope: dict[str, Any], receive: Any, send: Any) -> None:
+        if scope["type"] == "lifespan":  # the real app's start-up runs in _build
+            while True:
+                msg = await receive()
+                kind = msg["type"].rsplit(".", 1)[-1]  # startup / shutdown
+                await send({"type": f"lifespan.{kind}.complete"})
+                if kind == "shutdown":
+                    return
+        if self.app is not None:
+            await self.app(scope, receive, send)
+            return
+        if scope["type"] != "http":
+            return
+        api = "/api/" in scope["path"]
+        if self.error:
+            status, title, text = 500, "GeoLoupe could not start", escape(self.error)
+        else:
+            status, title, text = (
+                503 if api else 200,
+                "Starting GeoLoupe…",
+                ("Opening the datasets. This page reloads by itself."),
+            )
+        if api:
+            body = json.dumps({"detail": self.error or "starting"}).encode()
+            ctype = b"application/json"
+        else:
+            refresh = "" if self.error else '<meta http-equiv="refresh" content="2">'
+            body = STARTING_PAGE.format(refresh=refresh, title=title, text=text).encode()
+            ctype = b"text/html; charset=utf-8"
+        headers = [(b"content-type", ctype), (b"cache-control", b"no-store")]
+        if status == 503:
+            headers.append((b"retry-after", b"2"))
+        await send({"type": "http.response.start", "status": status, "headers": headers})
+        await send({"type": "http.response.body", "body": body})
+
+
 def base_path(explicit: str | None = None) -> str:
     """The path prefix to serve under: given, or from GEOLOUPE_BASE_PATH or RenkuLab's
     RENKU_BASE_URL_PATH."""
@@ -82,17 +155,23 @@ def base_path(explicit: str | None = None) -> str:
 
 
 def serve(
-    catalog: Catalog | Config,
+    catalog: Catalog | Config | Callable[[], Catalog],
     host: str = "127.0.0.1",
     port: int = 8000,
     log_level: str = "info",
     prefix: str | None = None,
 ) -> None:
-    """Serve until interrupted (used by `geoloupe serve`). `prefix`: a path prefix to serve under
-    (default: from the environment, see base_path)."""
+    """Serve until interrupted (used by `geoloupe serve`). `catalog` may be a function that
+    builds it: the server then answers at once ("Starting GeoLoupe…") while the catalog is built.
+    `prefix`: a path prefix to serve under (default: from the environment, see base_path)."""
     from geoloupe.api.app import create_app
 
-    app: Any = create_app(_catalog(catalog))
+    app: Any
+    if callable(catalog) and not isinstance(catalog, Catalog | Config):
+        build = catalog
+        app = Starting(lambda: create_app(build(), warm=False))
+    else:
+        app = create_app(_catalog(catalog))
     p = base_path(prefix)
     if p.strip("/"):
         log.info("serving under the path prefix %s", p)

@@ -67,42 +67,50 @@ def cmd_serve(a: argparse.Namespace) -> int:
         from geoloupe.browse import access_options
 
         so = access_options(a.endpoint, a.profile, True if a.anon else None)
-    cat = _catalog_from(a.target, a.engine, so)
-    # 'Add data' may open remote URLs: on by default when only this machine can reach the
-    # server; when it listens on other interfaces, only with --allow-open.
-    local = a.host in LOCAL_HOSTS
-    if getattr(a, "no_open", False):
-        cat.settings.allow_open = False
-    elif getattr(a, "allow_open", False) or local:
-        cat.settings.allow_open = True
-    for root in getattr(a, "open_root", None) or []:
-        cat.settings.open_roots.append(str(Path(root).expanduser().resolve()))
-    if (cat.settings.allow_open or cat.settings.open_roots) and not local:
-        log.warning(
-            "'Add data' is on (%s) and the server listens on %s: anyone who can reach it can make "
-            "it read those; keep it behind a login",
-            ", ".join(["remote URLs"] * cat.settings.allow_open + cat.settings.open_roots),
-            a.host,
-        )
-    bad = [d for d in cat.datasets.values() if d.status != "ok"]
-    for d in bad:
-        log.error("dataset %s: %s", d.id, d.error)
-    if not cat.layers and not cat.config.points:
-        log.error("nothing to serve: no dataset could be opened")
-        return 1
     host = a.host
+    local = host in LOCAL_HOSTS
+
+    def build():
+        cat = _catalog_from(a.target, a.engine, so)
+        # 'Add data' may open remote URLs: on by default when only this machine can reach the
+        # server; when it listens on other interfaces, only with --allow-open.
+        if getattr(a, "no_open", False):
+            cat.settings.allow_open = False
+        elif getattr(a, "allow_open", False) or local:
+            cat.settings.allow_open = True
+        for root in getattr(a, "open_root", None) or []:
+            cat.settings.open_roots.append(str(Path(root).expanduser().resolve()))
+        if (cat.settings.allow_open or cat.settings.open_roots) and not local:
+            log.warning(
+                "'Add data' is on (%s) and the server listens on %s: anyone who can reach it can "
+                "make it read those; keep it behind a login",
+                ", ".join(["remote URLs"] * cat.settings.allow_open + cat.settings.open_roots),
+                host,
+            )
+        bad = [d for d in cat.datasets.values() if d.status != "ok"]
+        for d in bad:
+            log.error("dataset %s: %s", d.id, d.error)
+        if not cat.layers and not cat.config.points:
+            raise RuntimeError("nothing to serve: no dataset could be opened (see the server log)")
+        print(
+            f"\n  GeoLoupe {__version__}: {len(cat.layers)} gridded layers from "
+            f"{len(cat.datasets) - len(bad)} datasets, {len(cat.config.points)} point datasets",
+            flush=True,
+        )
+        return cat
+
     print(
-        f"\n  GeoLoupe {__version__}: {len(cat.layers)} gridded layers from "
-        f"{len(cat.datasets) - len(bad)} datasets, {len(cat.config.points)} point datasets"
-    )
-    print(
-        f"  Open http://{'localhost' if host in ('127.0.0.1', '0.0.0.0') else host}:{a.port}/  (API docs: /api/docs)"
+        f"\n  GeoLoupe {__version__} is starting (opening the datasets).\n"
+        f"  Open http://{'localhost' if host in ('127.0.0.1', '0.0.0.0') else host}:{a.port}/  (API docs: /api/docs)",
+        flush=True,
     )
     if host == "127.0.0.1":
         print(
             f"  Remote machine? Tunnel first: ssh -N -L {a.port}:localhost:{a.port} <this host>\n"
         )
-    serve(cat, host=host, port=a.port, log_level=a.log_level, prefix=getattr(a, "base_path", None))
+    serve(
+        build, host=host, port=a.port, log_level=a.log_level, prefix=getattr(a, "base_path", None)
+    )
     return 0
 
 

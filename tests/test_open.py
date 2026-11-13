@@ -96,6 +96,7 @@ def test_serve_opens_remote_data_by_default_on_localhost(
     seen: dict[str, object] = {}
 
     def fake_serve(cat, host: str, port: int, log_level: str, prefix: str | None = None) -> None:
+        cat = cat() if callable(cat) else cat  # serve builds the catalog in the background
         seen["allow_open"] = cat.settings.allow_open
         seen["datasets"] = {d: e.config.storage_options for d, e in cat.datasets.items()}
 
@@ -107,15 +108,20 @@ def test_serve_opens_remote_data_by_default_on_localhost(
 
 
 def test_serve_s3_options(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import geoloupe.server
     from geoloupe import cli
 
     got: dict[str, object] = {}
 
     def catalog_from(targets: list[str], engine: str, so: dict | None = None) -> None:
         got["so"] = so
-        raise SystemExit(0)  # stop before serving
+        raise SystemExit(0)  # stop before opening anything
+
+    def fake_serve(build, **kw: object) -> None:
+        build()
 
     monkeypatch.setattr(cli, "_catalog_from", catalog_from)
+    monkeypatch.setattr(geoloupe.server, "serve", fake_serve)
     with pytest.raises(SystemExit):
         cli.main(["serve", "s3://bucket/x.zarr", "--endpoint", "os.example.org", "--anon"])
     assert got["so"] == {"client_kwargs": {"endpoint_url": "https://os.example.org"}, "anon": True}
