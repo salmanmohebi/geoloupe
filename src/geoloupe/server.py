@@ -35,16 +35,68 @@ def _catalog(obj: Catalog | Config | dict[str, xr.Dataset] | xr.Dataset, **kw: A
     return Catalog.from_xarray(obj, **kw)
 
 
+class BasePath:
+    """Serve an app under a path prefix (e.g. ``/sessions/abc`` on RenkuLab).
+
+    Requests for ``<prefix>/…`` reach the app as ``/…``; ``<prefix>`` alone redirects to
+    ``<prefix>/`` (the web client's URLs are relative to it). Requests without the prefix pass
+    unchanged, so the app also works behind proxies that remove the prefix themselves.
+    """
+
+    def __init__(self, app: Any, prefix: str):
+        self.app = app
+        self.prefix = "/" + prefix.strip("/") if prefix.strip("/") else ""
+
+    async def __call__(self, scope: dict[str, Any], receive: Any, send: Any) -> None:
+        p = self.prefix
+        if p and scope["type"] in ("http", "websocket"):
+            path = scope["path"]
+            if path == p and scope["type"] == "http":
+                query = scope.get("query_string", b"").decode()
+                location = quote(p + "/") + (f"?{query}" if query else "")
+                await send(
+                    {
+                        "type": "http.response.start",
+                        "status": 307,
+                        "headers": [(b"location", location.encode())],
+                    }
+                )
+                await send({"type": "http.response.body", "body": b""})
+                return
+            if path.startswith(p + "/"):
+                scope = {
+                    **scope,
+                    "path": path[len(p) :],
+                    "raw_path": path[len(p) :].encode(),
+                    "root_path": scope.get("root_path", "") + p,
+                }
+        await self.app(scope, receive, send)
+
+
+def base_path(explicit: str | None = None) -> str:
+    """The path prefix to serve under: given, or from GEOLOUPE_BASE_PATH or RenkuLab's
+    RENKU_BASE_URL_PATH."""
+    if explicit is not None:
+        return explicit
+    return os.environ.get("GEOLOUPE_BASE_PATH") or os.environ.get("RENKU_BASE_URL_PATH") or ""
+
+
 def serve(
     catalog: Catalog | Config,
     host: str = "127.0.0.1",
     port: int = 8000,
     log_level: str = "info",
+    prefix: str | None = None,
 ) -> None:
-    """Serve until interrupted (used by `geoloupe serve`)."""
+    """Serve until interrupted (used by `geoloupe serve`). `prefix`: a path prefix to serve under
+    (default: from the environment, see base_path)."""
     from geoloupe.api.app import create_app
 
-    app = create_app(_catalog(catalog))
+    app: Any = create_app(_catalog(catalog))
+    p = base_path(prefix)
+    if p.strip("/"):
+        log.info("serving under the path prefix %s", p)
+        app = BasePath(app, p)
     uvicorn.run(app, host=host, port=port, log_level=log_level, timeout_keep_alive=30)
 
 

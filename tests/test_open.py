@@ -95,7 +95,7 @@ def test_serve_opens_remote_data_by_default_on_localhost(
 
     seen: dict[str, object] = {}
 
-    def fake_serve(cat, host: str, port: int, log_level: str) -> None:
+    def fake_serve(cat, host: str, port: int, log_level: str, prefix: str | None = None) -> None:
         seen["allow_open"] = cat.settings.allow_open
         seen["datasets"] = {d: e.config.storage_options for d, e in cat.datasets.items()}
 

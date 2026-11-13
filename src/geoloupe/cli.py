@@ -102,7 +102,7 @@ def cmd_serve(a: argparse.Namespace) -> int:
         print(
             f"  Remote machine? Tunnel first: ssh -N -L {a.port}:localhost:{a.port} <this host>\n"
         )
-    serve(cat, host=host, port=a.port, log_level=a.log_level)
+    serve(cat, host=host, port=a.port, log_level=a.log_level, prefix=getattr(a, "base_path", None))
     return 0
 
 
@@ -260,6 +260,12 @@ def cmd_overviews(a: argparse.Namespace) -> int:
 
 
 def _open_args(s: argparse.ArgumentParser) -> None:
+    s.add_argument(
+        "--base-path",
+        metavar="PATH",
+        help="serve under this URL path prefix, e.g. /geoloupe (default: $GEOLOUPE_BASE_PATH, or "
+        "$RENKU_BASE_URL_PATH in a RenkuLab session)",
+    )
     s.add_argument(
         "--allow-open",
         action="store_true",
