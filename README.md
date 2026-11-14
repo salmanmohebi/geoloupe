@@ -51,6 +51,7 @@ the internet.
 | Sentinel-2 L2A, 10 m: the 10 least cloudy scenes of August 2023 over the Western Alps | a STAC search of [Earth Search](https://element84.com/earth-search/) (Element84), COGs on AWS | one seamless mosaic in true colour, false colour (near infrared) or single bands, side by side |
 | ESA WorldCover 2021, 10 m, 45–48° N, 6–9° E | [ESA WorldCover](https://registry.opendata.aws/esa-worldcover-vito/) COG on AWS | 11 land-cover classes with names, colours and shares of the view |
 | GFDL-ESM4 climate model ocean (CMIP6 historical), monthly 1850–2014, on its native tripolar grid | [Pangeo CMIP6](https://pangeo-data.github.io/pangeo-cmip6-cloud/) Zarr on Google Cloud | a curvilinear model grid drawn as it is; difference of two months 165 years apart |
+| CHELSA V2.1, 30″ (about 1 km): July temperature 1981–2010 and 2071–2100 (SSP5-8.5), annual precipitation; CHELSA-CERRA daily temperature over Europe, 12 August 2003 | [CHELSA](https://www.chelsa-climate.org/) (WSL) COGs on SWITCH object storage | valleys and peaks at 1 km; the climate-change signal as an error pane, from the 1 km cells |
 | States and provinces, rivers, lakes (overlays) | [Natural Earth](https://www.naturalearthdata.com/) 1:10m GeoJSON | switch on in the layer panel; hover a region for its name next to the data value |
 | GHCN-Daily stations, 21 long records (Milan since 1763) | [NOAA NCEI](https://www.ncei.noaa.gov/products/land-based-station/global-historical-climatology-network-daily) CSV files | daily max/min temperature and precipitation; with *Point*, click a station for its whole record |
 
@@ -263,4 +264,5 @@ Gallery data: ERA5 © ECMWF / Copernicus Climate Change Service, ARCO-ERA5 by Go
 Copernicus DEM GLO-30 © DLR e.V. and Airbus Defence and Space GmbH, provided under COPERNICUS by the
 EU and ESA; Sentinel-2 contains modified Copernicus Sentinel data 2023, COGs by Element84; ESA
 WorldCover 2021 © ESA WorldCover project (CC BY 4.0); GHCN-Daily, NOAA NCEI (Menne et al. 2012);
+CHELSA V2.1 and CHELSA-CERRA, WSL (Karger et al. 2017, doi:10.1038/sdata.2017.122; CC0);
 Natural Earth (public domain).

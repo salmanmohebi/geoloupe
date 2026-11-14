@@ -9,8 +9,8 @@ title: GeoLoupe gallery
 description: >-
   Open Earth data, read live from public cloud archives: hourly weather since 1940 (ERA5),
   Sentinel-2 satellite images, a 30 m elevation model, ESA WorldCover land cover, NOAA
-  weather stations, a CMIP6 climate model's ocean on its own grid, and regions, rivers and lakes as
-  overlays. Nothing is copied in advance. Pick a view to start, or explore freely:
+  weather stations, a CMIP6 climate model's ocean on its own grid, CHELSA climate maps at 1 km, and
+  regions, rivers and lakes as overlays. Nothing is copied in advance. Pick a view to start, or explore freely:
   every map shows the values under the cursor, and with Point a click gives the time series.
 
 datasets:
@@ -101,6 +101,35 @@ datasets:
       tos: {title: Sea surface temperature (GFDL-ESM4 model), colormap: thermal, vmin: -2, vmax: 32, units: °C}
     attribution: GFDL-ESM4 CMIP6 historical r1i1p1f1 (Krasting et al. 2018, CC BY 4.0); Pangeo CMIP6 on Google Cloud
 
+  # CHELSA (WSL): km-scale climate data for the land surface, one Cloud-Optimized GeoTIFF per map
+  # (30″, about 1 km; uint16 with scale 0.1), from its public bucket on SWITCH. CC0 1.0.
+  chelsa-july:
+    title: CHELSA V2.1 July mean temperature, 1981–2010 (1 km)
+    description: Mean July air temperature of 1981–2010 at 30 arc seconds, downscaled from ERA5 with topography.
+    path: https://os.unil.cloud.switch.ch/chelsa02/chelsa/global/climatologies/tas/1981-2010/CHELSA_tas_07_1981-2010_V.2.1.tif
+    variable_name: tas
+    attribution: &chelsa CHELSA V2.1 (Karger et al. 2017, Sci. Data 4, 170122; data doi:10.16904/envidat.228, CC0)
+  chelsa-july-2085:
+    title: CHELSA V2.1 July mean temperature, 2071–2100, GFDL-ESM4 SSP5-8.5 (1 km)
+    description: The same climatology for 2071–2100 under the high-emission scenario SSP5-8.5, from the GFDL-ESM4 climate model.
+    path: https://os.unil.cloud.switch.ch/chelsa02/chelsa/global/climatologies/tas/2071-2100/GFDL-ESM4/ssp585/CHELSA_gfdl-esm4_r1i1p1f1_w5e5_ssp585_tas_07_2071-2100_V.2.1.tif
+    variable_name: tas
+    attribution: *chelsa
+  chelsa-rain:
+    title: CHELSA V2.1 annual precipitation, 1981–2010 (1 km)
+    description: Mean yearly precipitation sum of 1981–2010 (bioclimatic variable bio12).
+    path: https://os.unil.cloud.switch.ch/chelsa02/chelsa/global/bioclim/bio12/1981-2010/CHELSA_bio12_1981-2010_V.2.1.tif
+    variable_name: pr
+    styles:
+      pr: {title: Annual precipitation (CHELSA 1981–2010), units: mm/year, colormap: YlGnBu, vmin: 0, vmax: 2500}
+    attribution: *chelsa
+  chelsa-heat-2003:
+    title: CHELSA-CERRA daily mean temperature, 12 August 2003 (1 km, Europe)
+    description: One day of the 2003 heatwave, downscaled from the CERRA regional reanalysis.
+    path: https://os.unil.cloud.switch.ch/chelsa02/chelsa/europe/daily/tas/2003/CERRA/CHELSA_tas_12_08_2003_V.1.0.tif
+    variable_name: tas
+    attribution: CHELSAcerra-daily (Karger & Janzing 2025, doi:10.16904/envidat.703, CC0)
+
 layers:
   temperature:
     title: Air temperature at 2 m
@@ -150,6 +179,30 @@ layers:
     sources:
       - {dataset: dem, variable: elevation}
       - {dataset: era5, variable: geopotential_at_surface, time: "1940-01-01T00:00"}
+  july-1km:
+    title: July temperature 1981–2010 (CHELSA, 1 km)
+    units: °C
+    colormap: RdYlBu_r
+    vmin: 0
+    vmax: 30
+    sources:
+      - {dataset: chelsa-july, variable: tas, offset: -273.15}
+  july-1km-2085:
+    title: July temperature 2071–2100, SSP5-8.5 (CHELSA, 1 km)
+    units: °C
+    colormap: RdYlBu_r
+    vmin: 0
+    vmax: 30
+    sources:
+      - {dataset: chelsa-july-2085, variable: tas, offset: -273.15}
+  heat-2003:
+    title: Daily mean temperature, 12 August 2003 (CHELSA-CERRA, 1 km)
+    units: °C
+    colormap: RdYlBu_r
+    vmin: 10
+    vmax: 35
+    sources:
+      - {dataset: chelsa-heat-2003, variable: tas, offset: -273.15}
   false-colour:
     title: Sentinel-2 false colour (vegetation in red)
     rgb: true
@@ -318,6 +371,32 @@ views:
       - {layer: sea-temperature, time: "2014-08-16T12:00", colormap: thermal, vmin: -2, vmax: 32}
       - {error: {metric: bias, p_pane: 1, t_pane: 2}, vmin: -4, vmax: 4, colormap: RdBu_r}
       - {error: {metric: abs, p_pane: 1, t_pane: 2}, vmin: 0, vmax: 4, colormap: YlOrRd}
+  - title: July in the Alps at 1 km
+    description: CHELSA's mean July temperature of 1981–2010, about 1 km per cell. Warm valleys, cold peaks; zoom in to the Rhône valley or the Engadin.
+    layer: july-1km
+    center: [8.3, 46.4]
+    zoom: 7
+    vmin: 0
+    vmax: 25
+  - title: How much warmer will July be?
+    description: "July 2071–2100 under SSP5-8.5 (pane 1, CHELSA from the GFDL-ESM4 model) against 1981–2010 (pane 2); pane 3 is the change, computed from the 1 km cells. The pane box gives its mean over the view."
+    layer: july-1km-2085
+    center: [10, 47]
+    zoom: 4.6
+    layout: "3"
+    panes:
+      - {layer: july-1km}
+      - {error: {metric: bias, p_pane: 1, t_pane: 2}, vmin: -8, vmax: 8, colormap: RdBu_r}
+  - title: Rain shadows of the Alps
+    description: CHELSA's annual precipitation, 1981–2010. The dry inner valleys (Valais, Vinschgau) get a third of the rain of the wet southern slopes around Lake Maggiore.
+    layer: chelsa-rain:pr
+    center: [8.6, 46.3]
+    zoom: 7
+  - title: The 2003 heatwave at 1 km
+    description: Daily mean temperature on 12 August 2003, the hottest days of the heatwave in France, from CHELSA-CERRA.
+    layer: heat-2003
+    center: [3, 46.5]
+    zoom: 5
   - title: From 31 km to 30 m
     description: The Matterhorn in the Copernicus DEM. Zoom out to see ERA5's coarse orography take over outside the Alps.
     layer: elevation
