@@ -6,6 +6,18 @@ the configuration format; such changes are listed here).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-14
+
+### Added
+
+- Time stacks: one GeoTIFF per time step as one layer with a time axis, the times taken from the
+  file names through placeholders (`{YYYY}`, `{MM}`, `{DD}`, `{DOY}`, `{hh}`), e.g. CHELSA's daily
+  files `…/{YYYY}/CHELSA_tas_{DD}_{MM}_{YYYY}_V.2.1.tif`. The files are listed (local, s3://, or
+  S3-compatible stores over HTTPS), or their names are built from `time_range`. Only the needed
+  files and windows are read, at the internal overview level that fits the zoom; missing dates
+  show no data. Point series and exports of stacks are limited to `max_stack_steps` (366).
+- Gallery: the 2003 heatwave view is a time stack of CHELSA's daily maps (June–August 2003).
+
 ## [0.3.3] - 2026-11-14
 
 ### Added
@@ -185,7 +197,8 @@ First public version.
 - The gallery: ERA5, Copernicus DEM, Sentinel-2 (STAC), ESA WorldCover, a CMIP6 climate model ocean,
   NOAA stations and Natural Earth overlays, all read live from public archives.
 
-[Unreleased]: https://github.com/salmanmohebi/geoloupe/compare/v0.3.3...HEAD
+[Unreleased]: https://github.com/salmanmohebi/geoloupe/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/salmanmohebi/geoloupe/compare/v0.3.3...v0.4.0
 [0.3.3]: https://github.com/salmanmohebi/geoloupe/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/salmanmohebi/geoloupe/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/salmanmohebi/geoloupe/compare/v0.3.0...v0.3.1
