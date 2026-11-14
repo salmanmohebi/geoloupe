@@ -105,6 +105,31 @@ def test_nodata_scale_offset_and_decode(tmp_path: Path) -> None:
     assert point(cat.layer("tagged:tagged"), lon0, lat0, Selection.make(None))["value"] is None
 
 
+def test_internal_overviews_keep_scale_and_offset(tmp_path: Path) -> None:
+    # GDAL reports scale 1 / offset 0 for internal overviews (e.g. CHELSA: uint16 in 0.1 K steps,
+    # shown 10× too large when zoomed out): every level must give the same physical values.
+    data = _cog(tmp_path / "tas.tif", scale=0.1, offset=-5.0)
+    cat = _cat(tmp_path, chelsa={"path": "tas.tif"})
+    layer = cat.layer("chelsa:tas")
+    levels = layer.sources[0].levels
+    assert [lv.origin for lv in levels] == ["native", "overview", "overview", "overview"]
+    valid = data[0][data[0] != 0]
+    expected = valid.mean() * 0.1 - 5.0
+    for lv in levels:
+        v = np.asarray(lv.da.values, dtype=np.float64)
+        assert np.isnan(v[0, 0])  # nodata stays missing on every level
+        assert np.nanmean(v) == pytest.approx(expected, rel=0.01)
+        assert np.nanmax(v) <= valid.max() * 0.1 - 5.0 + 1e-3
+    # a low-zoom tile (read from the coarsest overview) has the same range as the data
+    eng = TileEngine(cat)
+    w, s, e, n = layer.bounds
+    res = eng.render(
+        layer, Tile(10, *lonlat_to_tile((w + e) / 2, (s + n) / 2, 10)), Selection.make(None)
+    )
+    assert res.contributions[0].level_index == 3
+    assert np.nanmedian(res.data) == pytest.approx(expected, rel=0.05)
+
+
 def test_multiband_names_become_band_values(tmp_path: Path) -> None:
     _cog(tmp_path / "rgbn.tif", bands=4, descriptions=["red", "green", "blue", "nir"])
     cat = _cat(tmp_path, img={"path": "rgbn.tif"})

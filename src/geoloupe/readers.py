@@ -417,9 +417,12 @@ def _open_geotiff(
     # in the server (each remote read waits for HTTP round trips). GDAL reads are thread-safe with
     # one handle per read; GDAL caches the headers of remote files, so reopening is cheap.
     kw.setdefault("lock", False)
-    da = rioxarray.open_rasterio(path, mask_and_scale=True, **kw)
+    overview = "overview_level" in kw
+    da = rioxarray.open_rasterio(path, mask_and_scale=not overview, **kw)
     if not isinstance(da, xr.DataArray):
         raise OpenError(f"{path} holds several subdatasets; open one of them")
+    if overview:
+        da = _decode_overview(da, path)
     desc = da.attrs.get("long_name")
     names = list(desc) if isinstance(desc, tuple | list) else [desc] if desc else []
     if "band" in da.dims and da.sizes["band"] == 1:
@@ -441,6 +444,26 @@ def _open_geotiff(
         ds[name].attrs["grid_mapping"] = "spatial_ref"
         ds["spatial_ref"] = xr.DataArray(0, attrs={"crs_wkt": crs.to_wkt()})
     return ds
+
+
+def _decode_overview(da: xr.DataArray, path: str) -> xr.DataArray:
+    """Nodata and scale/offset of an internal overview, taken from the full-resolution image.
+
+    GDAL reports scale 1 and offset 0 for internal overviews: the TIFF tags belong to the full
+    image only (CHELSA's 0.1 K steps were shown 10× too large when zoomed out). The overview is
+    opened without decoding, given the full image's packing, and decoded lazily by xarray.
+    """
+    import rasterio
+
+    with rasterio.open(path) as base:
+        scales, offsets = set(base.scales), set(base.offsets)
+    if len(scales) == 1 and len(offsets) == 1:  # as rioxarray: one packing for all bands
+        da.attrs["scale_factor"] = float(scales.pop())
+        da.attrs["add_offset"] = float(offsets.pop())
+    name = da.name or "band_data"
+    decoded = xr.decode_cf(da.to_dataset(name=name), decode_times=False)[name]
+    decoded.name = da.name
+    return decoded
 
 
 def _palette_flags(path: str) -> dict[str, Any]:
