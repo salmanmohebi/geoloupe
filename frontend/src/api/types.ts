@@ -191,6 +191,8 @@ export interface LayerMeta {
   times: string[] | null; // null for long regular axes: see time_axis
   time_axis?: TimeAxisCompact | null;
   time_step: string | null;
+  // most time steps per point series (time stacks read one file per step); null = no limit
+  series_limit?: number | null;
   dims: Record<string, (number | string)[]>;
   tile_size: number;
   minzoom: number;

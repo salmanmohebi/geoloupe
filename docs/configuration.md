@@ -14,6 +14,7 @@ datasets:                               # gridded data, opened with xarray
     description: …
     attribution: ERA5 © ECMWF / Copernicus   # shown in exports
     path: data/era5.zarr                # file, directory, glob ("data/*.nc"), list, or URL
+    # path: tif/{YYYY}/tas_{DD}_{MM}_{YYYY}.tif   # a time stack: one GeoTIFF per time step (see Notes)
     # levels: [a_30s.zarr, a_0p025.zarr, a_0p25.zarr]   # instead of `path`: the same data at several resolutions
     # mosaic: [N45E006.tif, N45E007.tif]                # instead of `path`: files that tile an area
     # stac:                             # instead of `path`: the files of a STAC search or item
@@ -149,6 +150,7 @@ settings:
   field_cache_cells: 4000000            # grids up to this size are read whole, once per time step
   field_cache_mb: 512                   #   and shared by all tiles (0 cells: off)
   max_timeseries_steps: 20000
+  max_stack_steps: 366                  # time stacks: most steps per point series or export
   max_export_mb: 512
   max_vector_mb: 60                     # GeoJSON size limit of one overlay
   cors_origins: ["*"]
@@ -180,6 +182,25 @@ settings:
 * **Mosaics.** `mosaic:` lists files that tile an area (DEM tiles, satellite granules); they become one
   layer `<dataset>:<variable_name>`, opened in parallel. A composite layer can use a mosaic like any
   dataset (`{dataset: dem, variable: elevation}`): it stands for all its files.
+* **Time stacks.** Many archives store one GeoTIFF per date (CHELSA, MODIS, many model outputs). A
+  `path` with time placeholders makes them one layer with a time axis:
+
+  ```yaml
+  chelsa-daily:
+    path: https://os.unil.cloud.switch.ch/chelsa02/chelsa/global/daily/tas/{YYYY}/CHELSA_tas_{DD}_{MM}_{YYYY}_V.2.1.tif
+    time_range: ["2003-06-01", "2003-08-31"]   # optional
+  ```
+
+  Placeholders: `{YYYY}` year, `{MM}` month, `{DD}` day, `{DOY}` day of the year (001–366), `{hh}`
+  hour; one may appear several times (the year above, in the folder and the file name). The same
+  works on the command line: `geoloupe serve "…/CHELSA_tas_{MM}_{YYYY}_V.2.1.tif"` (quote it). The
+  files are found by listing the folders: local folders, `s3://`, or S3-compatible stores over
+  HTTPS (as above). With both ends of `time_range`, the names are built instead, without listing;
+  dates without a file show no data. Only the first file is opened at start; each map, point value
+  or series opens only the files it needs, at the internal overview level that fits the zoom. All
+  files must have the first file's grid and a single band. Point series and exports read one file
+  per step, so they are limited to `max_stack_steps` steps (366 by default); the browser loads the
+  series around the current time.
 * **Curvilinear grids** (2-D longitude/latitude per cell: ocean models such as NEMO, ROMS, MOM and
   POP, WRF, CMIP6 native grids, satellite swaths) are detected from CF `standard_name`/`units` or
   common names (`nav_lon`, `XLONG`, `lon_rho`, …); `x` and `y` may name the 2-D longitude and

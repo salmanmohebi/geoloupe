@@ -163,6 +163,11 @@ def timeseries(
         idx = lv.time.range(start, end)
         if idx.size == 0:
             continue
+        if src.series_limit and idx.size > src.series_limit:
+            raise QueryError(
+                f"{idx.size} time steps requested from {src.id}, which reads one file per step; "
+                f"the limit is {src.series_limit}. Narrow the range."
+            )
         if idx.size > max_steps:
             raise QueryError(
                 f"{idx.size} time steps requested from {src.id}; the limit is {max_steps}. Narrow the range."
@@ -287,6 +292,11 @@ def export_subset(
             idx = lv.time.range(start, end)
             if idx.size == 0:
                 raise QueryError("no time steps in the requested range")
+            if source.series_limit and idx.size > source.series_limit:
+                raise QueryError(
+                    f"{idx.size} time steps from {source.id}, which reads one file per step; "
+                    f"the limit is {source.series_limit}. Narrow the range."
+                )
             isel[source.time_dim] = slice(int(idx.min()), int(idx.max()) + 1)
         else:
             t = time_index(lv, sel.time)

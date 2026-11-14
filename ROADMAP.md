@@ -108,6 +108,14 @@ copies for long series) follow in the next section.
 * Fixed: hover read tiles not yet on screen; overview edges drawn beyond the data; the badge of
   difference maps named only A.
 
+## Done in 0.4
+
+* Time stacks: one GeoTIFF per time step (CHELSA, MODIS, model output) as one layer with a time
+  axis, times from the file names (`{YYYY}`, `{MM}`, `{DD}`, `{DOY}`, `{hh}`); files listed (local,
+  s3://, S3-compatible HTTPS) or named from `time_range`; lazy reads of one file and window per
+  step, internal overviews as levels; point series and exports limited per request. Gallery: CHELSA
+  daily maps of summer 2003. Later, on request: STAC items as time steps, multi-band stacks.
+
 ## Next (short term: weeks)
 
 | Item | Why | Notes |

@@ -123,12 +123,15 @@ datasets:
     styles:
       pr: {title: Annual precipitation (CHELSA 1981–2010), units: mm/year, colormap: YlGnBu, vmin: 0, vmax: 2500}
     attribution: *chelsa
+  # A time stack: one file per day, the date from the file name (CHELSA writes DD_MM_YYYY). With both
+  # ends of time_range the 92 names are built, so nothing is listed at start.
   chelsa-heat-2003:
-    title: CHELSA-CERRA daily mean temperature, 12 August 2003 (1 km, Europe)
-    description: One day of the 2003 heatwave, downscaled from the CERRA regional reanalysis.
-    path: https://os.unil.cloud.switch.ch/chelsa02/chelsa/europe/daily/tas/2003/CERRA/CHELSA_tas_12_08_2003_V.1.0.tif
+    title: CHELSA V2.1 daily mean temperature, summer 2003 (1 km)
+    description: Every day of June–August 2003 at 30 arc seconds, one Cloud-Optimized GeoTIFF per day.
+    path: https://os.unil.cloud.switch.ch/chelsa02/chelsa/global/daily/tas/{YYYY}/CHELSA_tas_{DD}_{MM}_{YYYY}_V.2.1.tif
+    time_range: ["2003-06-01", "2003-08-31"]
     variable_name: tas
-    attribution: CHELSAcerra-daily (Karger & Janzing 2025, doi:10.16904/envidat.703, CC0)
+    attribution: *chelsa
 
 layers:
   temperature:
@@ -196,7 +199,7 @@ layers:
     sources:
       - {dataset: chelsa-july-2085, variable: tas, offset: -273.15}
   heat-2003:
-    title: Daily mean temperature, 12 August 2003 (CHELSA-CERRA, 1 km)
+    title: Daily mean temperature, summer 2003 (CHELSA, 1 km)
     units: °C
     colormap: RdYlBu_r
     vmin: 10
@@ -393,8 +396,9 @@ views:
     center: [8.6, 46.3]
     zoom: 7
   - title: The 2003 heatwave at 1 km
-    description: Daily mean temperature on 12 August 2003, the hottest days of the heatwave in France, from CHELSA-CERRA.
+    description: CHELSA's daily mean temperature on 12 August 2003, among the hottest days of the heatwave in France. Each day is one file; move the time slider or press play to go through June–August.
     layer: heat-2003
+    time: "2003-08-12"
     center: [3, 46.5]
     zoom: 5
   - title: From 31 km to 30 m

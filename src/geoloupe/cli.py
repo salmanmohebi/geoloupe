@@ -25,12 +25,15 @@ def config_for_paths(
     """
     extra = {"storage_options": dict(storage_options)} if storage_options else {}
     from geoloupe.points import looks_like_points
+    from geoloupe.stack import is_stack, stack_name
     from geoloupe.vectors import looks_like_vector
 
     raw: dict = {"datasets": {}, "points": {}, "vectors": {}}
     used: set[str] = set()
     for t in targets:
         base = Path(t.rstrip("/")).name.split(".")[0].replace(":", "-") or "data"
+        if is_stack(t):  # a time pattern: CHELSA_tas_{DD}_{MM}_{YYYY}_V.2.1.tif → CHELSA_tas_V
+            base = stack_name(t)
         name, k = base, 2
         while name in used:
             name, k = f"{base}-{k}", k + 1

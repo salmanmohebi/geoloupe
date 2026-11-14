@@ -167,6 +167,10 @@ def layer_json(
             for k, vals in layer.dims.items()
             if not all(k in dict(s.fixed_dims) for s in layer.sources)  # fixed (e.g. RGB bands)
         },
+        # most time steps per point series (time stacks read one file per step), or None
+        "series_limit": min(
+            (s.series_limit for s in layer.sources if s.series_limit), default=None
+        ),
         "tile_size": ts,
         "minzoom": 0,
         "maxzoom": int(min(22, max(0, np.ceil(native) + 1))),

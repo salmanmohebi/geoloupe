@@ -25,10 +25,10 @@ interface PaneAt {
   error: AppState["compare"] | null; // error panes: T and the definition (the layer is P)
 }
 
-function windowAround(tl: Timeline, current: string | null): [string, string] {
+function windowAround(tl: Timeline, current: string | null, n: number = WINDOW): [string, string] {
   const i = current ? tl.nearest(current) : tl.count - 1;
-  const lo = Math.max(0, Math.min(i - Math.floor(WINDOW / 2), tl.count - WINDOW));
-  return [tl.at(lo), tl.at(Math.min(tl.count - 1, lo + WINDOW - 1))];
+  const lo = Math.max(0, Math.min(i - Math.floor(n / 2), tl.count - n));
+  return [tl.at(lo), tl.at(Math.min(tl.count - 1, lo + n - 1))];
 }
 
 /** The series the map shows at the point: the first source (finest first) with any value. */
@@ -95,7 +95,11 @@ export function PaneValues({ inspect }: { inspect: Inspect }) {
   const layerIds = panes.map((p) => p.layer.id).join();
   const windows = useMemo(
     () =>
-      panes.map((p) => (timelineOf(p.layer).count > 1 ? windowAround(timelineOf(p.layer), p.time) : null)),
+      panes.map((p) =>
+        timelineOf(p.layer).count > 1
+          ? windowAround(timelineOf(p.layer), p.time, Math.min(WINDOW, p.layer.series_limit ?? WINDOW))
+          : null,
+      ),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- layerIds stands for the panes
     [inspect, layerIds],
   );

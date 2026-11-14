@@ -3,7 +3,7 @@
 
 import { useMemo, useState } from "react";
 import { api } from "../api/client";
-import type { PointResult, Series, TimeSeriesResult } from "../api/types";
+import type { LayerMeta, PointResult, Series, TimeSeriesResult } from "../api/types";
 import { fetchStationSeries, type StationSeries } from "../lib/points";
 import { fmt, fmtLonLat, unitLabel } from "../lib/format";
 import { paneIds } from "../lib/layout";
@@ -19,14 +19,24 @@ const WINDOW = 730; // time steps loaded around the current time
 const MAX_STEPS = 15_000; // below the server's max_timeseries_steps (20 000 by default)
 
 /** `range` on another timeline, at most MAX_STEPS of its steps, around `current`. */
-function limitWindow(tl: Timeline, range: string[], current: string | null): [string, string] | null {
+function limitWindow(
+  tl: Timeline,
+  range: string[],
+  current: string | null,
+  max: number = MAX_STEPS,
+): [string, string] | null {
   if (!tl.count) return null;
   const i0 = tl.nearest(range[0]);
   const i1 = tl.nearest(range[1]);
-  if (i1 - i0 < MAX_STEPS) return [range[0], range[1]];
+  if (i1 - i0 < max) return [range[0], range[1]];
   const c = current ? tl.nearest(current) : i1;
-  const lo = Math.max(i0, Math.min(c - MAX_STEPS / 2, i1 - MAX_STEPS + 1));
-  return [tl.at(lo), tl.at(Math.min(i1, lo + MAX_STEPS - 1))];
+  const lo = Math.max(i0, Math.min(c - Math.floor(max / 2), i1 - max + 1));
+  return [tl.at(lo), tl.at(Math.min(i1, lo + max - 1))];
+}
+
+/** Steps per series request: time stacks (one file per step) say how many they allow. */
+function stepLimit(layer: LayerMeta | null | undefined, n: number): number {
+  return Math.min(n, layer?.series_limit ?? n);
 }
 
 function windowAround(tl: Timeline, current: string | null, n: number): [string, string] | null {
@@ -181,7 +191,7 @@ export function Inspector() {
       layer
         ? full
           ? [timelineOf(layer).at(0), timelineOf(layer).at(timelineOf(layer).count - 1)]
-          : windowAround(timelineOf(layer), main.time, WINDOW)
+          : windowAround(timelineOf(layer), main.time, stepLimit(layer, WINDOW))
         : null,
     // the window is chosen when the point (or layer) changes, not on every time step
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -201,7 +211,10 @@ export function Inspector() {
 
   // error panes: T's series over the same window (cut around the current time when T has much
   // finer steps, e.g. hourly against monthly), and the error at the point over time
-  const rangeT = range && compare.layer ? limitWindow(timelineOf(compare.layer), range, compare.time) : null;
+  const rangeT =
+    range && compare.layer
+      ? limitWindow(timelineOf(compare.layer), range, compare.time, stepLimit(compare.layer, MAX_STEPS))
+      : null;
   const tsTKey =
     tsKey && pe?.e && compare.layerId && compare.layer && timelineOf(compare.layer).count > 1
       ? JSON.stringify([compare.layerId, inspect, rangeT, compare.dims])
@@ -407,7 +420,7 @@ export function Inspector() {
             />
           )}
           <div className="row gap">
-            {!full && timelineOf(layer).count > WINDOW && (
+            {!full && timelineOf(layer).count > WINDOW && !layer.series_limit && (
               <button
                 className="btn"
                 onClick={() => setFull(true)}

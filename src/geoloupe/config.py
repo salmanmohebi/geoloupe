@@ -120,6 +120,9 @@ class DatasetConfig(_Model):
     description: str | None = None
     attribution: str | None = None
     # Where the data is. Exactly one of `path` and `levels` is required.
+    # A path with time placeholders is a time stack, one file per time step, e.g.
+    # ".../{YYYY}/CHELSA_tas_{DD}_{MM}_{YYYY}_V.2.1.tif" ({YYYY} {MM} {DD} {DOY} {hh}). The files are
+    # listed; with both ends of time_range their names are built instead (no listing).
     path: str | list[str] | None = None
     # Alternative to `path`: the same data at several resolutions (any order),
     # e.g. existing 30 arcsec, 0.025° and 0.25° copies of one region.
@@ -301,6 +304,9 @@ class Settings(_Model):
     error_max_subpixels: int = 2048
     # Upper bound on time steps in one time-series request.
     max_timeseries_steps: int = 20_000
+    # Time stacks (one file per time step) read one file per step: point series and exports of a
+    # stack are limited to this many steps (a year of daily files).
+    max_stack_steps: int = 366
     # Upper bound on the uncompressed size of a NetCDF export.
     max_export_mb: int = 512
     # Upper bound on the GeoJSON size of one vector overlay.

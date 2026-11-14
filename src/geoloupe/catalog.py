@@ -26,7 +26,7 @@ from typing import Any
 import numpy as np
 import xarray as xr
 
-from geoloupe import stac
+from geoloupe import stac, stack
 from geoloupe.config import (
     Config,
     DatasetConfig,
@@ -87,6 +87,8 @@ class Source:
     # fixed selections, e.g. (("band", "4"),) for one channel of an RGB layer
     fixed_dims: tuple[tuple[str, str], ...] = ()
     fixed_time: str | None = None  # a time-dependent source shown as a static snapshot
+    # At most this many time steps per point series or export (time stacks: one file per step).
+    series_limit: int | None = None
 
     def time_for(self, requested: str | None) -> str | None:
         """The time to read: the fixed one, or the requested one."""
@@ -164,6 +166,7 @@ class Source:
             "time_step": None if self.time is None else self.time.step_label(),
             "calendar": None if self.time is None else self.time.calendar,
             "fixed_time": self.fixed_time,  # one time used for every map time (static fields)
+            "series_limit": self.series_limit,
             "transform": {"scale": self.scale, "offset": self.offset},
         }
 
@@ -439,15 +442,21 @@ class Catalog:
             ploc: str | list[str] = (
                 dcfg.path if isinstance(dcfg.path, list) else self.config.resolve(dcfg.path)
             )
-            maybe_zarr = isinstance(ploc, str) and (
-                dcfg.engine == "zarr" or (dcfg.engine == "auto" and _is_zarr(ploc))
+            stacked = isinstance(ploc, str) and stack.is_stack(ploc)
+            maybe_zarr = (
+                isinstance(ploc, str)
+                and not stacked
+                and (dcfg.engine == "zarr" or (dcfg.engine == "auto" and _is_zarr(ploc)))
             )
             groups = (
                 multiscale_groups(ploc, dcfg.storage_options)
                 if maybe_zarr and isinstance(ploc, str)
                 else None
             )
-            if groups:
+            if stacked:  # one file per time step
+                assert isinstance(ploc, str)
+                out.extend(stack.open_levels(ploc, dcfg.time_range, dcfg.storage_options))
+            elif groups:
                 for i, g in enumerate(groups):
                     out.append(
                         (
@@ -518,6 +527,7 @@ class Catalog:
             )
         sources: dict[str, Source] = {}
         axes: dict[tuple[Any, ...], TimeAxis] = {}  # one TimeAxis per distinct time coordinate
+        stacked = isinstance(dcfg.path, str) and stack.is_stack(self.config.resolve(dcfg.path))
         for var in names:
             da0 = base[var]
             dims = find_spatial_dims(da0, dcfg.x, dcfg.y)
@@ -626,6 +636,7 @@ class Catalog:
                 title,
                 scale=dec.scale if dec else 1.0,
                 offset=dec.offset if dec else 0.0,
+                series_limit=self.settings.max_stack_steps if stacked else None,
             )
         return sources
 
