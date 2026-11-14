@@ -6,6 +6,21 @@ the configuration format; such changes are listed here).
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-11-14
+
+### Added
+
+- Gallery: CHELSA climate data at 1 km, read from its public bucket (Cloud-Optimized GeoTIFFs):
+  July temperature in the Alps, the July warming by 2071–2100 under SSP5-8.5 as an error pane,
+  annual precipitation, and one day of the 2003 heatwave from CHELSA-CERRA.
+
+### Fixed
+
+- Internal overviews of GeoTIFFs with a scale or offset (e.g. CHELSA: integers in 0.1 K steps)
+  were shown without them, 10× too large when zoomed out; the colour range set at the start then
+  turned the map blue when zoomed in. GDAL reports the scale only for the full-resolution image:
+  overviews now take it from there.
+
 ## [0.3.2] - 2026-11-13
 
 ### Fixed
@@ -170,7 +185,8 @@ First public version.
 - The gallery: ERA5, Copernicus DEM, Sentinel-2 (STAC), ESA WorldCover, a CMIP6 climate model ocean,
   NOAA stations and Natural Earth overlays, all read live from public archives.
 
-[Unreleased]: https://github.com/salmanmohebi/geoloupe/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/salmanmohebi/geoloupe/compare/v0.3.3...HEAD
+[0.3.3]: https://github.com/salmanmohebi/geoloupe/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/salmanmohebi/geoloupe/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/salmanmohebi/geoloupe/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/salmanmohebi/geoloupe/compare/v0.2.0...v0.3.0
